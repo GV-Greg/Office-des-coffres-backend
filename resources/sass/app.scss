@@ -1,0 +1,120 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+@import '@fortawesome/fontawesome-free/scss/fontawesome.scss';
+@import '@fortawesome/fontawesome-free/scss/regular.scss';
+@import '@fortawesome/fontawesome-free/scss/solid.scss';
+@import '@fortawesome/fontawesome-free/scss/brands.scss';
+
+/* Styles page */
+
+h1 {
+    @apply font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-orange-400 to-red-600 align-middle;
+}
+
+h2 {
+    @apply text-center font-bold text-blue-600;
+}
+
+h3 {
+    @apply text-center font-bold text-blue-600;
+}
+
+h4 {
+    @apply mb-2 text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-br from-red-600 to-orange-400 align-middle;
+}
+
+/* Styles button */
+
+.btn {
+    @apply font-bold text-lg rounded px-3 text-white ring-4 ring-offset-4;
+}
+
+.btn-auth {
+    @apply font-bold text-lg rounded px-3 text-white bg-blue-600 hover:bg-blue-800 transform hover:translate-y-px hover:translate-x-px;
+}
+
+.btn-logout {
+    @apply font-bold text-lg rounded px-3 text-white bg-red-600 hover:bg-red-700 transform hover:translate-y-px hover:translate-x-px;
+}
+
+.btn-primary {
+    @apply bg-blue-500 ring-blue-500;
+}
+
+.btn-create {
+    @apply bg-green-500 ring-green-500 hover:bg-green-600 hover:ring-green-600;
+}
+
+.btn-close {
+    @apply bg-red-500 ring-red-500 hover:bg-red-600 hover:ring-red-600;
+}
+
+.btn-search {
+    @apply ml-2 font-bold text-lg rounded px-3 text-white bg-green-500;
+}
+
+.btn-show {
+    @apply font-bold text-lg px-1 md:px-3 text-blue-500;
+}
+
+.btn-edit {
+    @apply font-bold text-lg px-1 md:px-3 text-orange-500;
+}
+
+.btn-delete {
+    @apply font-bold text-lg px-1 md:px-3 text-red-500;
+}
+
+/* Styles form */
+
+.form-group {
+    @apply mb-3 flex flex-col;
+}
+
+.form-label {
+    @apply mb-1 uppercase font-bold text-blueGray-500;
+}
+
+.form-field {
+    @apply p-2 border border-blueGray-500 rounded-md placeholder:text-blueGray-400;
+}
+
+.form-select {
+    @apply py-2 pl-1 pr-9 border border-blueGray-500 rounded-md;
+}
+
+.form-field-crud {
+    @apply w-2/6 placeholder:text-blueGray-400;
+}
+
+.form-error {
+    @apply text-red-600 text-sm;
+}
+
+.is-invalid {
+    @apply border-red-500 border-2;
+}
+
+/* Styles table */
+
+table {
+    @apply w-full md:w-5/6;
+}
+
+table thead tr th {
+    @apply p-3 text-xs uppercase whitespace-nowrap font-extrabold text-left;
+}
+
+table thead {
+    @apply bg-gradient-to-br from-orange-400 to-red-600 text-orange-200;
+}
+
+table tbody tr th, table tbody tr td {
+    @apply px-3 py-2 align-middle border-b;
+}
+
+/* Modal */
+.overlay {
+    @apply w-full h-full fixed top-0 left-0 bg-blueGray-800 z-20;
+}
