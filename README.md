@@ -17,5 +17,5 @@ This project is a help site for players of the browser game "[Renaissance kingdo
 ### Instructions
 
 To Create your first admin user, in your .env files, insert this two variables :
-- **SEEDER_SUPER_ADMIN_EMAIL='your email '**
+- **SEEDER_SUPER_ADMIN_EMAIL='your email'**
 - **SEEDER_SUPER_ADMIN_PASSWORD='your password'**
