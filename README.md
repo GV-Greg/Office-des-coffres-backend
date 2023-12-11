@@ -11,22 +11,19 @@
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
 ### Packages used
 
 - **[Laravel Pint](https://github.com/laravel/pint)**
 - **[Laravel Lang](https://laravel-lang.com/)**
+- **[Laratrust](https://laratrust.santigarcor.me/)**
 - **[Larastan](https://github.com/nunomaduro/larastan)**
 - **[Pest](https://pestphp.com/)**
+
 - **[Sass](https://sass-lang.com/)**
 - **[Fontawesome](https://fontawesome.com/)**
 - **[Sweetalert2](https://sweetalert2.github.io/)**
+
+
+To Create your first admin user, in your .env files, insert this two variables :
+- **SEEDER_SUPER_ADMIN_EMAIL='<your email>'**
+- **SEEDER_SUPER_ADMIN_PASSWORD='<your password>'**
