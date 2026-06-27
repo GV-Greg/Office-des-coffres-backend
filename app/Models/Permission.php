@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Laratrust\Models\Permission as PermissionModel;
+use Spatie\Permission\Models\Permission as SpatiePermission;
 
-class Permission extends PermissionModel
+class Permission extends SpatiePermission
 {
     public $guarded = [];
 }
