@@ -1,0 +1,46 @@
+name: Deploy to O2Switch
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, pdo_mysql, bcmath, exif, pcntl
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Deploy to O2Switch
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_BACK_SERVER }}
+          username: ${{ secrets.FTP_BACK_USERNAME }}
+          password: ${{ secrets.FTP_BACK_PASSWORD }}
+          local-dir: ./
+          server-dir: /sites/odc/back/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/storage/logs/**
+            **/storage/framework/**
+            **/storage/app/**
+            .env
+            Dockerfile.dev
+            docker-entrypoint.sh
+            .docker/**
+            tests/**
