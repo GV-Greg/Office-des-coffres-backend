@@ -31,7 +31,7 @@ jobs:
           username: ${{ secrets.FTP_BACK_USERNAME }}
           password: ${{ secrets.FTP_BACK_PASSWORD }}
           local-dir: ./
-          server-dir: /sites/odc/back/
+          server-dir: /back/
           exclude: |
             **/.git*
             **/.git*/**
