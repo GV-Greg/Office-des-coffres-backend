@@ -36,16 +36,3 @@ jobs:
             .docker/**
             tests/**
 
-      - name: Install dependencies & clear caches via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            cd ~/sites/odc/back
-            composer install --no-dev --optimize-autoloader --no-interaction
-            php artisan config:clear
-            php artisan route:clear
-            php artisan view:clear
