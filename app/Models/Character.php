@@ -15,6 +15,8 @@ class Character extends Model
      *
      * @var array<string, string>
      */
+    protected $fillable = ['user_id', 'pseudo', 'city_id', 'is_validated'];
+
     protected $casts = [
         'is_validated' => 'boolean',
     ];

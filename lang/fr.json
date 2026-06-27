@@ -165,5 +165,15 @@
     "Regno delle Due Sicilie": "Royaume des Deux-Siciles",
     "Reino de Portugal": "Royaume du Portugal",
     "Serenissima Repubblica di Venezia": "Sérénissime république de Venise",
-    "Kalmar Union": "Union de Kalmar (Danemark, Finlande, Suède)"
+    "Kalmar Union": "Union de Kalmar (Danemark, Finlande, Suède)",
+
+    "Users without character": "Utilisateurs sans personnage",
+    "User deleted.": "Utilisateur supprimé.",
+    "Registered": "Inscription",
+    "Verified": "Vérifié",
+    "Yes": "Oui",
+    "No": "Non",
+    "Delete this user?": "Supprimer cet utilisateur ?",
+    "Delete": "Supprimer",
+    "No users without character.": "Aucun utilisateur sans personnage."
 }
