@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Laratrust\Models\Team as TeamModel;
+use Illuminate\Database\Eloquent\Model;
 
-class Team extends TeamModel
+class Team extends Model
 {
     public $guarded = [];
 }
