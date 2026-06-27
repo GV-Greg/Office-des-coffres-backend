@@ -42,7 +42,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 7822
+          port: 22
           script: |
             cd ~/sites/odc/back
             composer install --no-dev --optimize-autoloader --no-interaction
