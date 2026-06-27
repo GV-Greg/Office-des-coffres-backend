@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -31,5 +32,12 @@ class DashboardController extends Controller
         $users = User::doesntHave('Characters')->orderBy('id','ASC')->paginate(14);
 
         return view('users', compact('users'));
+    }
+
+    public function destroyUser(User $user): RedirectResponse
+    {
+        $user->delete();
+
+        return redirect()->route('users')->with('status', 'user-deleted');
     }
 }
