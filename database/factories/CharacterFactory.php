@@ -22,7 +22,7 @@ class CharacterFactory extends Factory
             'user_id' => User::factory(),
             'pseudo' => fake()->userName,
             'is_validated' => fake()->boolean,
-            'city_id' => fake()->boolean(50) ? City::orderByRaw('RAND()')->first()->id : null,
+            'city_id' => fake()->boolean(50) ? City::inRandomOrder()->first()?->id : null,
         ];
     }
 }
