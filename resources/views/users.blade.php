@@ -35,15 +35,10 @@
                                         @endif
                                     </td>
                                     <td class="py-2 text-right">
-                                        <form method="POST" action="{{ route('users.destroy', $user) }}"
-                                              onsubmit="return confirm('{{ __('Delete this user?') }}')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                    class="px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs uppercase font-bold">
-                                                {{ __('Delete') }}
-                                            </button>
-                                        </form>
+                                        <a href="{{ route('users.destroy', $user) }}" data-confirm-delete
+                                           class="inline-block px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs uppercase font-bold cursor-pointer">
+                                            {{ __('Delete') }}
+                                        </a>
                                     </td>
                                 </tr>
                             @empty
