@@ -19,21 +19,19 @@
             </div>
         @endif
 
-        <div class="mt-4 flex items-center justify-between">
-            <form method="POST" action="{{ route('verification.send') }}">
+        <div class="mt-4 flex items-stretch gap-3">
+            <form method="POST" action="{{ route('verification.send') }}" class="flex-1">
                 @csrf
 
-                <div>
-                    <x-button>
-                        {{ __('Resend Verification Email') }}
-                    </x-button>
-                </div>
+                <button type="submit" class="w-full h-full px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold text-center focus:outline-none">
+                    {{ __('Resend Verification Email') }}
+                </button>
             </form>
 
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" class="flex-1">
                 @csrf
 
-                <button type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+                <button type="submit" class="w-full h-full px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-bold text-center focus:outline-none">
                     {{ __('Log Out') }}
                 </button>
             </form>
