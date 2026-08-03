@@ -81,6 +81,18 @@ test('un utilisateur peut se connecter avec son pseudo', function () {
              ->assertJsonPath('user.is_validated', true);
 });
 
+test('le login échoue si le personnage n\'est pas validé', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'EnAttente', 'is_validated' => false, 'city_id' => null]);
+
+    $this->postJson('/api/v1/auth/login', [
+        'username' => 'EnAttente',
+        'password' => 'password123',
+    ])->assertStatus(403)
+      ->assertJsonPath('success', false)
+      ->assertJsonPath('message', 'Compte non validé.');
+});
+
 test('le login échoue avec un mauvais mot de passe', function () {
     $user = User::factory()->create(['password' => bcrypt('password123')]);
     Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Buldo', 'city_id' => null]);

@@ -64,6 +64,10 @@ class AuthController extends BaseController
             return $this->sendError('Identifiants incorrects.', [], 401);
         }
 
+        if (! $character->is_validated) {
+            return $this->sendError('Compte non validé.', [], 403);
+        }
+
         $user->tokens()->delete();
         $token = $user->createToken('api-token')->plainTextToken;
 
