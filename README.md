@@ -30,9 +30,11 @@ Dépôt frontend : [Office-des-coffres-vuejs](https://github.com/GV-Greg/Office-
 app/
 ├── Http/
 │   ├── Controllers/
+│   │   ├── Api/
+│   │   │   └── AuthController.php       # API REST : register, login, logout, me
 │   │   ├── Auth/               # Authentification Breeze (Blade)
 │   │   ├── Web/
-│   │   │   └── DashboardController.php  # Dashboard admin + liste utilisateurs
+│   │   │   └── DashboardController.php  # Dashboard admin (personnages) + liste utilisateurs + validation
 │   │   └── ProfileController.php
 │   └── Middleware/
 ├── Models/
@@ -77,18 +79,30 @@ php artisan view:clear
 
 ### Développement local
 
+Via Docker (`docker-compose.dev.yml` à la racine du workspace, conteneurs `odc-backend` +
+`odc-db`) — PHP/Composer ne sont généralement pas installés sur l'hôte :
+
 ```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-npm install && npm run dev
-php artisan serve
+docker compose -f ../docker-compose.dev.yml up -d db backend
+docker exec odc-backend composer install
+docker exec odc-backend cp .env.example .env
+docker exec odc-backend php artisan key:generate
+docker exec odc-backend php artisan migrate
+```
+
+Les assets Vite (`resources/js`, `resources/sass`) doivent être compilés **depuis l'hôte**
+(Node n'est pas installé dans le conteneur `odc-backend`) :
+
+```bash
+npm install
+npm run build   # ou npm run dev pour le live-reload — nécessite Node sur l'hôte
 ```
 
 ---
 
 ## Variables d'environnement (`.env`)
+
+Copier `.env.example` et renseigner les valeurs :
 
 ```
 APP_KEY=
@@ -96,16 +110,22 @@ DB_DATABASE=
 DB_USERNAME=
 DB_PASSWORD=
 
-MAIL_MAILER=smtp
+MAIL_MAILER=
 MAIL_HOST=
-MAIL_PORT=465
+MAIL_PORT=
 MAIL_USERNAME=
 MAIL_PASSWORD=
 MAIL_FROM_ADDRESS=
 
 SEEDER_SUPER_ADMIN_EMAIL=
 SEEDER_SUPER_ADMIN_PASSWORD=
+
+SWEET_ALERT_ALWAYS_LOAD_JS=true
 ```
+
+`SWEET_ALERT_ALWAYS_LOAD_JS` : le package `realrashid/sweet-alert` ne charge son JS que si
+un flash de session (`alert.config`/`alert.delete`) est présent — à `true`, il est chargé sur
+toute page, nécessaire pour les popups de confirmation Valider/Invalider du dashboard.
 
 ---
 
@@ -118,18 +138,30 @@ Préfixe : `/api/v1/`
 | POST | `/auth/register` | Non | Inscription |
 | POST | `/auth/login` | Non | Connexion |
 | POST | `/auth/logout` | Oui | Déconnexion |
-| GET | `/auth/user` | Oui | Profil utilisateur |
+| GET | `/auth/me` | Oui | Profil utilisateur |
 
 ---
 
 ## Routes admin (Blade)
 
-| Méthode | Route | Description |
-|---|---|---|
-| GET | `/dashboard` | Tableau de bord (personnages) |
-| GET | `/users` | Utilisateurs sans personnage |
-| DELETE | `/users/{user}` | Supprimer un utilisateur |
-| GET/PATCH | `/profile` | Profil de l'admin connecté |
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| GET | `/dashboard` | rôle `admin` | Tableau de bord (personnages, valider/invalider) |
+| GET | `/users` | rôle `admin` | Utilisateurs sans personnage |
+| DELETE | `/users/{user}` | rôle `admin` | Supprimer un utilisateur |
+| PATCH | `/characters/{character}/validate` | rôle `admin` | Bascule `is_validated` |
+| GET/PATCH | `/profile` | connecté | Profil de l'admin connecté |
+
+`dashboard`, `users`, `users.destroy` et `characters.validate` nécessitent le rôle Spatie
+`admin` (middleware `role:admin`) en plus de `auth`+`verified`. Pour attribuer ce rôle à un
+compte :
+```bash
+docker exec odc-backend php artisan tinker --execute="
+\App\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+\App\Models\User::where('email', 'ton@email.com')->first()->assignRole('admin');
+"
+```
+`UserSeeder` l'attribue automatiquement au compte `SEEDER_SUPER_ADMIN_EMAIL`.
 
 ---
 
@@ -147,9 +179,25 @@ Préfixe : `/api/v1/`
 
 ---
 
+## Tests
+
+```bash
+docker exec odc-backend php artisan test                         # Tous les tests (Pest)
+docker exec odc-backend php artisan test --filter AuthTest       # Tests API auth uniquement
+docker exec odc-backend ./vendor/bin/pint --test                 # Vérifier le style (sans corriger)
+docker exec odc-backend ./vendor/bin/pint                        # Corriger le style
+```
+
+Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
+
+41 tests verts au 03/08/2026 (`Api/AuthTest`, `Auth/*`, `DashboardTest`, `ProfileTest`, `Unit/ExampleTest`).
+
+---
+
 ## Conventions
 
 - Ne jamais committer les credentials — utiliser `.env`
 - Backend en français uniquement — ajouter les traductions dans `lang/fr.json` au fil du développement
+- Tests Pest obligatoires pour chaque nouvelle fonctionnalité, avant commit
 - Branches : `feat/<nom>`, `fix/<nom>`, `chore/<nom>` — jamais directement sur `master`
 - Commits et push uniquement à la demande explicite
