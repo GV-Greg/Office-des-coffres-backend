@@ -84,11 +84,18 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
 ## Gestion des utilisateurs (admin)
 
 Tout vit dans `Web\DashboardController` + `users.blade.php` :
-- Liste = uniquement les users **sans** personnage (`doesntHave('Characters')`), paginée (14).
+- **Depuis le 03/08/2026** : liste **tous** les users (avant : uniquement ceux sans personnage),
+  paginée (14), avec recherche (`?search=`) par email OU pseudo du personnage
+  (`orWhereHas('characters', ...)`), `withQueryString()` pour garder le filtre à travers la
+  pagination.
+- Colonnes affichées : `id`, `email`, **personnage** (pseudo + badge validé/en attente, ou
+  "Aucun personnage"), date d'inscription, badge email vérifié.
 - Suppression = hard delete (pas de soft delete), cascade sur `characters` via FK.
 - Pas d'édition d'un autre user, pas de reset de mot de passe admin, pas de gestion de rôles
-  (un seul rôle existe), pas de recherche/filtre.
-- Colonnes affichées : `id`, `email`, date d'inscription, badge email vérifié.
+  (un seul rôle existe).
+- Tests : `tests/Feature/DashboardTest.php` (13 tests au total, dont 7 dédiés à `/users` — la
+  route n'avait auparavant **aucune couverture** malgré la roadmap l'indiquant testée, même
+  écart doc/réalité que celui trouvé sur `ProfilView.vue` côté frontend).
 
 ## Gestion des personnages
 
@@ -105,7 +112,7 @@ Tout vit dans `Web\DashboardController` + `users.blade.php` :
 
 ## Tests
 
-`docker exec odc-backend php artisan test` — **42/42 verts** (Pest). `CharacterFactory` utilise
+`docker exec odc-backend php artisan test` — **49/49 verts** (Pest). `CharacterFactory` utilise
 `RAND()` MySQL pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
 (incompatible SQLite/CI).
 
