@@ -1,44 +1,35 @@
 <?php
 
-use App\Models\Character;
+use App\Models\City;
 use App\Models\User;
+use App\Notifications\VerifyApiEmail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\URL;
 
 // --- Register ---
 
-test('un utilisateur peut s\'inscrire', function () {
+test('un utilisateur peut créer un compte', function () {
+    Notification::fake();
+
     $response = $this->postJson('/api/v1/auth/register', [
-        'username'     => 'Artifice',
         'email'        => 'artifice@test.com',
         'password'     => 'password123',
         'confirmation' => 'password123',
     ]);
 
-    $response->assertStatus(201)
-             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'pseudo', 'is_validated']])
-             ->assertJsonPath('success', true)
-             ->assertJsonPath('user.pseudo', 'Artifice')
-             ->assertJsonPath('user.is_validated', false);
+    $response->assertStatus(201)->assertJsonPath('success', true);
 
-    $this->assertDatabaseHas('users', ['email' => 'artifice@test.com']);
-    $this->assertDatabaseHas('characters', ['pseudo' => 'Artifice', 'is_validated' => false]);
-});
+    $user = User::where('email', 'artifice@test.com')->first();
+    expect($user)->not->toBeNull();
+    expect($user->hasVerifiedEmail())->toBeFalse();
 
-test('l\'inscription échoue si le pseudo est déjà pris', function () {
-    Character::factory()->create(['pseudo' => 'Artifice']);
-
-    $this->postJson('/api/v1/auth/register', [
-        'username'     => 'Artifice',
-        'email'        => 'autre@test.com',
-        'password'     => 'password123',
-        'confirmation' => 'password123',
-    ])->assertStatus(422)->assertJsonPath('errors.username.0', fn ($msg) => str_contains($msg, 'déjà'));
+    Notification::assertSentTo($user, VerifyApiEmail::class);
 });
 
 test('l\'inscription échoue si l\'email est déjà utilisé', function () {
     User::factory()->create(['email' => 'pris@test.com']);
 
     $this->postJson('/api/v1/auth/register', [
-        'username'     => 'Nouveau',
         'email'        => 'pris@test.com',
         'password'     => 'password123',
         'confirmation' => 'password123',
@@ -47,7 +38,6 @@ test('l\'inscription échoue si l\'email est déjà utilisé', function () {
 
 test('l\'inscription échoue si la confirmation ne correspond pas', function () {
     $this->postJson('/api/v1/auth/register', [
-        'username'     => 'TestUser',
         'email'        => 'test@test.com',
         'password'     => 'password123',
         'confirmation' => 'different',
@@ -56,72 +46,158 @@ test('l\'inscription échoue si la confirmation ne correspond pas', function () 
 
 test('l\'inscription échoue si le mot de passe est trop court', function () {
     $this->postJson('/api/v1/auth/register', [
-        'username'     => 'TestUser',
         'email'        => 'test@test.com',
         'password'     => 'court',
         'confirmation' => 'court',
     ])->assertStatus(422)->assertJsonValidationErrors(['password']);
 });
 
+// --- Verify email ---
+
+function signedVerifyUrl(User $user): string
+{
+    return URL::temporarySignedRoute('verification.verify.api', now()->addMinutes(60), [
+        'id'   => $user->id,
+        'hash' => sha1($user->getEmailForVerification()),
+    ]);
+}
+
+test('le lien de vérification confirme l\'email et connecte automatiquement', function () {
+    $user = User::factory()->unverified()->create();
+
+    $response = $this->get(signedVerifyUrl($user));
+
+    $response->assertRedirect();
+    expect($response->headers->get('Location'))->toStartWith(config('app.frontend_url') . '/verify-email?token=');
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+test('un lien de vérification avec un hash incorrect redirige avec une erreur', function () {
+    $user = User::factory()->unverified()->create();
+
+    // Signature Laravel valide, mais hash ne correspondant pas à l'email du user
+    // (simule un lien altéré/pour un autre compte) : doit être rejeté par le contrôleur,
+    // pas seulement par le middleware `signed`.
+    $url = URL::temporarySignedRoute('verification.verify.api', now()->addMinutes(60), [
+        'id'   => $user->id,
+        'hash' => sha1('autre-email@test.com'),
+    ]);
+
+    $response = $this->get($url);
+
+    $response->assertRedirect(config('app.frontend_url') . '/verify-email?error=invalid');
+    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+test('un lien de vérification altéré (signature invalide) est rejeté', function () {
+    $user = User::factory()->unverified()->create();
+
+    $this->get('/api/v1/auth/verify-email/' . $user->id . '/wronghash?expires=9999999999&signature=invalid')
+        ->assertForbidden();
+
+    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
+});
+
+test('on peut redemander un email de vérification', function () {
+    Notification::fake();
+    $user = User::factory()->unverified()->create();
+
+    $this->postJson('/api/v1/auth/resend-verification', ['email' => $user->email])
+        ->assertOk()->assertJsonPath('success', true);
+
+    Notification::assertSentTo($user, VerifyApiEmail::class);
+});
+
+test('redemander un email pour un compte déjà vérifié ne renvoie rien', function () {
+    Notification::fake();
+    $user = User::factory()->create(); // vérifié par défaut
+
+    $this->postJson('/api/v1/auth/resend-verification', ['email' => $user->email])
+        ->assertOk()->assertJsonPath('success', true);
+
+    Notification::assertNothingSent();
+});
+
 // --- Login ---
 
-test('un utilisateur peut se connecter avec son pseudo', function () {
-    $user      = User::factory()->create(['password' => bcrypt('password123')]);
-    $character = Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Buldo', 'is_validated' => true, 'city_id' => null]);
+test('un utilisateur peut se connecter avec son email', function () {
+    $user = User::factory()->create(['email' => 'artifice@test.com', 'password' => bcrypt('password123')]);
 
     $response = $this->postJson('/api/v1/auth/login', [
-        'username' => 'Buldo',
+        'email'    => 'artifice@test.com',
         'password' => 'password123',
     ]);
 
     $response->assertOk()
-             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'pseudo', 'is_validated']])
+             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'characters']])
              ->assertJsonPath('success', true)
-             ->assertJsonPath('user.pseudo', 'Buldo')
-             ->assertJsonPath('user.is_validated', true);
+             ->assertJsonPath('user.email', 'artifice@test.com');
 });
 
-test('le login échoue si le personnage n\'est pas validé', function () {
-    $user = User::factory()->create(['password' => bcrypt('password123')]);
-    Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'EnAttente', 'is_validated' => false, 'city_id' => null]);
+test('le login échoue si l\'email n\'est pas vérifié', function () {
+    $user = User::factory()->unverified()->create(['password' => bcrypt('password123')]);
 
     $this->postJson('/api/v1/auth/login', [
-        'username' => 'EnAttente',
+        'email'    => $user->email,
         'password' => 'password123',
     ])->assertStatus(403)
       ->assertJsonPath('success', false)
-      ->assertJsonPath('message', 'Compte non validé.');
+      ->assertJsonPath('message', 'Email non vérifié.');
 });
 
 test('le login échoue avec un mauvais mot de passe', function () {
     $user = User::factory()->create(['password' => bcrypt('password123')]);
-    Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Buldo', 'city_id' => null]);
 
     $this->postJson('/api/v1/auth/login', [
-        'username' => 'Buldo',
+        'email'    => $user->email,
         'password' => 'mauvais',
     ])->assertStatus(401)->assertJsonPath('success', false);
 });
 
-test('le login échoue avec un pseudo inconnu', function () {
+test('le login échoue avec un email inconnu', function () {
     $this->postJson('/api/v1/auth/login', [
-        'username' => 'InexistantXYZ',
+        'email'    => 'inconnu@test.com',
         'password' => 'password123',
     ])->assertStatus(401)->assertJsonPath('success', false);
 });
 
+test('la connexion retourne la liste des personnages du compte', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    $city = City::factory()->create();
+    $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => true]);
+    $user->characters()->create(['pseudo' => 'Buldo', 'city_id' => $city->id, 'is_validated' => false]);
+
+    $response = $this->postJson('/api/v1/auth/login', [
+        'email'    => $user->email,
+        'password' => 'password123',
+    ]);
+
+    $response->assertOk();
+    expect($response->json('user.characters'))->toHaveCount(2);
+});
+
 // --- Me ---
 
-test('un utilisateur authentifié peut récupérer son profil', function () {
-    $user      = User::factory()->create();
-    $character = Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Artifice', 'is_validated' => false, 'city_id' => null]);
+test('un utilisateur authentifié peut récupérer son profil avec ses personnages', function () {
+    $user = User::factory()->create();
+    $city = City::factory()->create();
+    $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => false]);
 
     $this->actingAs($user, 'sanctum')
          ->getJson('/api/v1/auth/me')
          ->assertOk()
          ->assertJsonPath('success', true)
-         ->assertJsonPath('user.pseudo', 'Artifice')
-         ->assertJsonPath('user.is_validated', false);
+         ->assertJsonPath('user.email', $user->email)
+         ->assertJsonPath('user.characters.0.pseudo', 'Artifice');
+});
+
+test('/me retourne une liste vide si le compte n\'a pas encore de personnage', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user, 'sanctum')
+         ->getJson('/api/v1/auth/me')
+         ->assertOk()
+         ->assertJsonPath('user.characters', []);
 });
 
 test('/me retourne 401 sans token', function () {

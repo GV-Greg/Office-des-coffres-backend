@@ -8,15 +8,17 @@ Deux usages distincts cohabitent dans ce repo :
 1. **API REST** (`/api/v1/*`, Sanctum) — consommée par le frontend Vue, utilisateurs publics du jeu.
 2. **Admin Blade** (`web.php`) — panneau d'administration de Greg, session-based (`web` guard).
 
-Ces deux mondes ne se croisent jamais : les comptes créés via l'API n'ont pas d'email vérifié et
-ne passent jamais par le flow Breeze ; les comptes Blade admin n'ont pas de `Character`.
+Ces deux mondes ont chacun leur propre flux de vérification d'email, indépendants l'un de
+l'autre : Breeze/Blade (session, `verification.verify`) pour les comptes admin, et un second
+flux API (`verification.verify.api`, voir plus bas) pour les comptes joueurs, ajouté le
+03/08/2026. Les comptes Blade admin n'ont pas de `Character`.
 
 ## Modèles & relations
 
 | Modèle | Table | Champs notables | Relations |
 |---|---|---|---|
-| `User` | `users` | `email`, `password` (pas de `name`) | `hasMany(Character)` |
-| `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (nullable), `is_validated` (bool, défaut `false`) | `belongsTo(User)`, `belongsTo(City)` |
+| `User` | `users` | `email`, `password` (pas de `name`) | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** depuis le 03/08/2026 (la relation existait déjà en base, seul le code supposait "un seul") |
+| `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création depuis le 03/08/2026), `is_validated` (bool, défaut `false`) | `belongsTo(User)`, `belongsTo(City)` |
 | `Kingdom` | `rk_kingdoms` | `kingdom_name` | `hasMany(Province)` |
 | `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
 | `City` | `rk_cities` | `city_name`, `is_capital` | `belongsTo(Province)`, `hasMany(Character)` ⚠️ bug : FK déclarée `'user_id'` au lieu de `'city_id'` — relation cassée, non utilisée actuellement |
@@ -45,10 +47,15 @@ Pas de table `sessions`/`cache` (drivers `file`).
 |---|---|---|---|
 | POST | `auth/register` | `Api\AuthController@register` | public |
 | POST | `auth/login` | `Api\AuthController@login` | public |
+| POST | `auth/resend-verification` | `Api\AuthController@resendVerification` | public, `throttle:6,1` |
+| GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) |
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:sanctum` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:sanctum` |
+| GET | `characters` | `Api\CharacterController@index` | `auth:sanctum` |
+| POST | `characters` | `Api\CharacterController@store` | `auth:sanctum` |
+| GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
 
-Pas d'autre endpoint API (pas de CRUD personnage, pas d'endpoint carte/royaume).
+Tout ajouté le 03/08/2026 sauf `register`/`login`/`logout`/`me` (Phase 1).
 
 ### `routes/web.php` (admin Blade)
 
@@ -65,12 +72,20 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
 
 ## Contrôleurs
 
-- `Api\AuthController` — cycle de vie complet API : `register` (crée `User` + `Character` en un
-  seul appel, `is_validated=false`), `login` (par **pseudo**, pas email), `logout`, `me`.
+- `Api\AuthController` — `register` (crée uniquement le `User`, envoie l'email de vérification),
+  `verifyEmail` (valide le lien signé, marque l'email vérifié, émet un token, **redirige vers
+  `FRONTEND_URL`**), `resendVerification`, `login` (par **email**, pas pseudo — changé le
+  03/08/2026, bloque avec 403 "Email non vérifié." si `! hasVerifiedEmail()`), `logout`, `me`.
+  `login`/`me` renvoient `user.characters` (liste, pas un pseudo/statut unique).
+- `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
+  ville obligatoires), `index` (liste les personnages du compte connecté).
+- `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
+  pagination (~300 villes, volume géré en un seul payload pour un sélecteur cascade côté front).
 - `Web\DashboardController` — `index` (liste personnages paginée, eager-load
-  `user`/`city.province.kingdom`), `toggleValidation`, `users` (liste des users **sans**
-  personnage), `destroyUser`.
+  `user`/`city.province.kingdom`), `toggleValidation`, `users` (liste **tous** les users, avec
+  recherche), `destroyUser`.
 - `Web\MapController` — **mort** : vue `map.list` référencée mais inexistante (roadmap Phase 6).
+  Sans lien avec `Api\MapController` (nouveau, actif, JSON).
 - `ProfileController` + `Auth/*` — scaffolding Breeze, non modifié.
 
 ## Middleware & rôles
@@ -97,24 +112,47 @@ Tout vit dans `Web\DashboardController` + `users.blade.php` :
   route n'avait auparavant **aucune couverture** malgré la roadmap l'indiquant testée, même
   écart doc/réalité que celui trouvé sur `ProfilView.vue` côté frontend).
 
-## Gestion des personnages
+## Inscription / vérification d'email (comptes joueurs) — refonte du 03/08/2026
 
-- Création **uniquement** via `POST /api/v1/auth/register` (bundlée avec la création du `User`).
-  Pas d'endpoint pour ajouter un 2e personnage ou changer de ville après coup.
-- Login **bloque désormais si `is_validated=false`** (403, message `'Compte non validé.'`) —
-  ajouté le 03/08/2026, avant cette date le login était autorisé indépendamment du statut.
-  Le token émis à l'inscription reste valide (`register` n'est pas concerné par ce blocage) :
-  un joueur qui vient de s'inscrire reste connecté et peut voir son statut "en attente" sur
-  `/app/profil`, mais s'il se déconnecte avant validation, il ne peut plus se reconnecter tant
-  que Greg ne l'a pas validé depuis le dashboard.
-- Validation admin = simple toggle bool (`PATCH characters/{id}/validate`), pas d'historique.
-- `city_id` jamais renseigné à l'inscription — assignation hors-flux (DB directe) si besoin.
+Le flux a changé en profondeur : avant, `register()` créait `User`+`Character` en un seul appel,
+sans jamais vérifier l'email (le `Registered` event n'était pas déclenché côté API). Nouveau
+flux en 3 étapes, décidé avec Greg :
+
+1. **`POST /api/v1/auth/register`** — email + password + confirmation uniquement. Crée le
+   `User`, envoie `App\Notifications\VerifyApiEmail` (sous-classe de
+   `Illuminate\Auth\Notifications\VerifyEmail`, texte 100% français, lien signé vers
+   `verification.verify.api` au lieu de la route Blade). Pas de token émis à ce stade.
+2. **Clic sur le lien** → `GET auth/verify-email/{id}/{hash}` (signé, sans session) → contrôleur
+   vérifie `hash_equals(sha1($user->getEmailForVerification()), $hash)`, marque
+   `markEmailAsVerified()`, émet un token Sanctum, **redirige (302)** vers
+   `config('app.frontend_url') . '/verify-email?token=...'` (ou `?error=invalid`). Connexion
+   automatique côté frontend à ce stade (décision Greg : pas de renvoi vers un formulaire de
+   login après confirmation).
+3. Une fois connecté, le joueur est invité à créer un ou plusieurs personnages via
+   `POST /api/v1/characters` (pseudo + `city_id` obligatoires, `is_validated=false`).
+
+**`login()` bloque désormais sur l'email non vérifié** (403, "Email non vérifié.") — remplace
+l'ancien blocage par personnage non validé (n'avait plus de sens dès qu'un compte peut avoir
+plusieurs personnages). La validation **par personnage** (`characters.validate`, dashboard admin)
+reste inchangée et continue d'exister indépendamment — elle ne bloque plus la connexion, juste
+l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à affiner au fil du
+développement des modules).
+
+**`FRONTEND_URL`** — nouvelle clé `.env`/`config('app.frontend_url')`, nécessaire pour construire
+l'URL de redirection post-vérification (n'existait pas avant, le backend n'avait jamais eu besoin
+de connaître l'URL du frontend).
+
+**Pas de migration des comptes déjà inscrits avant ce changement** — décision explicite de Greg
+(reprise à 0), aucun code de compatibilité ascendante à prévoir.
 
 ## Tests
 
-`docker exec odc-backend php artisan test` — **49/49 verts** (Pest). `CharacterFactory` utilise
+`docker exec odc-backend php artisan test` — **65/65 verts** (Pest). `CharacterFactory` utilise
 `RAND()` MySQL pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
-(incompatible SQLite/CI).
+(incompatible SQLite/CI). Nouvelles factories `KingdomFactory`/`ProvinceFactory`/`CityFactory`
+(modèles `Kingdom`/`Province`/`City` n'avaient pas `HasFactory` avant le 03/08/2026). Tester un
+lien signé : construire l'URL directement avec `URL::temporarySignedRoute('verification.verify.api', ...)`
+dans le test plutôt que parser le contenu de l'email (voir `AuthTest.php`).
 
 ## Contraintes projet
 

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseController;
-use App\Models\Character;
 use App\Models\User;
+use App\Notifications\VerifyApiEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends BaseController
@@ -14,7 +15,6 @@ class AuthController extends BaseController
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'username'     => ['required', 'string', 'max:190', 'unique:characters,pseudo'],
             'email'        => ['required', 'email', 'max:190', 'unique:users,email'],
             'password'     => ['required', 'string', 'min:8', 'max:190'],
             'confirmation' => ['required', 'string', 'same:password'],
@@ -25,47 +25,65 @@ class AuthController extends BaseController
             'password' => Hash::make($validated['password']),
         ]);
 
-        Character::create([
-            'user_id'      => $user->id,
-            'pseudo'       => $validated['username'],
-            'is_validated' => false,
-        ]);
-
-        $token = $user->createToken('api-token')->plainTextToken;
+        $user->notify(new VerifyApiEmail());
 
         return response()->json([
             'success' => true,
-            'token'   => $token,
-            'user'    => [
-                'id'           => $user->id,
-                'email'        => $user->email,
-                'pseudo'       => $validated['username'],
-                'is_validated' => false,
-            ],
+            'message' => 'Compte créé. Vérifiez votre boîte mail pour confirmer votre adresse.',
         ], 201);
+    }
+
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        // Ne pas révéler si l'email existe ou non : même réponse dans tous les cas.
+        if ($user && ! $user->hasVerifiedEmail()) {
+            $user->notify(new VerifyApiEmail());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Si un compte non vérifié existe pour cet email, un nouveau lien vient d'être envoyé.",
+        ]);
+    }
+
+    public function verifyEmail(Request $request, int $id, string $hash): RedirectResponse
+    {
+        $user = User::find($id);
+
+        if (! $user || ! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+            return redirect(config('app.frontend_url') . '/verify-email?error=invalid');
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
+
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        return redirect(config('app.frontend_url') . '/verify-email?token=' . $token);
     }
 
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'username' => ['required', 'string'],
+            'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $character = Character::where('pseudo', $request->username)->first();
+        $user = User::where('email', $request->email)->first();
 
-        if (! $character) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return $this->sendError('Identifiants incorrects.', [], 401);
         }
 
-        $user = $character->user;
-
-        if (! Hash::check($request->password, $user->password)) {
-            return $this->sendError('Identifiants incorrects.', [], 401);
-        }
-
-        if (! $character->is_validated) {
-            return $this->sendError('Compte non validé.', [], 403);
+        if (! $user->hasVerifiedEmail()) {
+            return $this->sendError('Email non vérifié.', [], 403);
         }
 
         $user->tokens()->delete();
@@ -74,12 +92,7 @@ class AuthController extends BaseController
         return response()->json([
             'success' => true,
             'token'   => $token,
-            'user'    => [
-                'id'           => $user->id,
-                'email'        => $user->email,
-                'pseudo'       => $character->pseudo,
-                'is_validated' => $character->is_validated,
-            ],
+            'user'    => $this->userPayload($user),
         ]);
     }
 
@@ -95,17 +108,23 @@ class AuthController extends BaseController
 
     public function me(Request $request): JsonResponse
     {
-        $user      = $request->user();
-        $character = $user->characters()->first();
-
         return response()->json([
             'success' => true,
-            'user'    => [
-                'id'           => $user->id,
-                'email'        => $user->email,
-                'pseudo'       => $character?->pseudo,
-                'is_validated' => $character?->is_validated ?? false,
-            ],
+            'user'    => $this->userPayload($request->user()),
         ]);
+    }
+
+    private function userPayload(User $user): array
+    {
+        return [
+            'id'         => $user->id,
+            'email'      => $user->email,
+            'characters' => $user->characters->map(fn ($character) => [
+                'id'           => $character->id,
+                'pseudo'       => $character->pseudo,
+                'city_id'      => $character->city_id,
+                'is_validated' => $character->is_validated,
+            ]),
+        ];
     }
 }

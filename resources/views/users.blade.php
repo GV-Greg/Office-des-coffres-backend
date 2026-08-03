@@ -39,27 +39,28 @@
                         </thead>
                         <tbody>
                             @forelse($users as $user)
-                                @php($character = $user->characters->first())
                                 <tr class="border-b border-gray-100 dark:border-gray-600">
                                     <td class="py-2 hidden md:table-cell">{{ $user->id }}</td>
                                     <td class="py-2 font-bold">{{ $user->email }}</td>
                                     <td class="py-2">
-                                        @if($character)
-                                            {{ $character->pseudo }}
-                                            @if($character->is_validated)
-                                                <span class="ml-1 px-2 py-1 rounded bg-green-500 text-white text-xs uppercase font-bold whitespace-nowrap">
-                                                    <i class="fa-solid fa-circle-check"></i>
-                                                    {{ __('Validated') }}
-                                                </span>
-                                            @else
-                                                <span class="ml-1 px-2 py-1 rounded bg-red-500 text-white text-xs uppercase font-bold whitespace-nowrap">
-                                                    <i class="fa-solid fa-clock"></i>
-                                                    {{ __('Not validated') }}
-                                                </span>
-                                            @endif
-                                        @else
+                                        @forelse($user->characters as $character)
+                                            <div class="flex items-center gap-1 whitespace-nowrap {{ !$loop->last ? 'mb-1' : '' }}">
+                                                {{ $character->pseudo }}
+                                                @if($character->is_validated)
+                                                    <span class="px-2 py-1 rounded bg-green-500 text-white text-xs uppercase font-bold whitespace-nowrap">
+                                                        <i class="fa-solid fa-circle-check"></i>
+                                                        {{ __('Validated') }}
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-1 rounded bg-red-500 text-white text-xs uppercase font-bold whitespace-nowrap">
+                                                        <i class="fa-solid fa-clock"></i>
+                                                        {{ __('Not validated') }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @empty
                                             <span class="text-gray-400 italic">{{ __('No character') }}</span>
-                                        @endif
+                                        @endforelse
                                     </td>
                                     <td class="py-2 hidden md:table-cell">{{ $user->created_at->format('j M Y') }}</td>
                                     <td class="py-2 text-right">

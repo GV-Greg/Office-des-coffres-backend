@@ -94,6 +94,19 @@ test('admin sees all users, including those with a validated character', functio
     $response->assertSee('Buldo');
 });
 
+test('admin sees all characters of a user with multiple characters', function () {
+    $admin = actingAsAdmin();
+    $user = User::factory()->create(['email' => 'multi@test.com']);
+    Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Artifice', 'is_validated' => true, 'city_id' => null]);
+    Character::factory()->create(['user_id' => $user->id, 'pseudo' => 'Buldo', 'is_validated' => false, 'city_id' => null]);
+
+    $response = $this->actingAs($admin)->get('/users');
+
+    $response->assertOk();
+    $response->assertSee('Artifice');
+    $response->assertSee('Buldo');
+});
+
 test('admin can search users by email', function () {
     $admin = actingAsAdmin();
     User::factory()->create(['email' => 'trouvemoi@test.com']);
