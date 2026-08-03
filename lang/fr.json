@@ -175,5 +175,15 @@
     "No": "Non",
     "Delete this user?": "Supprimer cet utilisateur ?",
     "Delete": "Supprimer",
-    "No users without character.": "Aucun utilisateur sans personnage."
+    "No users without character.": "Aucun utilisateur sans personnage.",
+
+    "City": "Ville",
+    "No character yet.": "Aucun personnage pour l'instant.",
+    "Character validated.": "Personnage validé.",
+    "Character invalidated.": "Personnage invalidé.",
+    "Validate": "Valider",
+    "Invalidate": "Invalider",
+    "Validate this character?": "Valider ce personnage ?",
+    "Invalidate this character?": "Invalider ce personnage ?",
+    "Yes, delete it!": "Oui, supprimer !"
 }

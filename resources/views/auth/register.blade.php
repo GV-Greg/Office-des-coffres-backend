@@ -41,7 +41,7 @@
             </div>
 
             <div class="form-group mt-4">
-                <x-button class="py-2">
+                <x-button class="btn-blue py-2">
                     {{ __('Register') }}
                 </x-button>
             </div>
