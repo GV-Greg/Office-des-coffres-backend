@@ -26,7 +26,10 @@ class DashboardController extends Controller
 
     public function toggleValidation(Character $character): RedirectResponse
     {
-        $character->update(['is_validated' => ! $character->is_validated]);
+        $character->update([
+            'is_validated'             => ! $character->is_validated,
+            'pending_residence_change' => false,
+        ]);
 
         return redirect()->route('dashboard')
             ->with('status', $character->is_validated ? 'character-validated' : 'character-invalidated');

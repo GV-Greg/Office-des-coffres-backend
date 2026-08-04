@@ -21,6 +21,18 @@ fi
 echo "Running migrations..."
 php artisan migrate --force --no-interaction
 
+KINGDOM_COUNT=$(php artisan tinker --execute="echo \App\Models\Kingdom::count();" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+if [ -z "$KINGDOM_COUNT" ] || [ "$KINGDOM_COUNT" = "0" ]; then
+    echo "Map data empty, seeding..."
+    php artisan db:seed --class=Database\\Seeders\\MapSeeder --force
+fi
+
+USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | grep -oE '[0-9]+' | tail -1)
+if [ -z "$USER_COUNT" ] || [ "$USER_COUNT" = "0" ]; then
+    echo "No users, seeding..."
+    php artisan db:seed --class=Database\\Seeders\\UserSeeder --force
+fi
+
 echo "Publishing Spatie Permission config..."
 php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider" 2>/dev/null || true
 

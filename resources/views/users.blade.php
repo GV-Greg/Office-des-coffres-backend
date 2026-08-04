@@ -32,7 +32,8 @@
                             <tr class="border-b border-gray-200 dark:border-gray-600 text-left">
                                 <th class="py-2 hidden md:table-cell">#</th>
                                 <th class="py-2">{{ __('Email') }}</th>
-                                <th class="py-2">{{ __('Character') }}</th>
+                                <th class="py-2">{{ __('Verified') }}</th>
+                                <th class="py-2">{{ __('Character(s)') }}</th>
                                 <th class="py-2 hidden md:table-cell">{{ __('Registered') }}</th>
                                 <th class="py-2"></th>
                             </tr>
@@ -43,9 +44,22 @@
                                     <td class="py-2 hidden md:table-cell">{{ $user->id }}</td>
                                     <td class="py-2 font-bold">{{ $user->email }}</td>
                                     <td class="py-2">
+                                        @if($user->hasVerifiedEmail())
+                                            <span class="px-2 py-1 rounded bg-green-500 text-white text-xs uppercase font-bold whitespace-nowrap">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                {{ __('Verified') }}
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-1 rounded bg-red-500 text-white text-xs uppercase font-bold whitespace-nowrap">
+                                                <i class="fa-solid fa-clock"></i>
+                                                {{ __('Not verified') }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2">
                                         @forelse($user->characters as $character)
-                                            <div class="flex items-center gap-1 whitespace-nowrap {{ !$loop->last ? 'mb-1' : '' }}">
-                                                {{ $character->pseudo }}
+                                            <div class="flex items-center gap-2 whitespace-nowrap {{ !$loop->last ? 'mb-1' : '' }}">
+                                                <span>{{ $character->pseudo }}</span>
                                                 @if($character->is_validated)
                                                     <span class="px-2 py-1 rounded bg-green-500 text-white text-xs uppercase font-bold whitespace-nowrap">
                                                         <i class="fa-solid fa-circle-check"></i>
@@ -72,7 +86,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="py-6 text-center text-gray-500">
+                                    <td colspan="6" class="py-6 text-center text-gray-500">
                                         {{ $search !== '' ? __('No users match your search.') : __('No users found.') }}
                                     </td>
                                 </tr>

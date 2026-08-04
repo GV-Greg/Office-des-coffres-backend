@@ -29,6 +29,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('characters',  [CharacterController::class, 'index']);
         Route::post('characters', [CharacterController::class, 'store']);
+        Route::patch('characters/{character}', [CharacterController::class, 'update']);
     });
 
 });

@@ -119,11 +119,15 @@ class AuthController extends BaseController
         return [
             'id'         => $user->id,
             'email'      => $user->email,
-            'characters' => $user->characters->map(fn ($character) => [
-                'id'           => $character->id,
-                'pseudo'       => $character->pseudo,
-                'city_id'      => $character->city_id,
-                'is_validated' => $character->is_validated,
+            'characters' => $user->characters->load('city.province.kingdom')->map(fn ($character) => [
+                'id'            => $character->id,
+                'pseudo'        => $character->pseudo,
+                'city_id'       => $character->city_id,
+                'city_name'     => $character->city?->city_name,
+                'province_name' => $character->city?->province?->province_name,
+                'kingdom_name'  => $character->city?->province?->kingdom?->kingdom_name,
+                'is_validated'  => $character->is_validated,
+                'pending_residence_change' => $character->pending_residence_change,
             ]),
         ];
     }

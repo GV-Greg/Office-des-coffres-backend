@@ -45,6 +45,15 @@ test('admin can validate a character', function () {
     expect($character->fresh()->is_validated)->toBeTrue();
 });
 
+test('validating a character clears the pending residence change flag', function () {
+    $admin = actingAsAdmin();
+    $character = Character::factory()->create(['is_validated' => false, 'pending_residence_change' => true]);
+
+    $this->actingAs($admin)->patch(route('characters.validate', $character));
+
+    expect($character->fresh()->pending_residence_change)->toBeFalse();
+});
+
 test('admin can invalidate a character', function () {
     $admin = actingAsAdmin();
     $character = Character::factory()->create(['is_validated' => true]);
@@ -105,6 +114,18 @@ test('admin sees all characters of a user with multiple characters', function ()
     $response->assertOk();
     $response->assertSee('Artifice');
     $response->assertSee('Buldo');
+});
+
+test('admin sees the email verification status of each user', function () {
+    $admin = actingAsAdmin();
+    $verified = User::factory()->create(['email' => 'verifie@test.com']);
+    $unverified = User::factory()->unverified()->create(['email' => 'nonverifie@test.com']);
+
+    $response = $this->actingAs($admin)->get('/users');
+
+    $response->assertOk();
+    $response->assertSeeInOrder(['verifie@test.com', 'Vérifié']);
+    $response->assertSeeInOrder(['nonverifie@test.com', 'Non vérifié']);
 });
 
 test('admin can search users by email', function () {

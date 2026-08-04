@@ -15,10 +15,11 @@ class Character extends Model
      *
      * @var array<string, string>
      */
-    protected $fillable = ['user_id', 'pseudo', 'city_id', 'is_validated'];
+    protected $fillable = ['user_id', 'pseudo', 'city_id', 'is_validated', 'pending_residence_change'];
 
     protected $casts = [
         'is_validated' => 'boolean',
+        'pending_residence_change' => 'boolean',
     ];
 
     /**
