@@ -31,15 +31,20 @@ app/
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Api/
-│   │   │   └── AuthController.php       # API REST : register, login, logout, me
+│   │   │   ├── AuthController.php       # API REST : register, login, logout, me, resend-verification, verify-email
+│   │   │   ├── CharacterController.php  # API REST : liste/création de personnages du compte connecté
+│   │   │   └── MapController.php        # API REST : arbre royaumes → provinces → villes (public)
 │   │   ├── Auth/               # Authentification Breeze (Blade)
 │   │   ├── Web/
 │   │   │   └── DashboardController.php  # Dashboard admin (personnages) + liste utilisateurs + validation
 │   │   └── ProfileController.php
 │   └── Middleware/
+├── Notifications/
+│   └── VerifyApiEmail.php      # Email de vérification (compte joueur), lien signé vers verify-email API
 ├── Models/
-│   ├── User.php                # HasRoles (Spatie) + HasApiTokens (Sanctum)
-│   ├── Character.php
+│   ├── User.php                # HasRoles (Spatie) + HasApiTokens (Sanctum) + MustVerifyEmail, hasMany(Character)
+│   ├── Character.php           # belongsTo(User), belongsTo(City)
+│   ├── Kingdom.php / Province.php / City.php
 │   └── ...
 
 resources/views/
@@ -47,7 +52,7 @@ resources/views/
 ├── layouts/                    # app.blade.php, navigation, sidebar
 ├── components/                 # Composants Blade réutilisables
 ├── dashboard.blade.php         # Tableau de bord (personnages)
-├── users.blade.php             # Utilisateurs sans personnage
+├── users.blade.php             # Tous les comptes, recherche par email/pseudo
 └── profile/                   # Édition du profil
 
 lang/
@@ -117,6 +122,8 @@ MAIL_USERNAME=
 MAIL_PASSWORD=
 MAIL_FROM_ADDRESS=
 
+FRONTEND_URL=
+
 SEEDER_SUPER_ADMIN_EMAIL=
 SEEDER_SUPER_ADMIN_PASSWORD=
 
@@ -127,6 +134,14 @@ SWEET_ALERT_ALWAYS_LOAD_JS=true
 un flash de session (`alert.config`/`alert.delete`) est présent — à `true`, il est chargé sur
 toute page, nécessaire pour les popups de confirmation Valider/Invalider du dashboard.
 
+`FRONTEND_URL` : URL du frontend Vue, utilisée par `AuthController::verifyEmail()` pour
+rediriger après validation du lien de vérification signé (`?token=...` ou `?error=invalid`).
+En local : `http://localhost:5001`.
+
+En local (`.env` de dev), `MAIL_MAILER=log` : les emails (dont celui de vérification) ne
+sont pas réellement envoyés, ils sont écrits dans `storage/logs/laravel.log` — récupérer le
+lien signé `verify-email` depuis ce fichier pour tester le flux de bout en bout sans SMTP.
+
 ---
 
 ## Routes API
@@ -135,10 +150,19 @@ Préfixe : `/api/v1/`
 
 | Méthode | Route | Auth | Description |
 |---|---|---|---|
-| POST | `/auth/register` | Non | Inscription |
-| POST | `/auth/login` | Non | Connexion |
+| POST | `/auth/register` | Non | Inscription (email + mot de passe uniquement, envoie l'email de vérification) |
+| POST | `/auth/login` | Non | Connexion par email — bloque (403) si l'email n'est pas vérifié |
+| POST | `/auth/resend-verification` | Non | Renvoie l'email de vérification (`throttle:6,1`) |
+| GET | `/auth/verify-email/{id}/{hash}` | Signé | Valide le lien reçu par email, émet un token, redirige vers `FRONTEND_URL` |
 | POST | `/auth/logout` | Oui | Déconnexion |
-| GET | `/auth/me` | Oui | Profil utilisateur |
+| GET | `/auth/me` | Oui | Profil utilisateur (avec la liste de ses personnages) |
+| GET | `/characters` | Oui | Liste des personnages du compte connecté |
+| POST | `/characters` | Oui | Crée un personnage (pseudo + ville obligatoires) |
+| GET | `/map` | Non | Arbre royaumes → provinces → villes (sélecteur de ville) |
+
+Un compte peut avoir plusieurs personnages, chacun validé individuellement via le dashboard
+admin (`characters.validate`) — la connexion n'est plus bloquée par un personnage non validé,
+seul l'email doit être vérifié.
 
 ---
 
@@ -147,7 +171,7 @@ Préfixe : `/api/v1/`
 | Méthode | Route | Auth | Description |
 |---|---|---|---|
 | GET | `/dashboard` | rôle `admin` | Tableau de bord (personnages, valider/invalider) |
-| GET | `/users` | rôle `admin` | Utilisateurs sans personnage |
+| GET | `/users` | rôle `admin` | Tous les comptes, recherche par email ou pseudo de personnage |
 | DELETE | `/users/{user}` | rôle `admin` | Supprimer un utilisateur |
 | PATCH | `/characters/{character}/validate` | rôle `admin` | Bascule `is_validated` |
 | GET/PATCH | `/profile` | connecté | Profil de l'admin connecté |
@@ -172,8 +196,8 @@ docker exec odc-backend php artisan tinker --execute="
 | Table | Description |
 |---|---|
 | `users` | Comptes utilisateurs |
-| `characters` | Personnages liés aux utilisateurs |
-| `kingdoms` / `provinces` / `cities` | Géographie du jeu |
+| `characters` | Personnages liés aux utilisateurs (`city_id` obligatoire à la création) |
+| `rk_kingdoms` / `rk_provinces` / `rk_cities` | Géographie du jeu (seedées via `MapSeeder`) |
 | `roles` / `permissions` | RBAC Spatie |
 | `model_has_roles` / `model_has_permissions` / `role_has_permissions` | Pivots Spatie |
 
@@ -190,7 +214,8 @@ docker exec odc-backend ./vendor/bin/pint                        # Corriger le s
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
 
-41 tests verts au 03/08/2026 (`Api/AuthTest`, `Auth/*`, `DashboardTest`, `ProfileTest`, `Unit/ExampleTest`).
+65/65 tests verts au 03/08/2026 : `Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
+`Feature/Auth/*` (Breeze), `Feature/{DashboardTest,ProfileTest}`, `Unit/ExampleTest`.
 
 ---
 

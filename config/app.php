@@ -60,6 +60,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | Base URL du frontend Vue (SPA), utilisée pour rediriger les liens de
+    | vérification d'email (signés côté API) vers une page frontend après
+    | validation.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:5001'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

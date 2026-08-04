@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -25,7 +26,10 @@ class DashboardController extends Controller
 
     public function toggleValidation(Character $character): RedirectResponse
     {
-        $character->update(['is_validated' => ! $character->is_validated]);
+        $character->update([
+            'is_validated'             => ! $character->is_validated,
+            'pending_residence_change' => false,
+        ]);
 
         return redirect()->route('dashboard')
             ->with('status', $character->is_validated ? 'character-validated' : 'character-invalidated');
@@ -34,9 +38,18 @@ class DashboardController extends Controller
     /**
      * @return Factory|Application|View|\Illuminate\Contracts\Foundation\Application
      */
-    public function users()
+    public function users(Request $request)
     {
-        $users = User::doesntHave('Characters')->orderBy('id', 'ASC')->paginate(14);
+        $search = trim((string) $request->query('search', ''));
+
+        $users = User::with('characters')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('email', 'like', "%{$search}%")
+                    ->orWhereHas('characters', fn ($q) => $q->where('pseudo', 'like', "%{$search}%"));
+            })
+            ->orderBy('id', 'ASC')
+            ->paginate(14)
+            ->withQueryString();
 
         config([
             'sweetalert.confirm_delete_confirm_button_text' => __('Yes, delete it!'),
@@ -44,7 +57,7 @@ class DashboardController extends Controller
         ]);
         confirmDelete(__('Delete this user?'));
 
-        return view('users', compact('users'));
+        return view('users', ['users' => $users, 'search' => $search]);
     }
 
     public function destroyUser(User $user): RedirectResponse
