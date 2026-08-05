@@ -156,8 +156,9 @@ Préfixe : `/api/v1/`
 | GET | `/auth/verify-email/{id}/{hash}` | Signé | Valide le lien reçu par email, émet un token, redirige vers `FRONTEND_URL` |
 | POST | `/auth/logout` | Oui | Déconnexion |
 | GET | `/auth/me` | Oui | Profil utilisateur (avec la liste de ses personnages) |
-| GET | `/characters` | Oui | Liste des personnages du compte connecté |
+| GET | `/characters` | Oui | Liste des personnages du compte connecté (avec ville/province/royaume) |
 | POST | `/characters` | Oui | Crée un personnage (pseudo + ville obligatoires) |
+| PATCH | `/characters/{id}` | Oui | Change la ville d'un personnage (le sien uniquement, 404 sinon) — repasse `is_validated` à `false` et `pending_residence_change` à `true` |
 | GET | `/map` | Non | Arbre royaumes → provinces → villes (sélecteur de ville) |
 
 Un compte peut avoir plusieurs personnages, chacun validé individuellement via le dashboard
@@ -171,7 +172,7 @@ seul l'email doit être vérifié.
 | Méthode | Route | Auth | Description |
 |---|---|---|---|
 | GET | `/dashboard` | rôle `admin` | Tableau de bord (personnages, valider/invalider) |
-| GET | `/users` | rôle `admin` | Tous les comptes, recherche par email ou pseudo de personnage |
+| GET | `/users` | rôle `admin` | Tous les comptes, recherche par email ou pseudo de personnage, colonnes email vérifié + personnage(s) |
 | DELETE | `/users/{user}` | rôle `admin` | Supprimer un utilisateur |
 | PATCH | `/characters/{character}/validate` | rôle `admin` | Bascule `is_validated` |
 | GET/PATCH | `/profile` | connecté | Profil de l'admin connecté |
@@ -196,7 +197,7 @@ docker exec odc-backend php artisan tinker --execute="
 | Table | Description |
 |---|---|
 | `users` | Comptes utilisateurs |
-| `characters` | Personnages liés aux utilisateurs (`city_id` obligatoire à la création) |
+| `characters` | Personnages liés aux utilisateurs (`city_id` obligatoire à la création, `pending_residence_change` distingue "en attente : nouveau" de "en attente : changement de résidence") |
 | `rk_kingdoms` / `rk_provinces` / `rk_cities` | Géographie du jeu (seedées via `MapSeeder`) |
 | `roles` / `permissions` | RBAC Spatie |
 | `model_has_roles` / `model_has_permissions` / `role_has_permissions` | Pivots Spatie |
@@ -214,7 +215,7 @@ docker exec odc-backend ./vendor/bin/pint                        # Corriger le s
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
 
-65/65 tests verts au 03/08/2026 : `Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
+72/72 tests verts au 05/08/2026 : `Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
 `Feature/Auth/*` (Breeze), `Feature/{DashboardTest,ProfileTest}`, `Unit/ExampleTest`.
 
 ---
