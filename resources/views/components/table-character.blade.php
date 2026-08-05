@@ -6,7 +6,7 @@
     <td class="py-2 hidden md:table-cell">{{ $character->user->email }}</td>
     <td class="py-2 hidden md:table-cell">
         @if($character->city)
-            {{ $character->city->province->kingdom->kingdom_name }}
+            {{ __($character->city->province->kingdom->kingdom_name) }}
         @endif
     </td>
     <td class="py-2 hidden md:table-cell">

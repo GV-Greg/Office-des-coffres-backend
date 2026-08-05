@@ -37,13 +37,5 @@ class UserSeeder extends Seeder
                 'is_validated' => 1,
                 'city_id' => 71,
             ]);
-
-        User::factory(10)->create();
-
-        User::factory(15)
-            ->has(
-                Character::factory(),
-            )
-            ->create();
     }
 }

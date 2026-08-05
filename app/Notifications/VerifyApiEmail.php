@@ -33,6 +33,7 @@ class VerifyApiEmail extends VerifyEmail
             ->line("Merci de vous être inscrit sur l'Office des coffres.")
             ->action('Confirmer mon email', $url)
             ->line('Ce lien expire dans 60 minutes.')
-            ->line("Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer cet email.");
+            ->line("Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer cet email.")
+            ->salutation("Cordialement,\nOffice des coffres");
     }
 }
