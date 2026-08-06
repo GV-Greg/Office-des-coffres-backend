@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Notifications\VerifyApiEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Spatie\Permission\Models\Role;
 
 // --- Register ---
 
@@ -129,9 +130,21 @@ test('un utilisateur peut se connecter avec son email', function () {
     ]);
 
     $response->assertOk()
-             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'characters']])
+             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'is_admin', 'characters']])
              ->assertJsonPath('success', true)
-             ->assertJsonPath('user.email', 'artifice@test.com');
+             ->assertJsonPath('user.email', 'artifice@test.com')
+             ->assertJsonPath('user.is_admin', false);
+});
+
+test('la connexion indique is_admin=true pour un compte avec le rôle admin', function () {
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    $user->assignRole('admin');
+
+    $this->postJson('/api/v1/auth/login', [
+        'email'    => $user->email,
+        'password' => 'password123',
+    ])->assertOk()->assertJsonPath('user.is_admin', true);
 });
 
 test('le login échoue si l\'email n\'est pas vérifié', function () {
@@ -188,6 +201,7 @@ test('un utilisateur authentifié peut récupérer son profil avec ses personnag
          ->assertOk()
          ->assertJsonPath('success', true)
          ->assertJsonPath('user.email', $user->email)
+         ->assertJsonPath('user.is_admin', false)
          ->assertJsonPath('user.characters.0.pseudo', 'Artifice');
 });
 
