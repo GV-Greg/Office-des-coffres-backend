@@ -119,6 +119,7 @@ class AuthController extends BaseController
         return [
             'id'         => $user->id,
             'email'      => $user->email,
+            'is_admin'   => $user->hasRole('admin'),
             'characters' => $user->characters->load('city.province.kingdom')->map(fn ($character) => [
                 'id'            => $character->id,
                 'pseudo'        => $character->pseudo,
