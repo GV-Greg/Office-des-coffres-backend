@@ -207,16 +207,17 @@ docker exec odc-backend php artisan tinker --execute="
 ## Tests
 
 ```bash
-docker exec odc-backend php artisan test                         # Tous les tests (Pest)
-docker exec odc-backend php artisan test --filter AuthTest       # Tests API auth uniquement
-docker exec odc-backend ./vendor/bin/pint --test                 # Vérifier le style (sans corriger)
-docker exec odc-backend ./vendor/bin/pint                        # Corriger le style
+docker exec odc-backend composer pest              # Tous les tests, one-shot
+docker exec odc-backend composer test:auth         # Un domaine ciblé — voir docs/TESTS.md
+docker exec odc-backend ./vendor/bin/pint --test    # Vérifier le style (sans corriger)
+docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 ```
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
 
-72/72 tests verts au 05/08/2026 : `Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
-`Feature/Auth/*` (Breeze), `Feature/{DashboardTest,ProfileTest}`, `Unit/ExampleTest`.
+72 tests verts au 08/08/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
+`Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`) — scripts et découpage détaillés dans
+`docs/TESTS.md`.
 
 ---
 

@@ -29,6 +29,21 @@ jobs:
       - name: Copy .env
         run: cp .env.example .env
 
+      # Placé avant `composer install` : contrairement à `npm ci`, `composer install` ne
+      # vide pas le cache de téléchargement de Composer — restaurer avant l'installation
+      # évite de retélécharger les paquets, sans changer le comportement de la commande.
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
