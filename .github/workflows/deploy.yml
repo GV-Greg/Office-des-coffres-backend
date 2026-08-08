@@ -7,7 +7,15 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Le déploiement est conditionné aux tests : jusqu'ici les deux workflows se
+  # déclenchaient en parallèle sur un push, donc un commit aux tests rouges partait
+  # quand même en prod. Réutilise tests.yml plutôt que d'en recopier les étapes,
+  # pour qu'il n'existe qu'une seule définition de la suite de tests.
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build-and-deploy:
+    needs: tests
     runs-on: ubuntu-latest
 
     steps:

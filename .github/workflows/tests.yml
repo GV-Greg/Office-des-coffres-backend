@@ -1,9 +1,11 @@
 name: Tests
 
+# Déclencheurs volontairement sans `push` : sur master, les tests sont appelés par
+# deploy.yml via workflow_call, qui bloque le déploiement s'ils échouent. Les garder
+# aussi sur `push` les ferait tourner deux fois pour rien à chaque mise en prod.
 on:
-  push:
-    branches: [master, main]
   pull_request:
+  workflow_call:
 
 jobs:
   backend-tests:
