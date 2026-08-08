@@ -41,9 +41,16 @@ commande sous-jacente : `composer test:filter -- AuthTest`.
 
 `ExampleTest.php` (reste du template Laravel, un seul test trivial `expect(true)->toBeTrue()`)
 supprimé. `tests/Unit/` est donc vide et `test:unit`/`--testsuite=Unit` renvoient `INFO No tests
-found.` — **comportement normal, exit 0**, vérifié explicitement (ni Pest ni `phpunit.xml` ne
-lèvent d'erreur sur une testsuite vide). Le dossier reste dans l'arborescence (`autoload-dev`
-psr-4 `Tests\` le couvre) pour accueillir un futur vrai test unitaire sans reconfiguration.
+found.` — **comportement normal, exit 0**, sur un dossier qui existe mais est vide.
+
+⚠️ **Piège découvert en CI, pas en local** : git ne suit pas les dossiers vides. Sur un checkout
+frais (CI, nouveau clone), `tests/Unit/` n'existe **pas du tout** — `php artisan test` (qui
+résout la testsuite `Unit` déclarée dans `phpunit.xml` en exigeant que le dossier existe
+physiquement) échoue en dur : `Test directory "tests/Unit" not found`, exit 2. Ma vérification
+initiale locale ne l'a pas révélé car le dossier restait présent sur le disque après un simple
+`rm` du fichier (jamais un vrai checkout propre). **Fix** : `tests/Unit/.gitkeep` ajouté pour que
+git suive le dossier vide, revérifié via `git worktree add` (checkout propre isolé) avant de
+repousser.
 
 ## CI
 
