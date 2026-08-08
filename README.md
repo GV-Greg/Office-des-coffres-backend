@@ -215,8 +215,9 @@ docker exec odc-backend ./vendor/bin/pint                        # Corriger le s
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
 
-72/72 tests verts au 05/08/2026 : `Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
-`Feature/Auth/*` (Breeze), `Feature/{DashboardTest,ProfileTest}`, `Unit/ExampleTest`.
+73/73 tests verts (198 assertions), revérifiés le 08/08/2026 :
+`Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`, `Feature/Auth/*` (Breeze),
+`Feature/{DashboardTest,ProfileTest}`, `Unit/ExampleTest`.
 
 ---
 
