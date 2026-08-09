@@ -37,6 +37,23 @@ commande sous-jacente : `composer test:filter -- AuthTest`.
   dans les scripts — à rouvrir si un vrai besoin se présente, avec une recherche du nom exact du
   paquet (ou une implémentation maison via `git diff --name-only` + `--filter`).
 
+## Temps de référence (mesurés le 09/08/2026, machine de dev)
+
+| Suite | Fichiers | Tests | Durée |
+|---|---|---|---|
+| `test:unit` | 1 | 1 | ~0,3 s |
+| `test:api` | — | 33 | ~3,6 s |
+| `test:web` | — | 21 | ~3,7 s |
+| `test:auth` (le plus gros domaine) | — | 37 | ~6,2 s |
+| Suite complète (`composer pest`) | — | 73 | ~11,2 s |
+| Suite complète en parallèle (`composer test:parallel`, 16 processus) | — | 73 | ~3,7 s |
+
+Si un chiffre dérape de plus de 50 % lors d'une prochaine mesure, investiguer (connexion SQLite
+qui traîne, factory `RAND()` mal maîtrisée, etc.). Contrairement au frontend (coût dominé par le
+démarrage jsdom/Vite), le poste de coût backend est plus uniforme par test — d'où l'écart net
+avec `test:parallel`, qui répartit vraiment la charge entre 16 processus au lieu de la payer en
+série.
+
 ## `tests/Unit/`
 
 `ExampleTest.php` (reste du template Laravel, un seul test trivial `expect(true)->toBeTrue()`)
