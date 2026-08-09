@@ -26,43 +26,9 @@ Dépôt frontend : [Office-des-coffres-vuejs](https://github.com/GV-Greg/Office-
 
 ## Structure du projet
 
-```
-app/
-├── Http/
-│   ├── Controllers/
-│   │   ├── Api/
-│   │   │   ├── AuthController.php       # API REST : register, login, logout, me, resend-verification, verify-email
-│   │   │   ├── CharacterController.php  # API REST : liste/création de personnages du compte connecté
-│   │   │   └── MapController.php        # API REST : arbre royaumes → provinces → villes (public)
-│   │   ├── Auth/               # Authentification Breeze (Blade)
-│   │   ├── Web/
-│   │   │   └── DashboardController.php  # Dashboard admin (personnages) + liste utilisateurs + validation
-│   │   └── ProfileController.php
-│   └── Middleware/
-├── Notifications/
-│   └── VerifyApiEmail.php      # Email de vérification (compte joueur), lien signé vers verify-email API
-├── Models/
-│   ├── User.php                # HasRoles (Spatie) + HasApiTokens (Sanctum) + MustVerifyEmail, hasMany(Character)
-│   ├── Character.php           # belongsTo(User), belongsTo(City)
-│   ├── Kingdom.php / Province.php / City.php
-│   └── ...
-
-resources/views/
-├── auth/                       # Login, register, reset password
-├── layouts/                    # app.blade.php, navigation, sidebar
-├── components/                 # Composants Blade réutilisables
-├── dashboard.blade.php         # Tableau de bord (personnages)
-├── users.blade.php             # Tous les comptes, recherche par email/pseudo
-└── profile/                   # Édition du profil
-
-lang/
-└── fr.json                     # Traductions françaises (locale par défaut : fr)
-
-routes/
-├── web.php                     # Routes admin Blade (auth + dashboard)
-├── api.php                     # Routes API REST
-└── auth.php                    # Routes Breeze (login, register, etc.)
-```
+Voir `docs/ARCHITECTURE.md` (source unique — modèles, routes, contrôleurs, middleware, flux
+d'inscription/vérification). `resources/views/{auth,layouts,components,profile}/` : scaffolding
+Breeze standard, non modifié.
 
 ---
 
@@ -223,8 +189,5 @@ scripts et découpage détaillés dans `docs/TESTS.md`.
 
 ## Conventions
 
-- Ne jamais committer les credentials — utiliser `.env`
-- Backend en français uniquement — ajouter les traductions dans `lang/fr.json` au fil du développement
-- Tests Pest obligatoires pour chaque nouvelle fonctionnalité, avant commit
-- Branches : `feat/<nom>`, `fix/<nom>`, `chore/<nom>` — jamais directement sur `main`
-- Commits et push uniquement à la demande explicite
+Voir `CLAUDE.md` à la racine du workspace (source unique) et `admin/strategies/git.md` pour le
+nommage de branche.
