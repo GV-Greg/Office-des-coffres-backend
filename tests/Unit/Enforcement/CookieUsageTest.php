@@ -12,7 +12,7 @@ $forbiddenAnywhere = ['Cookie::', 'setcookie('];
 
 // `Session::`/`session(` : légitime dans les contrôleurs Auth/Profile Breeze du panneau admin
 // (guard `web`, session-based par nature — voir backend/docs/ARCHITECTURE.md). Un usage
-// ailleurs (ex. un contrôleur API, censé rester stateless Sanctum) serait inattendu.
+// ailleurs (ex. un contrôleur API, censé rester stateless par token Passport) serait inattendu.
 $forbiddenElsewhere = ['Session::', 'session('];
 $sessionAllowedFiles = [
     'Http/Controllers/Auth/AuthenticatedSessionController.php',

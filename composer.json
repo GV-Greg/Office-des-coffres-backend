@@ -8,7 +8,7 @@
         "php": "^8.2",
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^12.0",
-        "laravel/sanctum": "^4.0",
+        "laravel/passport": "^13.7",
         "laravel/tinker": "^2.10",
         "realrashid/sweet-alert": "^7.3",
         "spatie/laravel-permission": "^6.0"

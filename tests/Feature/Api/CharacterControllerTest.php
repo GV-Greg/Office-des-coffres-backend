@@ -2,12 +2,14 @@
 
 use App\Models\City;
 use App\Models\User;
+use Laravel\Passport\Passport;
 
 test('un utilisateur connecté peut créer un personnage', function () {
     $user = User::factory()->create();
     $city = City::factory()->create();
 
-    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/characters', [
+    Passport::actingAs($user);
+    $response = $this->postJson('/api/v1/characters', [
         'pseudo'  => 'Artifice',
         'city_id' => $city->id,
     ]);
@@ -31,8 +33,10 @@ test('un utilisateur peut créer plusieurs personnages', function () {
     $user = User::factory()->create();
     $city = City::factory()->create();
 
-    $this->actingAs($user, 'sanctum')->postJson('/api/v1/characters', ['pseudo' => 'Artifice', 'city_id' => $city->id]);
-    $this->actingAs($user, 'sanctum')->postJson('/api/v1/characters', ['pseudo' => 'Buldo', 'city_id' => $city->id]);
+    Passport::actingAs($user);
+    $this->postJson('/api/v1/characters', ['pseudo' => 'Artifice', 'city_id' => $city->id]);
+    Passport::actingAs($user);
+    $this->postJson('/api/v1/characters', ['pseudo' => 'Buldo', 'city_id' => $city->id]);
 
     expect($user->characters()->count())->toBe(2);
 });
@@ -51,7 +55,8 @@ test('la création de personnage échoue si le pseudo est déjà pris', function
 
     $other = User::factory()->create();
 
-    $this->actingAs($other, 'sanctum')->postJson('/api/v1/characters', [
+    Passport::actingAs($other);
+    $this->postJson('/api/v1/characters', [
         'pseudo'  => 'Artifice',
         'city_id' => $city->id,
     ])->assertStatus(422)->assertJsonValidationErrors(['pseudo']);
@@ -60,7 +65,8 @@ test('la création de personnage échoue si le pseudo est déjà pris', function
 test('la création de personnage échoue si la ville n\'existe pas', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user, 'sanctum')->postJson('/api/v1/characters', [
+    Passport::actingAs($user);
+    $this->postJson('/api/v1/characters', [
         'pseudo'  => 'Artifice',
         'city_id' => 999999,
     ])->assertStatus(422)->assertJsonValidationErrors(['city_id']);
@@ -72,7 +78,8 @@ test('un utilisateur peut lister ses personnages', function () {
     $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => true]);
     $user->characters()->create(['pseudo' => 'Buldo', 'city_id' => $city->id, 'is_validated' => false]);
 
-    $response = $this->actingAs($user, 'sanctum')->getJson('/api/v1/characters');
+    Passport::actingAs($user);
+    $response = $this->getJson('/api/v1/characters');
 
     $response->assertOk()->assertJsonPath('success', true);
     expect($response->json('characters'))->toHaveCount(2);
@@ -89,7 +96,8 @@ test('un utilisateur peut changer la résidence de son personnage, ce qui repass
     $newCity = City::factory()->create();
     $character = $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $oldCity->id, 'is_validated' => true]);
 
-    $response = $this->actingAs($user, 'sanctum')->patchJson("/api/v1/characters/{$character->id}", [
+    Passport::actingAs($user);
+    $response = $this->patchJson("/api/v1/characters/{$character->id}", [
         'city_id' => $newCity->id,
     ]);
 
@@ -112,7 +120,8 @@ test('un nouveau personnage n\'est pas marqué comme changement de résidence en
     $user = User::factory()->create();
     $city = City::factory()->create();
 
-    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/characters', [
+    Passport::actingAs($user);
+    $response = $this->postJson('/api/v1/characters', [
         'pseudo'  => 'Artifice',
         'city_id' => $city->id,
     ]);
@@ -127,8 +136,8 @@ test('un utilisateur ne peut pas changer la résidence du personnage d\'un autre
     $newCity = City::factory()->create();
     $character = $owner->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => true]);
 
-    $this->actingAs($other, 'sanctum')
-        ->patchJson("/api/v1/characters/{$character->id}", ['city_id' => $newCity->id])
+    Passport::actingAs($other);
+    $this->patchJson("/api/v1/characters/{$character->id}", ['city_id' => $newCity->id])
         ->assertStatus(404);
 
     $this->assertDatabaseHas('characters', ['id' => $character->id, 'city_id' => $city->id, 'is_validated' => true]);
@@ -139,7 +148,8 @@ test('le changement de résidence échoue si la ville n\'existe pas', function (
     $city = City::factory()->create();
     $character = $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => true]);
 
-    $this->actingAs($user, 'sanctum')
+    Passport::actingAs($user);
+    $this
         ->patchJson("/api/v1/characters/{$character->id}", ['city_id' => 999999])
         ->assertStatus(422)->assertJsonValidationErrors(['city_id']);
 });

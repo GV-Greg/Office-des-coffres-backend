@@ -5,7 +5,9 @@
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
-1. **API REST** (`/api/v1/*`, Sanctum) — consommée par le frontend Vue, utilisateurs publics du jeu.
+1. **API REST** (`/api/v1/*`, Passport — access token 15 min + refresh token 30 j/12h selon
+   « Rester connecté », voir `docs/DECISIONS.md`) — consommée par le frontend Vue, utilisateurs
+   publics du jeu.
 2. **Admin Blade** (`web.php`) — panneau d'administration de Greg, session-based (`web` guard).
 
 Ces deux mondes ont chacun leur propre flux de vérification d'email, indépendants l'un de
@@ -32,10 +34,12 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 
 ## Schéma DB (migrations, dans l'ordre)
 
-1. `users`, `password_reset_tokens`, `failed_jobs`, `personal_access_tokens` (Sanctum) — scaffolding standard
-2. `rk_kingdoms` → `rk_provinces` (FK cascade) → `rk_cities` (FK cascade, `is_capital` bool)
-3. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool)
-4. Tables Spatie Permission v6 (`permissions`, `roles`, `model_has_*`, `role_has_permissions`) — mode non-teams, migration depuis un ancien Laratrust (drop des tables `permission_user`/`permission_role`/`role_user` en préambule)
+1. `users`, `password_reset_tokens`, `failed_jobs` — scaffolding standard
+2. Tables Passport (`oauth_clients`, `oauth_auth_codes`, `oauth_access_tokens`,
+   `oauth_refresh_tokens`, `oauth_device_codes`) — stubs par défaut, pas de personnalisation
+3. `rk_kingdoms` → `rk_provinces` (FK cascade) → `rk_cities` (FK cascade, `is_capital` bool)
+4. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool)
+5. Tables Spatie Permission v6 (`permissions`, `roles`, `model_has_*`, `role_has_permissions`) — mode non-teams, migration depuis un ancien Laratrust (drop des tables `permission_user`/`permission_role`/`role_user` en préambule)
 
 Pas de table `sessions`/`cache` (drivers `file`).
 
@@ -49,13 +53,16 @@ Pas de table `sessions`/`cache` (drivers `file`).
 | POST | `auth/login` | `Api\AuthController@login` | public |
 | POST | `auth/resend-verification` | `Api\AuthController@resendVerification` | public, `throttle:6,1` |
 | GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) |
-| POST | `auth/logout` | `Api\AuthController@logout` | `auth:sanctum` |
-| GET | `auth/me` | `Api\AuthController@me` | `auth:sanctum` |
-| GET | `characters` | `Api\CharacterController@index` | `auth:sanctum` |
-| POST | `characters` | `Api\CharacterController@store` | `auth:sanctum` |
+| POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi) |
+| POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
+| GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
+| GET | `characters` | `Api\CharacterController@index` | `auth:api` |
+| POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
 
-Tout ajouté le 03/08/2026 sauf `register`/`login`/`logout`/`me` (Phase 1).
+`auth:api` = guard Passport (`config/auth.php`), pas Sanctum depuis le 09/08/2026 — voir
+`docs/DECISIONS.md`. Tout ajouté le 03/08/2026 sauf `register`/`login`/`logout`/`me` (Phase 1) ;
+`refresh` ajouté le 09/08/2026.
 
 ### `routes/web.php` (admin Blade)
 
@@ -73,10 +80,14 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
 ## Contrôleurs
 
 - `Api\AuthController` — `register` (crée uniquement le `User`, envoie l'email de vérification),
-  `verifyEmail` (valide le lien signé, marque l'email vérifié, émet un token, **redirige vers
-  `FRONTEND_URL`**), `resendVerification`, `login` (par **email**, pas pseudo — changé le
-  03/08/2026, bloque avec 403 "Email non vérifié." si `! hasVerifiedEmail()`), `logout`, `me`.
-  `login`/`me` renvoient `user.characters` (liste, pas un pseudo/statut unique).
+  `verifyEmail` (valide le lien signé, marque l'email vérifié, émet un token d'accès Passport via
+  le grant `personal_access` — pas de refresh token à cette étape, pas de mot de passe disponible
+  dans ce flux —, **redirige vers `FRONTEND_URL`**), `resendVerification`, `login` (par **email**,
+  pas pseudo — changé le 03/08/2026, bloque avec 403 "Email non vérifié." si
+  `! hasVerifiedEmail()`, puis émet le couple access+refresh token via le grant `password` de
+  Passport — voir `docs/DECISIONS.md`), `refresh` (renouvelle le couple de tokens à partir d'un
+  refresh token valide), `logout` (révoque l'access token courant et son refresh token associé),
+  `me`. `login`/`me` renvoient `user.characters` (liste, pas un pseudo/statut unique).
 - `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
   ville obligatoires), `index` (liste les personnages du compte connecté).
 - `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
@@ -122,17 +133,21 @@ Flux en 3 étapes :
    `verification.verify.api` au lieu de la route Blade). Pas de token émis à ce stade.
 2. **Clic sur le lien** → `GET auth/verify-email/{id}/{hash}` (signé, sans session) → contrôleur
    vérifie `hash_equals(sha1($user->getEmailForVerification()), $hash)`, marque
-   `markEmailAsVerified()`, émet un token Sanctum, **redirige (302)** vers
+   `markEmailAsVerified()`, émet un access token Passport (grant `personal_access`, pas de refresh
+   token — pas de mot de passe disponible à cette étape du flux), **redirige (302)** vers
    `config('app.frontend_url') . '/verify-email?token=...'` (ou `?error=invalid`). Connexion
    automatique côté frontend à ce stade (décision Greg : pas de renvoi vers un formulaire de
-   login après confirmation).
+   login après confirmation) — l'utilisateur repassera par `login()` normalement une fois ce
+   jeton (sans refresh) expiré.
 3. Une fois connecté, le joueur est invité à créer un ou plusieurs personnages via
    `POST /api/v1/characters` (pseudo + `city_id` obligatoires, `is_validated=false`).
 
-**`login()` bloque sur l'email non vérifié** (403, "Email non vérifié."). La validation **par
-personnage** (`characters.validate`, dashboard admin) reste indépendante — elle ne bloque pas la
-connexion, seulement l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à
-affiner au fil du développement des modules).
+**`login()` bloque sur l'email non vérifié** (403, "Email non vérifié."), puis émet le couple
+access+refresh token Passport (grant `password`) — voir `docs/DECISIONS.md` pour l'architecture
+« Rester connecté » (durées, `remember_me`). La validation **par personnage**
+(`characters.validate`, dashboard admin) reste indépendante — elle ne bloque pas la connexion,
+seulement l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à affiner au fil
+du développement des modules).
 
 **`FRONTEND_URL`** — clé `.env`/`config('app.frontend_url')`, nécessaire pour construire l'URL de
 redirection post-vérification.

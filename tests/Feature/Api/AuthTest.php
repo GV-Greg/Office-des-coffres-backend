@@ -3,9 +3,17 @@
 use App\Models\City;
 use App\Models\User;
 use App\Notifications\VerifyApiEmail;
+use Database\Seeders\PassportClientSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Laravel\Passport\Passport;
+use Laravel\Passport\RefreshToken;
 use Spatie\Permission\Models\Role;
+
+// Le client OAuth "password grant" (utilisé par login()/refresh() en interne) n'existe qu'en
+// base — RefreshDatabase ne seed rien automatiquement (voir Pest.php), donc chaque test qui
+// passe par le vrai flux OAuth doit le recréer explicitement.
+beforeEach(fn () => $this->seed(PassportClientSeeder::class));
 
 // --- Register ---
 
@@ -130,7 +138,7 @@ test('un utilisateur peut se connecter avec son email', function () {
     ]);
 
     $response->assertOk()
-             ->assertJsonStructure(['success', 'token', 'user' => ['id', 'email', 'is_admin', 'characters']])
+             ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in', 'user' => ['id', 'email', 'is_admin', 'characters']])
              ->assertJsonPath('success', true)
              ->assertJsonPath('user.email', 'artifice@test.com')
              ->assertJsonPath('user.is_admin', false);
@@ -196,8 +204,8 @@ test('un utilisateur authentifié peut récupérer son profil avec ses personnag
     $city = City::factory()->create();
     $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => false]);
 
-    $this->actingAs($user, 'sanctum')
-         ->getJson('/api/v1/auth/me')
+    Passport::actingAs($user);
+    $this->getJson('/api/v1/auth/me')
          ->assertOk()
          ->assertJsonPath('success', true)
          ->assertJsonPath('user.email', $user->email)
@@ -208,8 +216,8 @@ test('un utilisateur authentifié peut récupérer son profil avec ses personnag
 test('/me retourne une liste vide si le compte n\'a pas encore de personnage', function () {
     $user = User::factory()->create();
 
-    $this->actingAs($user, 'sanctum')
-         ->getJson('/api/v1/auth/me')
+    Passport::actingAs($user);
+    $this->getJson('/api/v1/auth/me')
          ->assertOk()
          ->assertJsonPath('user.characters', []);
 });
@@ -222,10 +230,72 @@ test('/me retourne 401 sans token', function () {
 
 test('un utilisateur peut se déconnecter', function () {
     $user  = User::factory()->create();
-    $token = $user->createToken('api-token')->plainTextToken;
+    // Token personnel réellement persisté (contrairement à Passport::actingAs, en mémoire
+    // seulement) : logout() appelle ->token()->revoke(), qui a besoin d'une ligne DB réelle.
+    $token = $user->createToken('api-token')->accessToken;
 
     $this->withToken($token)
          ->postJson('/api/v1/auth/logout')
          ->assertOk()
          ->assertJsonPath('success', true);
+});
+
+// --- Refresh ---
+
+test('un utilisateur peut rafraîchir son token via le refresh_token', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+
+    $login = $this->postJson('/api/v1/auth/login', [
+        'email'    => $user->email,
+        'password' => 'password123',
+    ]);
+
+    $response = $this->postJson('/api/v1/auth/refresh', [
+        'refresh_token' => $login->json('refresh_token'),
+    ]);
+
+    $response->assertOk()
+             ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in'])
+             ->assertJsonPath('success', true);
+
+    expect($response->json('access_token'))->not->toBe($login->json('access_token'));
+});
+
+test('le refresh échoue avec un refresh_token invalide', function () {
+    $this->postJson('/api/v1/auth/refresh', [
+        'refresh_token' => 'invalide',
+    ])->assertStatus(401)
+      ->assertJsonPath('success', false)
+      ->assertJsonPath('message', 'Session expirée, reconnecte-toi.');
+});
+
+// oauth_refresh_tokens n'a pas de colonne created_at (stub Passport standard) : on retrouve
+// la ligne exacte par access_token_id (même technique que
+// AuthController::shortenRefreshTokenExpiration) plutôt que par un tri approximatif.
+function refreshTokenFor(string $accessToken): RefreshToken
+{
+    $payload = json_decode(base64_decode(strtr(explode('.', $accessToken)[1] ?? '', '-_', '+/')), true);
+
+    return RefreshToken::where('access_token_id', $payload['jti'])->firstOrFail();
+}
+
+test('remember_me=false raccourcit l\'expiration du refresh token à 12h, contre 30 jours si coché', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+
+    $withoutRememberMe = $this->postJson('/api/v1/auth/login', [
+        'email'       => $user->email,
+        'password'    => 'password123',
+        'remember_me' => false,
+    ]);
+    $shortLived = refreshTokenFor($withoutRememberMe->json('access_token'));
+
+    $withRememberMe = $this->postJson('/api/v1/auth/login', [
+        'email'       => $user->email,
+        'password'    => 'password123',
+        'remember_me' => true,
+    ]);
+    $longLived = refreshTokenFor($withRememberMe->json('access_token'));
+
+    expect($shortLived->expires_at)->toBeLessThan(now()->addDay());
+    expect($longLived->expires_at)->toBeGreaterThan(now()->addDays(29));
 });

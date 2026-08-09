@@ -31,4 +31,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Client OAuth "password grant" (Passport) utilisé en interne par AuthController
+    // pour émettre les tokens de connexion — voir database/seeders/PassportClientSeeder.php.
+    'passport' => [
+        'password_client_id' => env('PASSPORT_PASSWORD_CLIENT_ID'),
+        'password_client_secret' => env('PASSPORT_PASSWORD_CLIENT_SECRET'),
+    ],
+
 ];
