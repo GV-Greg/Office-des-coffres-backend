@@ -14,6 +14,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historique complet nécessaire à scripts/docs-sync-check.sh (git log sur
+          # app/routes/database/config pour la fraîcheur d'ARCHITECTURE.md) — un
+          # checkout superficiel (défaut) ne verrait que le commit de tête.
+          fetch-depth: 0
+
+      - name: Vérifier la synchronisation de la documentation (Docs #10)
+        run: ./scripts/docs-sync-check.sh
 
       - uses: shivammathur/setup-php@v2
         with:
