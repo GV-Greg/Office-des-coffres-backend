@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 03/08/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 09/08/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -26,9 +26,9 @@ flux API (`verification.verify.api`, voir plus bas) pour les comptes joueurs, aj
 | `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
 
 **Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
-cookies — tout le consentement RGPD vit côté frontend (localStorage). Voir mémoire
-`project_cookie_tiers` côté session Claude pour la réflexion en cours sur un futur palier
-"données de jeu liées au compte" qui nécessiterait une vraie table.
+cookies — tout le consentement RGPD vit côté frontend (localStorage, voir
+`admin/strategies/cookies.md`). Un futur palier "données de jeu liées au compte" (ex. future
+liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 
 ## Schéma DB (migrations, dans l'ordre)
 
@@ -112,11 +112,9 @@ Tout vit dans `Web\DashboardController` + `users.blade.php` :
   route n'avait auparavant **aucune couverture** malgré la roadmap l'indiquant testée, même
   écart doc/réalité que celui trouvé sur `ProfilView.vue` côté frontend).
 
-## Inscription / vérification d'email (comptes joueurs) — refonte du 03/08/2026
+## Inscription / vérification d'email (comptes joueurs)
 
-Le flux a changé en profondeur : avant, `register()` créait `User`+`Character` en un seul appel,
-sans jamais vérifier l'email (le `Registered` event n'était pas déclenché côté API). Nouveau
-flux en 3 étapes, décidé avec Greg :
+Flux en 3 étapes :
 
 1. **`POST /api/v1/auth/register`** — email + password + confirmation uniquement. Crée le
    `User`, envoie `App\Notifications\VerifyApiEmail` (sous-classe de
@@ -131,23 +129,21 @@ flux en 3 étapes, décidé avec Greg :
 3. Une fois connecté, le joueur est invité à créer un ou plusieurs personnages via
    `POST /api/v1/characters` (pseudo + `city_id` obligatoires, `is_validated=false`).
 
-**`login()` bloque désormais sur l'email non vérifié** (403, "Email non vérifié.") — remplace
-l'ancien blocage par personnage non validé (n'avait plus de sens dès qu'un compte peut avoir
-plusieurs personnages). La validation **par personnage** (`characters.validate`, dashboard admin)
-reste inchangée et continue d'exister indépendamment — elle ne bloque plus la connexion, juste
-l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à affiner au fil du
-développement des modules).
+**`login()` bloque sur l'email non vérifié** (403, "Email non vérifié."). La validation **par
+personnage** (`characters.validate`, dashboard admin) reste indépendante — elle ne bloque pas la
+connexion, seulement l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à
+affiner au fil du développement des modules).
 
-**`FRONTEND_URL`** — nouvelle clé `.env`/`config('app.frontend_url')`, nécessaire pour construire
-l'URL de redirection post-vérification (n'existait pas avant, le backend n'avait jamais eu besoin
-de connaître l'URL du frontend).
+**`FRONTEND_URL`** — clé `.env`/`config('app.frontend_url')`, nécessaire pour construire l'URL de
+redirection post-vérification.
 
-**Pas de migration des comptes déjà inscrits avant ce changement** — décision explicite de Greg
-(reprise à 0), aucun code de compatibilité ascendante à prévoir.
+**Pas de code de compatibilité ascendante** pour les comptes inscrits avant ce flux — décision
+explicite de Greg (reprise à 0).
 
 ## Tests
 
-`docker exec odc-backend php artisan test` — **65/65 verts** (Pest). `CharacterFactory` utilise
+`docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,
+pas dupliqué ici). `CharacterFactory` utilise
 `RAND()` MySQL pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
 (incompatible SQLite/CI). Nouvelles factories `KingdomFactory`/`ProvinceFactory`/`CityFactory`
 (modèles `Kingdom`/`Province`/`City` n'avaient pas `HasFactory` avant le 03/08/2026). Tester un
