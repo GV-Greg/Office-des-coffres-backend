@@ -1,10 +1,11 @@
 # Changelog — Office des Coffres (backend)
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Une entrée par PR
-mergée sur `master` (ou merge direct pour les deux entrées antérieures aux PR GitHub). Pas de
-versionnage sémantique — chaque merge sur `master` déclenche un déploiement, la date de merge fait
-foi. L'historique détaillé (raisonnement, incidents, décisions) reste dans `roadmap.md` à la
-racine du workspace ; ce fichier n'en retient que le résumé daté.
+mergée sur `main` (`master` avant le 09/08/2026, voir `admin/strategies/git.md` §10 — ou merge
+direct pour les deux entrées antérieures aux PR GitHub). Pas de versionnage sémantique — chaque
+merge sur `main` déclenche un déploiement, la date de merge fait foi. L'historique détaillé
+(raisonnement, incidents, décisions) reste dans `roadmap.md` à la racine du workspace ; ce fichier
+n'en retient que le résumé daté.
 
 ## [2026-08-08] — PR #6
 

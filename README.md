@@ -70,7 +70,7 @@ routes/
 
 ### Production
 
-Déploiement automatique via **GitHub Actions** sur push `master` :
+Déploiement automatique via **GitHub Actions** sur push `main` :
 1. Build des assets Vite (`npm run build`)
 2. Transfert FTP vers `odc-admin.creacube.be` (O2Switch) — `vendor/` exclu
 
@@ -226,5 +226,5 @@ scripts et découpage détaillés dans `docs/TESTS.md`.
 - Ne jamais committer les credentials — utiliser `.env`
 - Backend en français uniquement — ajouter les traductions dans `lang/fr.json` au fil du développement
 - Tests Pest obligatoires pour chaque nouvelle fonctionnalité, avant commit
-- Branches : `feat/<nom>`, `fix/<nom>`, `chore/<nom>` — jamais directement sur `master`
+- Branches : `feat/<nom>`, `fix/<nom>`, `chore/<nom>` — jamais directement sur `main`
 - Commits et push uniquement à la demande explicite
