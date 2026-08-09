@@ -1,7 +1,7 @@
 # Tests — Office des Coffres (backend)
 
 Référence structurelle chargée à la demande (voir `_IA/ODC/ODC-strategie-tests.md` pour le
-raisonnement complet). 72 tests verts au 08/08/2026 (`docker exec odc-backend php artisan test`)
+raisonnement complet). 73 tests verts au 09/08/2026 (`docker exec odc-backend php artisan test`)
 — décompte à jour dans `README.md`, ne pas dupliquer ici.
 
 ## Principe : adapter la portée du test au périmètre du changement
@@ -17,7 +17,7 @@ réservée à la fin d'une tâche cohérente ou juste avant un push.
 | `test:api` | Contrôleurs API REST | `tests/Feature/Api` |
 | `test:auth` | Auth API + scaffolding Breeze | `tests/Feature/Auth` + `AuthTest.php` |
 | `test:web` | Dashboard admin Blade | `DashboardTest.php` + `ProfileTest.php` |
-| `test:unit` | Tests unitaires purs | `tests/Unit` (actuellement vide, voir plus bas) |
+| `test:unit` | Tests unitaires purs | `tests/Unit` (voir plus bas) |
 | `test:filter -- <motif>` | Filtre par nom (`--filter` Pest natif) | selon le motif |
 | `test:parallel` | Suite complète en parallèle | `tests/` |
 
@@ -37,20 +37,29 @@ commande sous-jacente : `composer test:filter -- AuthTest`.
   dans les scripts — à rouvrir si un vrai besoin se présente, avec une recherche du nom exact du
   paquet (ou une implémentation maison via `git diff --name-only` + `--filter`).
 
-## `tests/Unit/` vide depuis le 08/08/2026
+## `tests/Unit/`
 
 `ExampleTest.php` (reste du template Laravel, un seul test trivial `expect(true)->toBeTrue()`)
-supprimé. `tests/Unit/` est donc vide et `test:unit`/`--testsuite=Unit` renvoient `INFO No tests
-found.` — **comportement normal, exit 0**, sur un dossier qui existe mais est vide.
+supprimé le 08/08/2026. `tests/Unit/` était alors vide et `test:unit`/`--testsuite=Unit`
+renvoyaient `INFO No tests found.` — comportement normal, exit 0, sur un dossier qui existe mais
+est vide.
 
-⚠️ **Piège découvert en CI, pas en local** : git ne suit pas les dossiers vides. Sur un checkout
-frais (CI, nouveau clone), `tests/Unit/` n'existe **pas du tout** — `php artisan test` (qui
-résout la testsuite `Unit` déclarée dans `phpunit.xml` en exigeant que le dossier existe
-physiquement) échoue en dur : `Test directory "tests/Unit" not found`, exit 2. Ma vérification
-initiale locale ne l'a pas révélé car le dossier restait présent sur le disque après un simple
-`rm` du fichier (jamais un vrai checkout propre). **Fix** : `tests/Unit/.gitkeep` ajouté pour que
-git suive le dossier vide, revérifié via `git worktree add` (checkout propre isolé) avant de
-repousser.
+⚠️ **Piège découvert en CI à cette occasion, pas en local** : git ne suit pas les dossiers vides.
+Sur un checkout frais (CI, nouveau clone), `tests/Unit/` n'existait **pas du tout** — `php
+artisan test` (qui résout la testsuite `Unit` déclarée dans `phpunit.xml` en exigeant que le
+dossier existe physiquement) échouait en dur : `Test directory "tests/Unit" not found`, exit 2.
+La vérification locale initiale ne l'avait pas révélé car le dossier restait présent sur le
+disque après un simple `rm` du fichier (jamais un vrai checkout propre). **Fix** :
+`tests/Unit/.gitkeep` ajouté pour que git suive le dossier vide, revérifié via `git worktree add`
+(checkout propre isolé) avant de repousser.
+
+**Premier test réel depuis le 09/08/2026** : `tests/Unit/Enforcement/CookieUsageTest.php` —
+garde-fou de `admin/strategies/cookies.md` §9 (item #8), échoue si un `Cookie::`, `setcookie(`
+apparaît n'importe où dans `app/`, ou un `Session::`/`session(` ailleurs que dans les
+contrôleurs Auth/Profile Breeze (`web` guard, session-based par nature — seule zone où c'est
+attendu). N'utilise volontairement pas `app_path()`/`app()` : `tests/Unit` n'a pas le `TestCase`
+Laravel (voir `tests/Pest.php`, `uses(TestCase::class)->in('Feature')` seulement), le chemin vers
+`app/` est calculé via `dirname(__DIR__, 3)`.
 
 ## CI
 
