@@ -85,3 +85,9 @@ déploiement si la suite échoue). Cache Composer (répertoire de téléchargeme
 restauré **avant** `composer install` — contrairement à `npm ci` côté frontend, `composer
 install` ne vide pas ce cache, donc pas de contrainte d'ordre particulière au-delà de la
 disponibilité de la commande `composer` (après `setup-php`).
+
+Une étape `scripts/docs-sync-check.sh` (Docs #10 de `admin/strategies/docs.md`) tourne juste
+après le checkout (`fetch-depth: 0`, nécessaire au calcul de fraîcheur) : échoue si plusieurs
+chiffres de tests différents apparaissent dans les `.md` du repo, ou si `docs/ARCHITECTURE.md`
+annonce une date de mise à jour de plus de 30 jours antérieure au dernier commit dans
+`app/`/`routes/`/`database/`/`config/`.
