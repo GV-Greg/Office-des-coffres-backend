@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    // '*' par défaut (dev) ; en prod, CORS_ALLOWED_ORIGINS restreint aux domaines réellement
+    // servis (voir .env.example). Item #14 de admin/strategies/cookies.md.
+    'allowed_origins' => array_filter(explode(',', env('CORS_ALLOWED_ORIGINS', '*'))),
 
     'allowed_origins_patterns' => [],
 
