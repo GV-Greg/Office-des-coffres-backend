@@ -7,6 +7,26 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) reste dans `roadmap.md` à la racine du workspace ; ce fichier
 n'en retient que le résumé daté.
 
+## [2026-08-10] — PR #16
+
+### Changed
+- Case « Se souvenir de moi » du formulaire de connexion admin renommée « Rester connecté »
+  (cohérence de vocabulaire avec la case équivalente côté frontend, PR #26 frontend). Nouvelle clé
+  de traduction `Stay logged in` (`lang/fr.json`) à la place de `Remember me` — le mécanisme reste
+  le remember-me Laravel standard (guard `web`, `remember_token`), inchangé.
+
+## [2026-08-10] — PR #17 (mergée avant #16)
+
+### Fixed
+- `php artisan db:seed` plantait en production (`Call to undefined function
+  Database\Factories\fake()`) : `UserSeeder`/`CharacterFactory` appellent `fake()` même pour les
+  comptes déterministes (admin, Artifice, Buldo), car `Factory::definition()` s'exécute
+  intégralement avant la fusion des attributs passés à `create()`. `fakerphp/faker` déplacé de
+  `require-dev` vers `require` (recommandation standard Laravel dès qu'un seeder utilise des
+  factories hors dev/test) — découvert et corrigé pendant le déploiement de la migration Passport
+  (PR #15), qui a été la première occasion de lancer `db:seed` en prod avec `composer install
+  --no-dev`.
+
 ## [2026-08-09] — PR #15
 
 ### Changed
