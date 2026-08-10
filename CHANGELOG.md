@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) reste dans `roadmap.md` à la racine du workspace ; ce fichier
 n'en retient que le résumé daté.
 
+## [2026-08-09] — PR #15
+
+### Changed
+- Migration de l'authentification API Sanctum → Passport (OAuth2) : `login()` émet désormais un
+  couple access token (15 min) + refresh token (30 jours si « Rester connecté », 12h sinon),
+  nouvel endpoint `POST /auth/refresh`. Voir `docs/DECISIONS.md` pour l'ADR complet.
+
+### Removed
+- Migration `personal_access_tokens` (table Sanctum, orpheline depuis le retrait du package).
+
 ## [2026-08-08] — PR #6
 
 ### Changed

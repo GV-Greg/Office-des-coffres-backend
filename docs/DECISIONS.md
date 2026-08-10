@@ -70,6 +70,37 @@ comptes créés avant cette date.
 reprise) sont perdus. Choix délibéré pour ne pas alourdir le code d'un chemin de migration à
 usage unique.
 
+## Passport plutôt que Sanctum pour l'authentification API (bascule du 09/08/2026)
+
+**Contexte** — La décision Sanctum ci-dessus tenait tant que l'auth se limitait à un token bearer
+sans notion de renouvellement. L'implémentation de « Rester connecté » (item #13 de
+`admin/strategies/cookies.md`) impose un couple access token court (15 min) + refresh token long
+(30 jours si coché, 12h sinon), avec rotation à chaque refresh — logique de sécurité non triviale
+(détection de réutilisation d'un refresh token volé, expiration glissante) que Sanctum ne fournit
+pas nativement.
+
+**Décision** — Migrer vers Laravel Passport (OAuth2), en n'utilisant que le strict nécessaire :
+grant `password` (émission access+refresh depuis email/mot de passe, appelé en interne par
+`AuthController::login()`, jamais exposé tel quel au frontend) et `refresh_token`. Pas de flux
+`authorization_code`, pas d'écran d'autorisation, pas de notion de client tiers — le frontend reste
+un client de confiance comme au moment de la décision Sanctum initiale, seul le mécanisme de
+renouvellement change. Inverse donc la décision précédente sans en contredire le motif : le besoin
+d'un protocole OAuth2 complet reste hors scope, seule la brique refresh-token-avec-rotation d'un
+serveur OAuth2 standard et audité (`league/oauth2-server`, sur lequel Passport s'appuie) était
+recherchée, plutôt que réinventer cette logique côté maison sur Sanctum.
+
+**Conséquences** — `AuthController::login()` route la connexion à travers le grant `password` via
+un dispatch HTTP interne vers `/oauth/token` (`Request::create()` + `app()->handle()`, pas un vrai
+appel réseau sortant — évite la dépendance à `config('app.url')` et fonctionne identiquement en
+test/dev/prod). Un unique client OAuth (`PassportClientSeeder`, ID/secret fixés via `.env` pour
+survivre à un `migrate:fresh`) cumule les grant types `password`/`refresh_token`/`personal_access`
+— ce dernier réutilisé par le lien de vérification d'email (`AuthController::verifyEmail()`), qui
+émet un jeton simple sans refresh (pas de mot de passe disponible à cette étape). Les clés de
+chiffrement Passport (`PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY`) sont stockées en variables
+d'environnement (contenu PEM, `\n` échappés) plutôt qu'en fichiers `storage/oauth-*.key` : évite un
+problème de permissions Unix sur les montages Windows (WSL/DrvFs) en dev, et simplifie le
+déploiement FTP (rien à déposer manuellement en plus de `.env`).
+
 ## Reset complet de la base prod plutôt que migration corrective (incident du 05/08/2026)
 
 **Contexte** — Premier test réel d'inscription en prod : la base (`kywq6025_odc`) s'est révélée

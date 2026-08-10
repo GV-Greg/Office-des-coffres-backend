@@ -17,7 +17,7 @@ Dépôt frontend : [Office-des-coffres-vuejs](https://github.com/GV-Greg/Office-
 |---|---|---|
 | PHP | 8.2 | Langage |
 | Laravel | 12.x | Framework |
-| Laravel Sanctum | 4.x | Authentification API (tokens) |
+| Laravel Passport | 13.x | Authentification API (OAuth2 — access + refresh token, « Rester connecté ») |
 | Spatie Permission | 6.x | Gestion des rôles et permissions |
 | MySQL | 5.7 | Base de données |
 | Vite | 6.x | Build des assets Blade |
@@ -47,6 +47,30 @@ php artisan migrate
 php artisan config:clear
 php artisan view:clear
 ```
+
+**Une seule fois** (première mise en place de Passport, ou si les clés/le client OAuth doivent
+être régénérés) — génère les clés + le client OAuth et les écrit dans `.env` sans jamais afficher
+la clé privée en clair dans le terminal :
+```bash
+cd /chemin/vers/le/déploiement/back
+openssl genrsa -out /tmp/oauth-private.key 4096
+openssl rsa -in /tmp/oauth-private.key -pubout -out /tmp/oauth-public.key
+PRIV=$(awk 'BEGIN{ORS="\\n"}1' /tmp/oauth-private.key)
+PUB=$(awk 'BEGIN{ORS="\\n"}1' /tmp/oauth-public.key)
+printf 'PASSPORT_PRIVATE_KEY="%s"\n' "$PRIV" >> .env
+printf 'PASSPORT_PUBLIC_KEY="%s"\n' "$PUB" >> .env
+rm /tmp/oauth-private.key /tmp/oauth-public.key
+
+echo "PASSPORT_PASSWORD_CLIENT_ID=$(uuidgen)" >> .env
+echo "PASSPORT_PASSWORD_CLIENT_SECRET=$(openssl rand -base64 30)" >> .env
+
+php artisan migrate:fresh --seed   # recrée aussi le client OAuth (PassportClientSeeder)
+```
+**Format attendu** : le PEM tient sur **une seule ligne**, sauts de ligne réels remplacés par des
+`\n` littéraux (`config/passport.php` fait `str_replace('\\n', "\n", ...)` à la lecture) — **pas**
+de base64. Si `.env` ne se termine pas par un retour à la ligne avant ce bloc, vérifier après coup
+qu'aucune ligne ne s'est retrouvée collée à la précédente (`grep -c '^PASSPORT_' .env` doit
+retourner 4).
 
 ### Développement local
 
@@ -93,8 +117,20 @@ FRONTEND_URL=
 SEEDER_SUPER_ADMIN_EMAIL=
 SEEDER_SUPER_ADMIN_PASSWORD=
 
+PASSPORT_PASSWORD_CLIENT_ID=
+PASSPORT_PASSWORD_CLIENT_SECRET=
+PASSPORT_PRIVATE_KEY=
+PASSPORT_PUBLIC_KEY=
+
 SWEET_ALERT_ALWAYS_LOAD_JS=true
 ```
+
+`PASSPORT_PASSWORD_CLIENT_ID`/`_SECRET` : identifiants du client OAuth interne utilisé par
+`AuthController` pour émettre les tokens de connexion (`PassportClientSeeder`, rejoué à chaque
+`migrate:fresh --seed`). `PASSPORT_PRIVATE_KEY`/`PASSPORT_PUBLIC_KEY` : clés de chiffrement
+Passport en variables d'environnement plutôt qu'en fichiers `storage/oauth-*.key` — évite un
+problème de permissions sous WSL/DrvFs en dev, rien à déposer en plus de `.env` en prod. Voir
+`docs/DECISIONS.md` pour le détail, et la commande de génération ci-dessous.
 
 `SWEET_ALERT_ALWAYS_LOAD_JS` : le package `realrashid/sweet-alert` ne charge son JS que si
 un flash de session (`alert.config`/`alert.delete`) est présent — à `true`, il est chargé sur
@@ -117,10 +153,11 @@ Préfixe : `/api/v1/`
 | Méthode | Route | Auth | Description |
 |---|---|---|---|
 | POST | `/auth/register` | Non | Inscription (email + mot de passe uniquement, envoie l'email de vérification) |
-| POST | `/auth/login` | Non | Connexion par email — bloque (403) si l'email n'est pas vérifié |
+| POST | `/auth/login` | Non | Connexion par email — bloque (403) si l'email n'est pas vérifié, sinon émet un couple access/refresh token (`remember_me` optionnel) |
+| POST | `/auth/refresh` | Non (le `refresh_token` fait foi) | Renouvelle le couple access/refresh token |
 | POST | `/auth/resend-verification` | Non | Renvoie l'email de vérification (`throttle:6,1`) |
-| GET | `/auth/verify-email/{id}/{hash}` | Signé | Valide le lien reçu par email, émet un token, redirige vers `FRONTEND_URL` |
-| POST | `/auth/logout` | Oui | Déconnexion |
+| GET | `/auth/verify-email/{id}/{hash}` | Signé | Valide le lien reçu par email, émet un access token (sans refresh), redirige vers `FRONTEND_URL` |
+| POST | `/auth/logout` | Oui | Déconnexion — révoque l'access token courant et son refresh token |
 | GET | `/auth/me` | Oui | Profil utilisateur (avec la liste de ses personnages) |
 | GET | `/characters` | Oui | Liste des personnages du compte connecté (avec ville/province/royaume) |
 | POST | `/characters` | Oui | Crée un personnage (pseudo + ville obligatoires) |
@@ -181,7 +218,7 @@ docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
 
-73 tests verts au 09/08/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
+76 tests verts au 09/08/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,MapTest}`,
 `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`, `Unit/Enforcement/CookieUsageTest`) —
 scripts et découpage détaillés dans `docs/TESTS.md`.
 
