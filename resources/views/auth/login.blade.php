@@ -43,7 +43,7 @@
             <div class="block mt-4">
                 <label for="remember_me" class="inline-flex items-center label-checkbox">
                     <input id="remember_me" type="checkbox" class="form-checkbox dark:dark-form-checkbox focus:ring-blue-500 dark:focus:ring-blue-600 dark:focus:ring-offset-blueGray-800" name="remember">
-                    <span class="ms-2 text-sm dark:dark-span">{{ __('Remember me') }}</span>
+                    <span class="ms-2 text-sm dark:dark-span">{{ __('Stay logged in') }}</span>
                 </label>
             </div>
 
