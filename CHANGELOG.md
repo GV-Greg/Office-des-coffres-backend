@@ -27,7 +27,7 @@ n'en retient que le résumé daté.
   (PR #15), qui a été la première occasion de lancer `db:seed` en prod avec `composer install
   --no-dev`.
 
-## [2026-08-09] — PR #15
+## [2026-08-10] — PR #15
 
 ### Changed
 - Migration de l'authentification API Sanctum → Passport (OAuth2) : `login()` émet désormais un
@@ -36,6 +36,58 @@ n'en retient que le résumé daté.
 
 ### Removed
 - Migration `personal_access_tokens` (table Sanctum, orpheline depuis le retrait du package).
+
+## [2026-08-09] — PR #14
+
+### Added
+- `scripts/docs-sync-check.sh` en CI : échoue si le décompte de tests diverge entre fichiers, ou
+  si `docs/ARCHITECTURE.md` accuse plus de 30 jours de retard sur le dernier commit touchant
+  `app/`/`routes/`/`database/`/`config/`.
+
+## [2026-08-09] — PR #13
+
+### Changed
+- Sources uniques : chiffre de tests obsolète retiré de `ARCHITECTURE.md` (README fait foi),
+  structure détaillée retirée du README au profit d'un renvoi vers `ARCHITECTURE.md`.
+
+## [2026-08-09] — PR #12
+
+### Changed
+- Branche principale renommée `master` → `main` côté GitHub ; `deploy.yml` et références mises à
+  jour en conséquence (les entrées déjà datées de ce CHANGELOG gardent `master`, exact au moment
+  des faits).
+
+## [2026-08-09] — PR #11
+
+### Added
+- `docs/TESTS.md` : temps de référence mesurés par groupe de tests Pest.
+
+## [2026-08-09] — PR #10
+
+### Added
+- `tests/Unit/Enforcement/CookieUsageTest.php` : échoue si `Cookie::`/`setcookie(` apparaît dans
+  `app/`, ou si `Session::`/`session(` apparaît hors des contrôleurs Auth/Profile Breeze (guard
+  `web`, session-based par nature) — équivalent backend du garde-fou frontend (PR frontend #21).
+
+## [2026-08-09] — PR #9
+
+### Changed
+- `config/cors.php` lit désormais `CORS_ALLOWED_ORIGINS` (env, liste séparée par virgules) au
+  lieu d'un `allowed_origins` hardcodé à `['*']`.
+
+## [2026-08-08] — PR #8
+
+### Added
+- Scripts Composer par domaine (`test:api`, `test:auth`, `test:web`, `test:unit`, `test:filter`,
+  `test:parallel`), `docs/TESTS.md` (miroir du frontend).
+
+### Removed
+- `tests/Unit/ExampleTest.php` (reste de template).
+
+## [2026-08-08] — PR #7
+
+### Added
+- `CHANGELOG.md` (ce fichier) et `docs/DECISIONS.md` (ADR pour les choix structurants).
 
 ## [2026-08-08] — PR #6
 
