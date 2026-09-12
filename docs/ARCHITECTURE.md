@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 09/08/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 12/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -12,15 +12,15 @@ Deux usages distincts cohabitent dans ce repo :
 
 Ces deux mondes ont chacun leur propre flux de vérification d'email, indépendants l'un de
 l'autre : Breeze/Blade (session, `verification.verify`) pour les comptes admin, et un second
-flux API (`verification.verify.api`, voir plus bas) pour les comptes joueurs, ajouté le
-03/08/2026. Les comptes Blade admin n'ont pas de `Character`.
+flux API (`verification.verify.api`, voir plus bas) pour les comptes joueurs. Les comptes Blade
+admin n'ont pas de `Character`.
 
 ## Modèles & relations
 
 | Modèle | Table | Champs notables | Relations |
 |---|---|---|---|
-| `User` | `users` | `email`, `password` (pas de `name`) | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** depuis le 03/08/2026 (la relation existait déjà en base, seul le code supposait "un seul") |
-| `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création depuis le 03/08/2026), `is_validated` (bool, défaut `false`) | `belongsTo(User)`, `belongsTo(City)` |
+| `User` | `users` | `email`, `password` (pas de `name`) | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
+| `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création), `is_validated` (bool, défaut `false`), `pending_residence_change` (bool — distingue « nouveau personnage » d'un « changement de résidence » à revalider) | `belongsTo(User)`, `belongsTo(City)` |
 | `Kingdom` | `rk_kingdoms` | `kingdom_name` | `hasMany(Province)` |
 | `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
 | `City` | `rk_cities` | `city_name`, `is_capital` | `belongsTo(Province)`, `hasMany(Character)` ⚠️ bug : FK déclarée `'user_id'` au lieu de `'city_id'` — relation cassée, non utilisée actuellement |
@@ -38,7 +38,8 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 2. Tables Passport (`oauth_clients`, `oauth_auth_codes`, `oauth_access_tokens`,
    `oauth_refresh_tokens`, `oauth_device_codes`) — stubs par défaut, pas de personnalisation
 3. `rk_kingdoms` → `rk_provinces` (FK cascade) → `rk_cities` (FK cascade, `is_capital` bool)
-4. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool)
+4. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool, puis
+   `pending_residence_change` bool ajouté par une migration ultérieure)
 5. Tables Spatie Permission v6 (`permissions`, `roles`, `model_has_*`, `role_has_permissions`) — mode non-teams, migration depuis un ancien Laratrust (drop des tables `permission_user`/`permission_role`/`role_user` en préambule)
 
 Pas de table `sessions`/`cache` (drivers `file`).
@@ -58,11 +59,11 @@ Pas de table `sessions`/`cache` (drivers `file`).
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
 | GET | `characters` | `Api\CharacterController@index` | `auth:api` |
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
+| PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
 | GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
 
-`auth:api` = guard Passport (`config/auth.php`), pas Sanctum depuis le 09/08/2026 — voir
-`docs/DECISIONS.md`. Tout ajouté le 03/08/2026 sauf `register`/`login`/`logout`/`me` (Phase 1) ;
-`refresh` ajouté le 09/08/2026.
+`auth:api` = guard **Passport** (`config/auth.php`), plus Sanctum — voir `docs/DECISIONS.md` pour
+l'ADR de bascule.
 
 ### `routes/web.php` (admin Blade)
 
@@ -83,19 +84,22 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   `verifyEmail` (valide le lien signé, marque l'email vérifié, émet un token d'accès Passport via
   le grant `personal_access` — pas de refresh token à cette étape, pas de mot de passe disponible
   dans ce flux —, **redirige vers `FRONTEND_URL`**), `resendVerification`, `login` (par **email**,
-  pas pseudo — changé le 03/08/2026, bloque avec 403 "Email non vérifié." si
+  pas pseudo — bloque avec 403 "Email non vérifié." si
   `! hasVerifiedEmail()`, puis émet le couple access+refresh token via le grant `password` de
   Passport — voir `docs/DECISIONS.md`), `refresh` (renouvelle le couple de tokens à partir d'un
   refresh token valide), `logout` (révoque l'access token courant et son refresh token associé),
   `me`. `login`/`me` renvoient `user.characters` (liste, pas un pseudo/statut unique).
 - `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
-  ville obligatoires), `index` (liste les personnages du compte connecté).
+  ville obligatoires), `index` (liste les personnages du compte connecté), `update` (changement de
+  ville de résidence : repasse `is_validated` à `false` et lève `pending_residence_change`, le
+  personnage doit être revalidé depuis le dashboard admin).
 - `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
   pagination (~300 villes, volume géré en un seul payload pour un sélecteur cascade côté front).
 - `Web\DashboardController` — `index` (liste personnages paginée, eager-load
   `user`/`city.province.kingdom`), `toggleValidation`, `users` (liste **tous** les users, avec
   recherche), `destroyUser`.
-- `Web\MapController` — **mort** : vue `map.list` référencée mais inexistante (roadmap Phase 6).
+- `Web\MapController` — **mort** : vue `map.list` référencée mais inexistante (voir « Finitions
+  transversales » dans `roadmap.md`).
   Sans lien avec `Api\MapController` (nouveau, actif, JSON).
 - `ProfileController` + `Auth/*` — scaffolding Breeze, non modifié.
 
@@ -110,8 +114,8 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
 ## Gestion des utilisateurs (admin)
 
 Tout vit dans `Web\DashboardController` + `users.blade.php` :
-- **Depuis le 03/08/2026** : liste **tous** les users (avant : uniquement ceux sans personnage),
-  paginée (14), avec recherche (`?search=`) par email OU pseudo du personnage
+- Liste **tous** les users, paginée (14), avec recherche (`?search=`) par email OU pseudo du
+  personnage
   (`orWhereHas('characters', ...)`), `withQueryString()` pour garder le filtre à travers la
   pagination.
 - Colonnes affichées : `id`, `email`, **personnage** (pseudo + badge validé/en attente, ou
@@ -119,9 +123,8 @@ Tout vit dans `Web\DashboardController` + `users.blade.php` :
 - Suppression = hard delete (pas de soft delete), cascade sur `characters` via FK.
 - Pas d'édition d'un autre user, pas de reset de mot de passe admin, pas de gestion de rôles
   (un seul rôle existe).
-- Tests : `tests/Feature/DashboardTest.php` (13 tests au total, dont 7 dédiés à `/users` — la
-  route n'avait auparavant **aucune couverture** malgré la roadmap l'indiquant testée, même
-  écart doc/réalité que celui trouvé sur `ProfilView.vue` côté frontend).
+- Tests : `tests/Feature/DashboardTest.php` couvre les 4 routes admin (guest / non-admin / admin)
+  et la recherche de `/users`.
 
 ## Inscription / vérification d'email (comptes joueurs)
 
@@ -160,8 +163,8 @@ explicite de Greg (reprise à 0).
 `docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,
 pas dupliqué ici). `CharacterFactory` utilise
 `RAND()` MySQL pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
-(incompatible SQLite/CI). Nouvelles factories `KingdomFactory`/`ProvinceFactory`/`CityFactory`
-(modèles `Kingdom`/`Province`/`City` n'avaient pas `HasFactory` avant le 03/08/2026). Tester un
+(incompatible SQLite/CI). Factories `KingdomFactory`/`ProvinceFactory`/`CityFactory` disponibles
+pour monter une carte de test. Tester un
 lien signé : construire l'URL directement avec `URL::temporarySignedRoute('verification.verify.api', ...)`
 dans le test plutôt que parser le contenu de l'email (voir `AuthTest.php`).
 
