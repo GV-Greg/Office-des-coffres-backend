@@ -1,8 +1,8 @@
 # Tests — Office des Coffres (backend)
 
-Référence structurelle chargée à la demande (voir `_IA/ODC/ODC-strategie-tests.md` pour le
-raisonnement complet). 76 tests verts au 09/08/2026 (`docker exec odc-backend php artisan test`)
-— décompte à jour dans `README.md`, ne pas dupliquer ici.
+Référence structurelle chargée à la demande (voir `admin/strategies/tests.md` pour le
+raisonnement complet). Décompte de tests à jour dans `README.md` — source unique, jamais dupliqué
+ici (Docs #6).
 
 ## Principe : adapter la portée du test au périmètre du changement
 
@@ -29,7 +29,7 @@ commande sous-jacente : `composer test:filter -- AuthTest`.
 - **`--parallel`** : la stratégie envisageait d'installer `pestphp/pest-plugin-parallel`. **Déjà
   natif dans Pest 3** (`vendor/bin/pest --help` le liste directement) — le plugin standalone sur
   Packagist cible une version antérieure de Pest, où le parallélisme n'était pas encore dans le
-  noyau. Vérifié : `composer test:parallel` tourne sur 16 processus, 76 tests verts. Aucune
+  noyau. Vérifié : `composer test:parallel` tourne sur 16 processus, suite entière verte. Aucune
   dépendance supplémentaire ajoutée.
 - **`--dirty`** (équivalent de `test:changed` côté Vitest) : la stratégie évoquait
   `pestphp/pest-plugin-git`. **Ce paquet n'existe pas sur Packagist** sous ce nom (vérifié via

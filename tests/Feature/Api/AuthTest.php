@@ -299,3 +299,86 @@ test('remember_me=false raccourcit l\'expiration du refresh token à 12h, contre
     expect($shortLived->expires_at)->toBeLessThan(now()->addDay());
     expect($longLived->expires_at)->toBeGreaterThan(now()->addDays(29));
 });
+
+// --- Suppression de compte (art. 17 RGPD) ---
+
+test('un utilisateur peut supprimer son compte avec son mot de passe', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    $city = City::factory()->create();
+    $user->characters()->create(['pseudo' => 'Artifice', 'city_id' => $city->id, 'is_validated' => true]);
+
+    // Vrai couple access+refresh token : on veut vérifier que les deux disparaissent, ce que
+    // Passport::actingAs (en mémoire) ne permettrait pas de contrôler.
+    $login = $this->postJson('/api/v1/auth/login', [
+        'email'    => $user->email,
+        'password' => 'password123',
+    ]);
+    $refreshToken = refreshTokenFor($login->json('access_token'));
+
+    $this->withToken($login->json('access_token'))
+         ->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+         ->assertNoContent();
+
+    $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    $this->assertDatabaseMissing('characters', ['user_id' => $user->id]);
+    $this->assertDatabaseMissing('oauth_access_tokens', ['user_id' => $user->id]);
+    $this->assertDatabaseMissing('oauth_refresh_tokens', ['id' => $refreshToken->id]);
+});
+
+test('la suppression échoue avec un mot de passe incorrect et ne touche à rien', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    $city = City::factory()->create();
+    $user->characters()->create(['pseudo' => 'Buldo', 'city_id' => $city->id, 'is_validated' => true]);
+
+    Passport::actingAs($user);
+    $this->deleteJson('/api/v1/auth/account', ['password' => 'mauvais-mot-de-passe'])
+         ->assertStatus(403)
+         ->assertJsonPath('success', false)
+         ->assertJsonPath('message', 'Mot de passe incorrect.');
+
+    $this->assertDatabaseHas('users', ['id' => $user->id]);
+    $this->assertDatabaseHas('characters', ['user_id' => $user->id, 'pseudo' => 'Buldo']);
+});
+
+test('la suppression exige le mot de passe', function () {
+    $user = User::factory()->create();
+
+    Passport::actingAs($user);
+    $this->deleteJson('/api/v1/auth/account', [])
+         ->assertStatus(422)
+         ->assertJsonValidationErrors('password');
+
+    $this->assertDatabaseHas('users', ['id' => $user->id]);
+});
+
+test('la suppression de compte retourne 401 sans token', function () {
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+
+    $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+         ->assertStatus(401);
+
+    $this->assertDatabaseHas('users', ['id' => $user->id]);
+});
+
+test('la suppression ne porte que sur le compte du porteur du jeton', function () {
+    $victime = User::factory()->create(['password' => bcrypt('password123')]);
+    $city    = City::factory()->create();
+    $victime->characters()->create(['pseudo' => 'Innocent', 'city_id' => $city->id, 'is_validated' => true]);
+
+    $attaquant = User::factory()->create(['password' => bcrypt('password123')]);
+
+    Passport::actingAs($attaquant);
+    // Aucun identifiant n'est accepté : ni en body, ni dans l'URL (la route n'existe pas).
+    $this->deleteJson('/api/v1/auth/account', [
+        'password' => 'password123',
+        'user_id'  => $victime->id,
+        'id'       => $victime->id,
+    ])->assertNoContent();
+
+    $this->deleteJson("/api/v1/auth/account/{$victime->id}", ['password' => 'password123'])
+         ->assertStatus(404);
+
+    $this->assertDatabaseMissing('users', ['id' => $attaquant->id]);
+    $this->assertDatabaseHas('users', ['id' => $victime->id]);
+    $this->assertDatabaseHas('characters', ['user_id' => $victime->id, 'pseudo' => 'Innocent']);
+});

@@ -8,7 +8,10 @@ use App\Notifications\VerifyApiEmail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Passport\RefreshToken;
 
 class AuthController extends BaseController
@@ -162,6 +165,49 @@ class AuthController extends BaseController
             'success' => true,
             'user'    => $this->userPayload($request->user()),
         ]);
+    }
+
+    /**
+     * Suppression self-service du compte (art. 17 RGPD, promesse de /legal/privacy §7).
+     *
+     * Le compte supprimé est toujours celui du porteur du jeton — aucun identifiant n'est
+     * accepté en paramètre, il n'existe donc pas de chemin pour supprimer le compte d'un tiers.
+     * Le mot de passe est redemandé : le jeton seul ne suffit pas pour une action irréversible
+     * (session laissée ouverte sur un poste partagé).
+     *
+     * Effacement immédiat et définitif, sans rétention : c'est ce que promet la politique de
+     * confidentialité, et le RGPD n'impose aucun délai de grâce.
+     */
+    public function destroyAccount(Request $request): JsonResponse|Response
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['password'], $user->password)) {
+            return $this->sendError('Mot de passe incorrect.', [], 403);
+        }
+
+        $userId = $user->id;
+
+        DB::transaction(function () use ($user) {
+            // Les tables OAuth de Passport n'ont pas de contrainte FK vers users : sans ce
+            // nettoyage explicite, les jetons survivraient au compte qu'ils désignent.
+            $accessTokenIds = $user->tokens()->pluck('id');
+            RefreshToken::whereIn('access_token_id', $accessTokenIds)->delete();
+            $user->tokens()->delete();
+
+            // Les personnages partent en cascade (FK ON DELETE CASCADE sur characters.user_id).
+            $user->delete();
+        });
+
+        // Trace d'audit volontairement non réidentifiante : l'id suffit à recouper une demande,
+        // sans conserver d'email après un effacement demandé au titre de l'art. 17.
+        Log::info("Account deleted (id={$userId})");
+
+        return response()->noContent();
     }
 
     /**
