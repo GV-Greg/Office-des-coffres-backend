@@ -4,8 +4,23 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Une
 mergée sur `main` (`master` avant le 09/08/2026, voir `admin/strategies/git.md` §10 — ou merge
 direct pour les deux entrées antérieures aux PR GitHub). Pas de versionnage sémantique — chaque
 merge sur `main` déclenche un déploiement, la date de merge fait foi. L'historique détaillé
-(raisonnement, incidents, décisions) reste dans `roadmap.md` à la racine du workspace ; ce fichier
-n'en retient que le résumé daté.
+(raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
+du workspace ; ce fichier n'en retient que le résumé daté.
+
+## [2026-09-13] — PR #21
+
+### Added
+- `DELETE /api/v1/auth/account` — suppression self-service du compte (art. 17 RGPD, promesse
+  écrite en §7 de la politique de confidentialité). Le mot de passe courant est exigé en plus du
+  jeton : une action irréversible ne doit pas reposer sur une session laissée ouverte. Réponses
+  `204 No Content` en cas de succès, `403` sur mot de passe incorrect, `422` si le mot de passe
+  est absent.
+- La suppression porte **toujours** sur le compte du porteur du jeton : aucun identifiant n'est
+  accepté, ni en corps de requête ni dans l'URL. Un test le vérifie explicitement.
+- Effacement complet et immédiat, dans une transaction : personnages en cascade (FK), jetons
+  d'accès Passport et refresh tokens associés supprimés — les tables OAuth n'ayant pas de
+  contrainte vers `users`, ils survivraient sans ce nettoyage explicite. Trace d'audit
+  non réidentifiante en log (`Account deleted (id=X)`).
 
 ## [2026-08-10] — PR #16
 

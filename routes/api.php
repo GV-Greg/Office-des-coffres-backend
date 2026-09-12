@@ -24,6 +24,9 @@ Route::prefix('v1')->group(function () {
         Route::middleware('auth:api')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('me',      [AuthController::class, 'me']);
+            // Suppression self-service (art. 17 RGPD) : toujours le compte du porteur du jeton,
+            // jamais un id passé en paramètre.
+            Route::delete('account', [AuthController::class, 'destroyAccount']);
         });
     });
 

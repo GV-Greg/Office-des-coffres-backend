@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 12/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 13/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -57,6 +57,7 @@ Pas de table `sessions`/`cache` (drivers `file`).
 | POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi) |
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
+| DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
 | GET | `characters` | `Api\CharacterController@index` | `auth:api` |
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
@@ -88,7 +89,11 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   `! hasVerifiedEmail()`, puis émet le couple access+refresh token via le grant `password` de
   Passport — voir `docs/DECISIONS.md`), `refresh` (renouvelle le couple de tokens à partir d'un
   refresh token valide), `logout` (révoque l'access token courant et son refresh token associé),
-  `me`. `login`/`me` renvoient `user.characters` (liste, pas un pseudo/statut unique).
+  `me`, `destroyAccount` (suppression self-service : exige le mot de passe courant en plus du
+  jeton, supprime le `User` — personnages en cascade —, les jetons d'accès Passport et leurs
+  refresh tokens, le tout en transaction ; les tables OAuth n'ayant pas de FK vers `users`, elles
+  ne se videraient pas seules). `login`/`me` renvoient `user.characters` (liste, pas un
+  pseudo/statut unique).
 - `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
   ville obligatoires), `index` (liste les personnages du compte connecté), `update` (changement de
   ville de résidence : repasse `is_validated` à `false` et lève `pending_residence_change`, le
