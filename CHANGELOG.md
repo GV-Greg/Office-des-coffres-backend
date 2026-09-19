@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-19] — PR #23
+
+### Added
+- Garde-fou structurel `tests/Feature/Enforcement/UserDataLifecycleTest.php` : toute table portant
+  `user_id`, `email` ou `model_id` (pivots polymorphes de Spatie) doit figurer dans une liste
+  déclarée avec sa catégorie de cycle de vie A/B/C/D, sinon la suite échoue. Il attrape **l'oubli**
+  d'une future table — l'angle mort qui a laissé passer `password_reset_tokens` le 19/09 — là où un
+  test comportemental ne couvre que les tables auxquelles l'auteur a pensé. Le message d'échec
+  renvoie vers `admin/strategies/donnees-utilisateur.md` et rappelle les trois questions qui mènent
+  à la catégorie.
+- ADR « Toute donnée rattachée à un compte porte une catégorie de cycle de vie » dans
+  `docs/DECISIONS.md`.
+
 ## [2026-09-13] — PR #21
 
 ### Added
