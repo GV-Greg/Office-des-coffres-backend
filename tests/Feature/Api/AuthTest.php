@@ -4,10 +4,14 @@ use App\Models\City;
 use App\Models\User;
 use App\Notifications\VerifyApiEmail;
 use Database\Seeders\PassportClientSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 use Laravel\Passport\RefreshToken;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 // Le client OAuth "password grant" (utilisé par login()/refresh() en interne) n'existe qu'en
@@ -323,6 +327,76 @@ test('un utilisateur peut supprimer son compte avec son mot de passe', function 
     $this->assertDatabaseMissing('characters', ['user_id' => $user->id]);
     $this->assertDatabaseMissing('oauth_access_tokens', ['user_id' => $user->id]);
     $this->assertDatabaseMissing('oauth_refresh_tokens', ['id' => $refreshToken->id]);
+});
+
+test('la suppression efface le jeton de réinitialisation de mot de passe', function () {
+    // Écart constaté en prod le 19/09/2026 : la table est clé par email, sans FK vers users,
+    // donc ni la cascade ni le reste de destroyAccount() ne la touchaient — une adresse email
+    // survivait à un effacement art. 17, contre ce que promet /legal/privacy §5.
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    Password::broker()->createToken($user);
+
+    $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email]);
+
+    Passport::actingAs($user);
+    $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+         ->assertNoContent();
+
+    $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+});
+
+test('la suppression efface les codes OAuth d\'autorisation et de device du compte', function () {
+    // Le projet n'utilise ni l'un ni l'autre de ces grants, mais Passport expose leurs routes
+    // par défaut et leur user_id n'est qu'une colonne indexée : rien ne garantit que ces tables
+    // restent vides (catégorie B de admin/strategies/donnees-utilisateur.md).
+    $user   = User::factory()->create(['password' => bcrypt('password123')]);
+    $autre  = User::factory()->create();
+    $client = (string) Str::uuid();
+
+    foreach ([$user->id, $autre->id] as $userId) {
+        DB::table('oauth_auth_codes')->insert([
+            'id' => "auth-code-{$userId}", 'user_id' => $userId, 'client_id' => $client,
+            'scopes' => '[]', 'revoked' => false, 'expires_at' => now()->addHour(),
+        ]);
+        DB::table('oauth_device_codes')->insert([
+            'id' => "device-code-{$userId}", 'user_id' => $userId, 'client_id' => $client,
+            'user_code' => "CODE{$userId}", 'scopes' => '[]', 'revoked' => false,
+            'expires_at' => now()->addHour(),
+        ]);
+    }
+
+    Passport::actingAs($user);
+    $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+         ->assertNoContent();
+
+    $this->assertDatabaseMissing('oauth_auth_codes', ['user_id' => $user->id]);
+    $this->assertDatabaseMissing('oauth_device_codes', ['user_id' => $user->id]);
+
+    // Le nettoyage ne déborde pas sur les autres comptes.
+    $this->assertDatabaseHas('oauth_auth_codes', ['user_id' => $autre->id]);
+    $this->assertDatabaseHas('oauth_device_codes', ['user_id' => $autre->id]);
+});
+
+test('la suppression détache les rôles et les permissions Spatie du compte', function () {
+    // Aucune ligne dans destroyAccount() ne les vise : c'est le hook `deleting` des traits
+    // HasRoles / HasPermissions qui s'en charge. Vérifié ici plutôt que supposé — le hook
+    // `bootHasRoles` ne détache que les rôles, ce sont bien deux traits distincts qui couvrent
+    // les deux tables.
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    Role::firstOrCreate(['name' => 'testeur', 'guard_name' => 'web']);
+    Permission::firstOrCreate(['name' => 'consulter-le-tresor', 'guard_name' => 'web']);
+    $user->assignRole('testeur');
+    $user->givePermissionTo('consulter-le-tresor');
+
+    $this->assertDatabaseHas('model_has_roles', ['model_id' => $user->id, 'model_type' => User::class]);
+    $this->assertDatabaseHas('model_has_permissions', ['model_id' => $user->id, 'model_type' => User::class]);
+
+    Passport::actingAs($user);
+    $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+         ->assertNoContent();
+
+    $this->assertDatabaseMissing('model_has_roles', ['model_id' => $user->id, 'model_type' => User::class]);
+    $this->assertDatabaseMissing('model_has_permissions', ['model_id' => $user->id, 'model_type' => User::class]);
 });
 
 test('la suppression échoue avec un mot de passe incorrect et ne touche à rien', function () {
