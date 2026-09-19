@@ -115,3 +115,35 @@ avant le reset.
 **Conséquences** — Perte définitive assumée des 8 comptes legacy et des données `anim_*` côté
 prod (dump froid conservé, potentiellement réutile pour le futur module Animation). Base repartie
 propre depuis les migrations actuelles, sans dette de schéma cachée.
+
+## Toute donnée rattachée à un compte porte une catégorie de cycle de vie (19/09/2026)
+
+**Contexte** — La vérification en prod de `DELETE /api/v1/auth/account` a été concluante sur tout
+ce qui avait été prévu, et a laissé passer `password_reset_tokens` : la table est clé par `email`,
+sans FK vers `users`, et une adresse email survivait donc à un effacement art. 17 — contre ce que
+promet `/legal/privacy` §5. Ce n'était pas une erreur dans `destroyAccount()` : la table n'avait
+simplement jamais été regardée. Le code de suppression avait été écrit à partir des données qu'on
+avait en tête, pas de l'inventaire des tables rattachées à un compte. Tant que le schéma se
+limitait à `users` + `characters`, la question ne se posait pas ; Douane, Registre des mines,
+Animation et Compagnie sont tous des modules où un compte produit de la donnée.
+
+**Décision** — Toute table portant un lien vers un compte appartient à **exactement une**
+catégorie, décidée **à la création de la table**, pas le jour où quelqu'un demande son effacement :
+**A** cascade (le défaut), **B** nettoyage explicite dans `destroyAccount()` ou par un hook de
+paquet, **C** anonymisation (`user_id` à `NULL`, contenu conservé), **D** conservation justifiée et
+non réidentifiante. La règle complète, les trois questions qui mènent à la catégorie et
+l'inventaire à jour vivent dans `admin/strategies/donnees-utilisateur.md`.
+
+La première formulation envisagée était « tout cascader pour les futurs modules privés ». Écartée :
+sur un module où un compte produit de la donnée que d'autres consultent, cascader détruit de la
+donnée communautaire à chaque suppression, et ne pas cascader viole l'art. 17. La catégorie C est
+la sortie de ce conflit — la personne disparaît, la contribution reste.
+
+**Conséquences** — Une décision de plus à chaque migration créant une table liée à un compte,
+contre une donnée personnelle orpheline découverte après coup. La règle est tenue par un test
+structurel (`tests/Feature/Enforcement/UserDataLifecycleTest.php`) qui échoue sur toute table non
+déclarée, parce qu'une convention écrite ne survit pas à trois modules. Ce test vérifie la
+*déclaration*, pas que l'effacement *fonctionne* : l'introspection des FK diffère entre SQLite (CI)
+et MariaDB (prod), et une table MyISAM ignorerait ses contraintes sans rien signaler — seule une
+vérification en prod attrape ça, et elle reste nécessaire après tout changement de
+`destroyAccount()`.
