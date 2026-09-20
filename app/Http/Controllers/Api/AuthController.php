@@ -12,6 +12,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Laravel\Passport\AuthCode;
+use Laravel\Passport\DeviceCode;
 use Laravel\Passport\RefreshToken;
 
 class AuthController extends BaseController
@@ -199,7 +201,20 @@ class AuthController extends BaseController
             RefreshToken::whereIn('access_token_id', $accessTokenIds)->delete();
             $user->tokens()->delete();
 
-            // Les personnages partent en cascade (FK ON DELETE CASCADE sur characters.user_id).
+            // Même raison pour les deux autres tables OAuth porteuses d'un user_id. Le projet
+            // n'utilise ni le code d'autorisation ni le device flow, mais Passport expose leurs
+            // routes par défaut (`oauth/authorize`, `oauth/device/code`) : rien ne garantit que
+            // ces tables restent vides, et leur user_id n'est qu'une colonne indexée.
+            AuthCode::where('user_id', $user->id)->delete();
+            DeviceCode::where('user_id', $user->id)->delete();
+
+            // Clé par email, sans FK vers users : c'est la table qui laissait survivre une
+            // adresse email à un effacement art. 17 (écart constaté en prod le 19/09/2026).
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            // Les personnages partent en cascade (FK ON DELETE CASCADE sur characters.user_id) ;
+            // model_has_roles et model_has_permissions sont détachées par le hook `deleting` des
+            // traits HasRoles / HasPermissions de Spatie (vérifié, pas supposé — voir les tests).
             $user->delete();
         });
 
