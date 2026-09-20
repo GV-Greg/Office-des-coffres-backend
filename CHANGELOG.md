@@ -38,7 +38,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   ensemble, le chiffrement n'a rien acheté.
 - Décision et raisonnement complets : `admin/strategies/donnees-utilisateur.md` §5.
 
-## [2026-09-19] — PR #22
+## [2026-09-20] — PR #22
 
 ### Fixed
 - **`password_reset_tokens` survivait à la suppression d'un compte** : la table est clé par
