@@ -7,6 +7,24 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-19] — PR #22
+
+### Fixed
+- **`password_reset_tokens` survivait à la suppression d'un compte** : la table est clé par
+  `email`, sans FK vers `users`, donc ni la cascade base de données ni `destroyAccount()` ne la
+  touchaient. Une adresse email persistait après un effacement art. 17, contre ce que promet
+  `/legal/privacy` §5. Écart constaté par la vérification en prod du 19/09/2026, pas par un test.
+
+### Changed
+- `oauth_auth_codes` et `oauth_device_codes` sont désormais nettoyées elles aussi dans la
+  transaction. Le projet n'utilise ni le code d'autorisation ni le device flow, mais
+  `php artisan route:list` montre que Passport expose leurs routes par défaut et que leur
+  `user_id` n'est qu'une colonne indexée : rien ne garantissait que ces tables restent vides.
+- `model_has_permissions` : vérifiée, aucune ligne à ajouter — mais pas pour la raison supposée.
+  Le hook `deleting` de `bootHasRoles` ne détache que les rôles ; ce qui couvre la table est
+  `bootHasPermissions`, un second trait que `HasRoles` utilise en interne. Un test fige le
+  comportement plutôt que de faire confiance à la dépendance.
+
 ## [2026-09-19] — PR #23
 
 ### Added
