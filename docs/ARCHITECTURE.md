@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 13/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 20/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -162,6 +162,29 @@ redirection post-vérification.
 
 **Pas de code de compatibilité ascendante** pour les comptes inscrits avant ce flux — décision
 explicite de Greg (reprise à 0).
+
+## Chiffrement des données de module
+
+Aucune table de module n'existe encore, mais le mécanisme est en place et testé — chiffrer après
+coup imposerait une migration de données sur des lignes de prod (ADR du 20/09/2026,
+`admin/strategies/donnees-utilisateur.md` §5).
+
+| Pièce | Rôle |
+|---|---|
+| `config/module_data.php` | `MODULE_DATA_KEY` + `MODULE_DATA_PREVIOUS_KEYS` (CSV) + cipher |
+| `App\Support\ModuleDataEncrypter` | `Encrypter` dédié, gère le préfixe `base64:` comme `APP_KEY` |
+| `App\Casts\EncryptedModuleData` | cast `:string` (défaut) ou `:array` pour un payload JSON |
+| `AppServiceProvider` | binding paresseux du chiffreur + `key:generate` désactivée en production |
+
+**La clé n'est jamais `APP_KEY`** : `key:generate` la fait tourner en routine, ce qui ne coûte
+qu'une reconnexion, alors que la même rotation sur des données de module les rendrait
+définitivement illisibles. `MODULE_DATA_PREVIOUS_KEYS` est le filet correspondant — clés essayées
+au déchiffrement, jamais au chiffrement.
+
+⚠️ **Chiffrer le contenu, jamais les axes.** `city_id`, `province_id`, `character_id`,
+`reported_at` restent en clair : une colonne chiffrée n'est ni indexable, ni triable, ni
+filtrable, l'IV aléatoire faisant échouer jusqu'à l'égalité. Filtrage en SQL, agrégation en PHP
+après déchiffrement — acceptable à l'échelle de cette communauté, rédhibitoire sur un gros volume.
 
 ## Tests
 

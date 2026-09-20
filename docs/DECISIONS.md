@@ -147,3 +147,48 @@ déclarée, parce qu'une convention écrite ne survit pas à trois modules. Ce t
 et MariaDB (prod), et une table MyISAM ignorerait ses contraintes sans rien signaler — seule une
 vérification en prod attrape ça, et elle reste nécessaire après tout changement de
 `destroyAccount()`.
+
+## Les données de module sont chiffrées avec une clé dédiée, jamais `APP_KEY` (20/09/2026)
+
+**Contexte** — Greg est à la fois éditeur de l'Office et joueur de Renaissance Kingdoms. Les
+modules à venir (Douane, Registre des mines) porteront des données qui donnent un avantage de jeu :
+quantités, prix, stocks. L'objectif n'est **pas** une impossibilité technique d'accès — elle
+n'existe pas, qui détient l'hébergement, la base et le code peut lire ce que l'application
+affiche. L'objectif est qu'un `SELECT *` en phpMyAdmin ne rende rien d'exploitable, et que lire
+suppose d'écrire délibérément un script qui amorce Laravel. C'est de la friction, assumée comme
+telle.
+
+Le réflexe aurait été d'utiliser le cast `encrypted` de Laravel, qui s'appuie sur `APP_KEY`.
+
+**Décision** — Une clé dédiée `MODULE_DATA_KEY` et un cast maison (`App\Casts\EncryptedModuleData`)
+bâti sur `Illuminate\Encryption\Encrypter`, plus un équivalent d'`APP_PREVIOUS_KEYS`
+(`MODULE_DATA_PREVIOUS_KEYS`). Décidé **avant** la première migration de module, alors qu'aucune
+table concernée n'existe.
+
+La raison tient au coût asymétrique d'une rotation de clé : `php artisan key:generate` est une
+commande de routine, et faire tourner `APP_KEY` ne casse que des choses récupérables — sessions,
+cookies, jetons de réinitialisation, tous réparés par une reconnexion. La même rotation sur des
+données de module les rendrait **définitivement illisibles**. Une clé dont la perte est
+irréversible ne doit pas être celle qu'un framework fait tourner en routine.
+
+Corollaire du patron : **on chiffre le contenu, jamais les axes.** `city_id`, `province_id`,
+`character_id` et `reported_at` restent en clair, parce qu'une colonne chiffrée n'est ni
+indexable, ni triable, ni filtrable en SQL — l'IV aléatoire fait qu'une même valeur produit un
+chiffré différent à chaque écriture, si bien que même l'égalité échoue. Filtrage par lieu et date
+en SQL, déchiffrement puis agrégation en PHP.
+
+**Conséquences** — Une variable d'environnement de plus, à reporter à la main sur le `.env` de
+prod et à **sauvegarder ailleurs que la base** : si le dump SQL et le `.env` voyagent ensemble, le
+chiffrement n'a rien acheté, même contre un vol de dump. Une sauvegarde jamais restaurée n'étant
+pas une sauvegarde, la restauration doit être testée une fois.
+
+`key:generate` est par ailleurs désactivée en production, mais c'est une ceinture-bretelles, pas
+la défense : bloquer une action se contourne (`--force`, un accès direct au `.env`, un futur qui a
+oublié pourquoi), tandis que supprimer la conséquence ne se contourne pas. Ordre d'importance :
+la clé dédiée et le filet de clés antérieures d'abord, le blocage ensuite.
+
+Enfin, l'agrégation en PHP plutôt qu'en SQL est négligeable à l'échelle de cette communauté
+(quelques milliers de lignes) et deviendrait rédhibitoire sur un volume réel — limite à rappeler
+si un module prend de l'ampleur.
+
+Raisonnement complet : `admin/strategies/donnees-utilisateur.md` §5.

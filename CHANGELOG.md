@@ -7,6 +7,37 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-20] — PR #26
+
+### Ajouté
+- **Chiffrement des données de module, avec une clé dédiée `MODULE_DATA_KEY`** — cast
+  `App\Casts\EncryptedModuleData` bâti sur `Illuminate\Encryption\Encrypter`, alimenté par sa
+  propre clé et **jamais par `APP_KEY`** : `php artisan key:generate` fait tourner `APP_KEY` en
+  routine, ce qui ne coûte qu'une reconnexion, alors que la même rotation sur des données de
+  module les rendrait définitivement illisibles. Config `config/module_data.php`, avec un
+  équivalent d'`APP_PREVIOUS_KEYS` (`MODULE_DATA_PREVIOUS_KEYS`) : les clés antérieures sont
+  essayées au déchiffrement, jamais au chiffrement, ce qui transforme une rotation accidentelle
+  en incident réparable plutôt qu'en perte définitive.
+- **`key:generate` désactivée en production** (`AppServiceProvider`) — ceinture-bretelles
+  assumée : `--force` contournait la protection native de `ConfirmableTrait`. La vraie défense
+  reste la clé dédiée ci-dessus, parce qu'elle supprime la conséquence au lieu de bloquer
+  l'action.
+- 7 tests Pest (`Feature/ModuleDataEncryptionTest`) : payload relu identique, clair absent de la
+  base, axes laissés filtrables en SQL, déchiffrement d'une donnée écrite avec une clé
+  antérieure, écriture toujours sur la clé courante, refus de démarrer sans `MODULE_DATA_KEY`,
+  équivalence clé brute / `base64:`.
+
+### Notes
+- Aucune table de module n'existe encore : le mécanisme se livre et se teste seul. C'est
+  délibéré — chiffrer après coup imposerait une migration de données sur des lignes de prod.
+- **Le patron impose de chiffrer le contenu, jamais les axes** (`city_id`, `province_id`,
+  `character_id`, `reported_at` restent en clair) : une colonne chiffrée n'est ni indexable, ni
+  triable, ni filtrable, l'IV aléatoire faisant échouer jusqu'à l'égalité.
+- ⚠️ **`MODULE_DATA_KEY` doit être reportée à la main sur le `.env` de prod** (rien ne le fait
+  automatiquement) et **sauvegardée ailleurs que la base** : si le dump SQL et le `.env` voyagent
+  ensemble, le chiffrement n'a rien acheté.
+- Décision et raisonnement complets : `admin/strategies/donnees-utilisateur.md` §5.
+
 ## [2026-09-19] — PR #23
 
 ### Added
