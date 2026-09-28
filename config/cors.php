@@ -29,7 +29,11 @@ return [
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    // Durée (s) pendant laquelle le navigateur réutilise un préflight. À 0, chaque appel d'API
+    // du front (autre origine) payait un OPTIONS de plus : ~400 ms par aller-retour sur
+    // l'hébergement mutualisé (mesure du 28/09/2026). Chromium plafonne à 7 200 s, Firefox à
+    // 86 400. Gardé par tests/Feature/Api/CorsTest.php.
+    'max_age' => 86400,
 
     'supports_credentials' => false,
 

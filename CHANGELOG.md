@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-28] — PR #28
+
+### Modifié
+- **Préflights CORS mis en cache** : `config/cors.php` passe `max_age` de `0` à `86400`. À 0,
+  chaque appel d'API du front payait un OPTIONS de plus, ~400 ms par aller-retour sur le
+  mutualisé (mesure prod du 28/09/2026). Chromium/Edge plafonnent à 2 h, Firefox honore 24 h.
+  Garde-fou `tests/Feature/Api/CorsTest.php`.
+
 ## [2026-09-20] — PR #26
 
 ### Ajouté
