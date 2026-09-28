@@ -18,7 +18,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   (`throttleApi()`). 429 en JSON français, distinct de celui d'O2Switch.
 - **`login` ne trahit plus l'existence d'un compte par son délai** : un email inconnu paie
   désormais le même `Hash::check` qu'un email connu (hash factice mis en cache).
-- `tests/Feature/Api/RateLimitTest.php` (10 tests, dont 9 échouent sans le correctif).
+- `tests/Feature/Api/RateLimitTest.php` (11 tests, dont 10 échouent sans le correctif ; un `X-Forwarded-For` forgé ne donne pas de compteur neuf).
 
 ## [2026-09-28] — PR #28
 

@@ -77,6 +77,19 @@ test('la limite (email, IP) ne bloque pas le même compte depuis une autre IP', 
     attemptLogin('joueur@test.com', '10.0.0.2')->assertStatus(401);
 });
 
+test('un X-Forwarded-For forgé ne donne pas un compteur neuf', function () {
+    // Trusted proxies à '*' ferait lire l'IP dans cet en-tête, que tout client peut écrire :
+    // un compteur neuf à chaque requête, un limiteur vert en test et décoratif en prod.
+    foreach (range(1, 5) as $i) {
+        attemptLogin('joueur@test.com');
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+        ->withHeader('X-Forwarded-For', '203.0.113.'.random_int(1, 254))
+        ->postJson('/api/v1/auth/login', ['email' => 'joueur@test.com', 'password' => 'x'])
+        ->assertStatus(429);
+});
+
 // --- login : couche IP seule ---
 
 test('login répond 429 au-delà de 30 essais par minute depuis une IP, même en changeant d\'email', function () {
