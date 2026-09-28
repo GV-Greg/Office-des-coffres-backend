@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date de merge] — PR #?
+
+### Sécurité
+- **Limitation de débit enfin appliquée.** Le limiteur `api` était déclaré dans
+  `AppServiceProvider` sans jamais être branché : 65 essais de mot de passe sur `login` depuis une
+  IP donnaient 65 × 401 et aucun 429 (constat du 28/09/2026). Désormais : `login` à deux couches
+  (5/min par email+IP, 30/min par IP, l'email compté qu'il existe ou non, sans verrouillage de
+  compte), `register` 5/min/IP, `refresh` 20/min/IP, et un plancher de 60/min sur tout `/api/*`
+  (`throttleApi()`). 429 en JSON français, distinct de celui d'O2Switch.
+- **`login` ne trahit plus l'existence d'un compte par son délai** : un email inconnu paie
+  désormais le même `Hash::check` qu'un email connu (hash factice mis en cache).
+- `tests/Feature/Api/RateLimitTest.php` (10 tests, dont 9 échouent sans le correctif).
+
 ## [2026-09-28] — PR #28
 
 ### Modifié

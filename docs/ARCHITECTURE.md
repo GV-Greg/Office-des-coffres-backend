@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 20/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 29/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -50,11 +50,11 @@ Pas de table `sessions`/`cache` (drivers `file`).
 
 | Méthode | URI | Contrôleur | Middleware |
 |---|---|---|---|
-| POST | `auth/register` | `Api\AuthController@register` | public |
-| POST | `auth/login` | `Api\AuthController@login` | public |
+| POST | `auth/register` | `Api\AuthController@register` | public, `throttle:register` (5/min/IP) |
+| POST | `auth/login` | `Api\AuthController@login` | public, `throttle:login` (5/min par email+IP, 30/min par IP) |
 | POST | `auth/resend-verification` | `Api\AuthController@resendVerification` | public, `throttle:6,1` |
 | GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) |
-| POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi) |
+| POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi), `throttle:refresh` (20/min/IP) |
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
 | DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
@@ -62,6 +62,12 @@ Pas de table `sessions`/`cache` (drivers `file`).
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
 | GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
+
+**Plancher de toute l'API** : `throttleApi()` (`bootstrap/app.php`) applique le limiteur `api`
+(60/min par utilisateur Passport, sinon par IP) à tout `/api/*`. Limiteurs déclarés dans
+`AppServiceProvider` ; 429 rendu en JSON français (`success: false`) par `bootstrap/app.php`.
+⚠️ Le limiteur `api` a existé des mois **sans être branché** — une déclaration ne prouve rien,
+c'est `RateLimitTest.php` qui fait foi.
 
 `auth:api` = guard **Passport** (`config/auth.php`), plus Sanctum — voir `docs/DECISIONS.md` pour
 l'ADR de bascule.
