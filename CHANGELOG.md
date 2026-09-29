@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date de merge] — PR #?
+## [2026-09-29] — PR #32
 
 ### Sécurité
 - **`SESSION_SECURE_COOKIE=true` documentée dans `.env.example`.** Posée à la main sur le serveur
