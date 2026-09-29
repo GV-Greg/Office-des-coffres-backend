@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-29] — PR #35
+
+### Fixed
+- **`public/vendor/` est de nouveau déployé** (`deploy.yml`). Le motif `**/vendor/**` excluait aussi
+  les ressources publiées des paquets (`public/vendor/sweetalert/`), présentes en prod par un
+  dépôt manuel ancien : un serveur reconstruit aurait perdu SweetAlert sans alerte. Le motif est
+  resserré sur le `vendor/` Composer à la racine ; `DeployExcludeTest` couvre les deux cas.
+
 ## [2026-09-29] — PR #33
 
 ### Changed

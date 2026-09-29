@@ -44,13 +44,16 @@ jobs:
           # (public/), donc de l'encombrement, pas une divulgation. ⚠️ JAMAIS
           # composer.json/composer.lock : vendor/ est construit SUR le serveur (composer install
           # --no-dev), qui en a besoin — gardé par tests/Unit/Enforcement/DeployExcludeTest.php.
+          # `vendor/**` à la RACINE seulement (29/09/2026) : `**/vendor/**` attrapait aussi
+          # public/vendor/ (ressources publiées des paquets, ex. SweetAlert), jamais déployé —
+          # présent en prod par un dépôt manuel ancien, perdu sur un serveur reconstruit.
           # Commentaires ici et non dans le bloc : dans `exclude: |`, un « # » serait un motif.
           # Le déploiement ne supprime rien côté serveur : ce qui y est déjà se retire à la main.
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/vendor/**
+            vendor/**
             **/storage/logs/**
             **/storage/framework/**
             **/storage/app/**
