@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date de merge] — PR #?
+
+### Sécurité
+- **La restriction CORS est vérifiée à chaque déploiement** (`deploy.yml`). Elle dépend de
+  `CORS_ALLOWED_ORIGINS` dans le `.env` du serveur, que le déploiement ne touche jamais : la prod
+  a répondu `Access-Control-Allow-Origin: *` des semaines sans que rien ne le signale. La
+  variable est posée depuis le 29/09/2026 (après la redirection de `www`/`http` vers l'origine
+  canonique, front #73). L'étape exige l'en-tête exact pour l'origine de l'Office et refuse `*`
+  comme l'écho d'une origine tierce. Contrôle positif fait contre une API ouverte.
+
 ## [2026-09-29] — PR #29
 
 ### Sécurité

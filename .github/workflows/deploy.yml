@@ -53,6 +53,51 @@ jobs:
             .docker/**
             tests/**
 
+      # CORS : la restriction d'origine vit dans le .env du serveur (CORS_ALLOWED_ORIGINS), que le
+      # déploiement ne touche jamais. La prod a répondu « * » des semaines sans que rien ne le
+      # signale (admin/content/cors-prod.md) : on vérifie donc le résultat, pas la configuration.
+      # L'assertion encode l'invariant, pas l'implémentation : avec UNE origine configurée,
+      # php-cors la pose statiquement quel que soit l'appelant ; avec plusieurs, l'en-tête est
+      # absent pour un tiers. Les deux sont corrects — seuls « * » et l'écho de l'origine tierce
+      # sont des échecs. Espacé et réessayé : O2Switch répond parfois 429 aux rafales.
+      - name: Vérifier la restriction CORS de l'API
+        run: |
+          API="https://odc-admin.creacube.be/api/v1/map"
+          OFFICE="https://officedescoffres.creacube.be"
+          THIRD="https://example.org"
+
+          allow_origin() {
+            for attempt in 1 2 3 4 5; do
+              HEADERS=$(curl -sS -o /dev/null -D - --max-time 15 -H "Origin: $1" "$API" || true)
+              if echo "$HEADERS" | head -1 | grep -q ' 200'; then
+                echo "$HEADERS" | tr -d '\r' | grep -i '^access-control-allow-origin:' | sed 's/^[^:]*: *//'
+                return 0
+              fi
+              echo "Tentative $attempt/5 ($1) : réponse inattendue, nouvel essai dans 5s..." >&2
+              echo "$HEADERS" | head -1 >&2
+              sleep 5
+            done
+            echo "::error::$API ne répond pas 200 (origine $1)." >&2
+            return 1
+          }
+
+          FOR_OFFICE=$(allow_origin "$OFFICE") || exit 1
+          echo "Origin: $OFFICE → '${FOR_OFFICE}'"
+          if [ "$FOR_OFFICE" != "$OFFICE" ]; then
+            echo "::error::Pour l'origine de l'Office, Access-Control-Allow-Origin vaut '${FOR_OFFICE}' au lieu de '${OFFICE}' (CORS_ALLOWED_ORIGINS absente ou fausse dans le .env du serveur, ou config en cache périmée : php artisan config:cache)."
+            exit 1
+          fi
+
+          sleep 2
+          FOR_THIRD=$(allow_origin "$THIRD") || exit 1
+          echo "Origin: $THIRD → '${FOR_THIRD}'"
+          if [ "$FOR_THIRD" = "*" ] || [ "$FOR_THIRD" = "$THIRD" ]; then
+            echo "::error::Une origine tierce reçoit Access-Control-Allow-Origin '${FOR_THIRD}' : l'API est ouverte à n'importe quel site."
+            exit 1
+          fi
+
+          echo "✅ CORS restreint : l'Office est autorisé, une origine tierce ne l'est pas."
+
       - name: Notifier le salon admin/mod (succès ou échec)
         if: always()
         continue-on-error: true
