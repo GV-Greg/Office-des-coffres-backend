@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-29] — PR #33
+
+### Changed
+- **Le déploiement n'envoie plus l'outillage ni la documentation** (`deploy.yml`) : `docs/`,
+  `scripts/`, sources `resources/js|sass`, `README.md`, `CHANGELOG.md`, `.env.example`,
+  `.env.testing`, `phpunit.xml`, `phpstan.neon`, `package*.json`, configs Vite/Tailwind/PostCSS,
+  `.editorconfig`. Hors racine web, donc de l'encombrement plutôt qu'une divulgation. Ce qui est
+  déjà sur le serveur se retire à la main (le déploiement ne supprime rien).
+  `tests/Unit/Enforcement/DeployExcludeTest.php` garde le sens dangereux : n'exclure jamais
+  `composer.json`/`composer.lock` (vendor/ est construit sur le serveur), `artisan`, `public/`,
+  les vues, la config, les routes, les traductions, les migrations.
+
 ## [2026-09-29] — PR #32
 
 ### Sécurité
