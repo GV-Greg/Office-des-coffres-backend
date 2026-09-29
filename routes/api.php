@@ -10,9 +10,12 @@ Route::prefix('v1')->group(function () {
     Route::get('map', [MapController::class, 'index']);
 
     Route::prefix('auth')->group(function () {
-        Route::post('register', [AuthController::class, 'register']);
-        Route::post('login',    [AuthController::class, 'login']);
-        Route::post('refresh',  [AuthController::class, 'refresh']);
+        Route::post('register', [AuthController::class, 'register'])
+            ->middleware('throttle:register');
+        Route::post('login',    [AuthController::class, 'login'])
+            ->middleware('throttle:login');
+        Route::post('refresh',  [AuthController::class, 'refresh'])
+            ->middleware('throttle:refresh');
 
         Route::post('resend-verification', [AuthController::class, 'resendVerification'])
             ->middleware('throttle:6,1');

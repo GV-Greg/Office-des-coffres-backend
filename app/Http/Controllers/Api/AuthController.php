@@ -10,8 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Passport\AuthCode;
 use Laravel\Passport\DeviceCode;
 use Laravel\Passport\RefreshToken;
@@ -90,7 +92,14 @@ class AuthController extends BaseController
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        // Même coût bcrypt que l'email existe ou non : sans ça, un email inconnu répondait
+        // ~100 fois plus vite, et le délai disait qui est inscrit. Hash factice mis en cache pour
+        // ne pas payer un Hash::make en plus du check (inversion de l'oracle), et calculé avec
+        // les rounds de la config plutôt que figés ici.
+        $hash = $user?->password
+            ?? Cache::rememberForever('auth.login_dummy_hash', fn () => Hash::make(Str::random(40)));
+
+        if (! Hash::check($validated['password'], $hash) || ! $user) {
             return $this->sendError('Identifiants incorrects.', [], 401);
         }
 

@@ -28,8 +28,37 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Plancher de tout /api/* (branché par throttleApi() dans bootstrap/app.php). Déclaré
+        // ici depuis l'origine sans jamais être appliqué jusqu'au 29/09/2026 : login se laissait
+        // essayer sans borne. `user('api')` : le throttle passe avant auth:api, et la garde par
+        // défaut (web, session) ne voit pas le jeton Passport.
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(60)->by($request->user('api')?->id ?: $request->ip());
+        });
+
+        // Deux couches : (email, IP) serré contre l'essai de mots de passe sur un compte, IP
+        // seule plus large contre le balayage d'un mot de passe sur beaucoup de comptes — une IP
+        // de jeu est souvent partagée, d'où la marge. L'email soumis compte qu'il existe ou non :
+        // un compteur réservé aux comptes existants ferait du 429 un oracle d'inscription. Pas
+        // de verrouillage de compte : un tiers pourrait bloquer n'importe quel joueur.
+        RateLimiter::for('login', function (Request $request) {
+            $email = mb_strtolower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(5)->by('login:'.$email.'|'.$request->ip()),
+                Limit::perMinute(30)->by('login-ip:'.$request->ip()),
+            ];
+        });
+
+        // Comptes créés en rafale et emails de vérification sortants.
+        RateLimiter::for('register', function (Request $request) {
+            return Limit::perMinute(5)->by('register:'.$request->ip());
+        });
+
+        // Exige déjà un refresh token valide : limite généreuse, un onglet rafraîchit toutes
+        // les 15 min.
+        RateLimiter::for('refresh', function (Request $request) {
+            return Limit::perMinute(20)->by('refresh:'.$request->ip());
         });
 
         Event::listen(
