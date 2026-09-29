@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date de merge] — PR #?
+
+### Sécurité
+- **`SESSION_SECURE_COOKIE=true` documentée dans `.env.example`.** Posée à la main sur le serveur
+  le 29/09/2026 (cookie de session admin et `XSRF-TOKEN` marqués `secure`, constaté au `curl`),
+  elle manquait au dépôt : une réinstallation depuis l'exemple l'aurait perdue sans alerte. À
+  mettre à `false` en local sur `http://localhost`.
+
 ## [2026-09-29] — PR #31
 
 ### Sécurité
