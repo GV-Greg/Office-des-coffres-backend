@@ -65,6 +65,7 @@ test('n\'exclut jamais ce dont le serveur a besoin', function (string $path) {
     'public/index.php',
     'public/.htaccess',
     'public/build/manifest.json',
+    'public/vendor/sweetalert/sweetalert.all.js', // ressources publiées, pas le vendor Composer
     'resources/views/dashboard.blade.php',
     'bootstrap/app.php',
     'config/app.php',
@@ -88,4 +89,5 @@ test('exclut l\'outillage et la documentation', function (string $path) {
     'package.json',
     'vite.config.js',
     'tests/Pest.php',
+    'vendor/autoload.php', // construit sur le serveur par composer install --no-dev
 ]);
