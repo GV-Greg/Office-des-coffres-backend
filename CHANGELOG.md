@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date de merge] — PR #?
+## [2026-09-29] — PR #33
 
 ### Changed
 - **Le déploiement n'envoie plus l'outillage ni la documentation** (`deploy.yml`) : `docs/`,
