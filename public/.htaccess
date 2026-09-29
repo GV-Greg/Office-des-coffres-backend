@@ -9,6 +9,23 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+    # Origine canonique (29/09/2026) : https://odc-admin.creacube.be, sans www. Les quatre
+    # variantes (http/https × avec/sans www) servaient toutes le panneau admin et l'API, dont
+    # la page de connexion admin en clair. Même règle que le frontend (public/.htaccess, #73).
+    #  - Avant la redirection des slashs finaux, qui est une 301 : placée après, elle poserait
+    #    en cache chez le visiteur une redirection permanente restée en http://.
+    #  - Un POST en http:// devient un GET après une 302/301 et échoue (405) : voulu. Le mot de
+    #    passe est déjà parti en clair dans la première requête, un 307/308 qui la rejouerait
+    #    masquerait la fuite au lieu de la faire corriger. Le frontend appelle déjà en https.
+    #  - /.well-known/ exclu : le renouvellement du certificat peut y valider en http.
+    #  - %{HTTPS} est fiable derrière PowerBoost (Laravel voit le vrai schéma, vérifié en prod).
+    #  - 302 d'abord, 301 une fois vérifié en prod. Pas de HSTS (décision séparée).
+    # Contrôlée à chaque déploiement par .github/workflows/deploy.yml.
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteCond %{HTTPS} !=on [OR]
+    RewriteCond %{HTTP_HOST} !^odc-admin\.creacube\.be$ [NC]
+    RewriteRule ^(.*)$ https://odc-admin.creacube.be/$1 [R=302,L]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$

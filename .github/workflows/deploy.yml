@@ -53,6 +53,40 @@ jobs:
             .docker/**
             tests/**
 
+      # Origine canonique (voir public/.htaccess) : les trois autres variantes doivent rediriger
+      # vers https://odc-admin.creacube.be en gardant chemin et paramètres — sans quoi la page de
+      # connexion admin redevient servable en clair. 301 ou 302 acceptés (302 le temps de
+      # vérifier la règle en prod, 301 ensuite). La variante canonique doit répondre 200 sans
+      # redirection — une boucle échouerait ici.
+      - name: Vérifier la redirection vers l'origine canonique
+        run: |
+          CANONICAL="https://odc-admin.creacube.be"
+          PROBE="/login?verif=1"
+          FAILED=0
+
+          STATUS=$(curl -sS -o /dev/null --max-time 15 -w '%{http_code}' "${CANONICAL}${PROBE}")
+          echo "${CANONICAL}${PROBE} → ${STATUS}"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::L'origine canonique répond ${STATUS} au lieu de 200 (boucle de redirection ?)."
+            FAILED=1
+          fi
+
+          for VARIANT in https://www.odc-admin.creacube.be http://odc-admin.creacube.be http://www.odc-admin.creacube.be; do
+            sleep 2
+            RESULT=$(curl -sS -o /dev/null --max-time 15 -w '%{http_code} %{redirect_url}' "${VARIANT}${PROBE}")
+            echo "${VARIANT}${PROBE} → ${RESULT}"
+            case "$RESULT" in
+              "301 ${CANONICAL}${PROBE}"|"302 ${CANONICAL}${PROBE}") ;;
+              *)
+                echo "::error::${VARIANT} ne redirige pas vers ${CANONICAL}${PROBE}."
+                FAILED=1
+                ;;
+            esac
+          done
+
+          if [ "$FAILED" != "0" ]; then exit 1; fi
+          echo "✅ Les trois variantes redirigent vers l'origine canonique."
+
       # CORS : la restriction d'origine vit dans le .env du serveur (CORS_ALLOWED_ORIGINS), que le
       # déploiement ne touche jamais. La prod a répondu « * » des semaines sans que rien ne le
       # signale (admin/content/cors-prod.md) : on vérifie donc le résultat, pas la configuration.
