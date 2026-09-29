@@ -1,2 +1,4 @@
+# Panneau d'administration et API de l'Office des coffres : rien à indexer.
+# Le fichier par défaut de Laravel (« Disallow: » vide) autorisait tout (29/09/2026).
 User-agent: *
-Disallow:
+Disallow: /

@@ -7,6 +7,13 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-09-30] — PR #34
+
+### Fixed
+- **L'admin et l'API ne s'indexent plus** : `public/robots.txt` était celui de Laravel
+  (`Disallow:` vide, qui autorise tout), il porte désormais `Disallow: /`.
+- **`public/favicon.ico` n'est plus vide** (0 octet servi en 200) : l'écu du site, repris du
+  frontend. Gardés par `tests/Unit/Enforcement/AdminRobotsTest.php`.
 ## [2026-09-29] — PR #35
 
 ### Fixed
