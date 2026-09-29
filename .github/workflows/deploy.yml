@@ -39,6 +39,13 @@ jobs:
           password: ${{ secrets.FTP_BACK_PASSWORD }}
           local-dir: ./
           server-dir: /back/
+          # Au-delà des dépendances et du stockage : l'outillage et la documentation, sans usage
+          # à l'exécution (29/09/2026, admin/content/brief-menage-prod.md). Hors racine web
+          # (public/), donc de l'encombrement, pas une divulgation. ⚠️ JAMAIS
+          # composer.json/composer.lock : vendor/ est construit SUR le serveur (composer install
+          # --no-dev), qui en a besoin — gardé par tests/Unit/Enforcement/DeployExcludeTest.php.
+          # Commentaires ici et non dans le bloc : dans `exclude: |`, un « # » serait un motif.
+          # Le déploiement ne supprime rien côté serveur : ce qui y est déjà se retire à la main.
           exclude: |
             **/.git*
             **/.git*/**
@@ -52,6 +59,22 @@ jobs:
             docker-entrypoint.sh
             .docker/**
             tests/**
+            docs/**
+            scripts/**
+            resources/js/**
+            resources/sass/**
+            README.md
+            CHANGELOG.md
+            .editorconfig
+            .env.example
+            .env.testing
+            phpunit.xml
+            phpstan.neon
+            package.json
+            package-lock.json
+            postcss.config.js
+            tailwind.config.js
+            vite.config.js
 
       # Origine canonique (voir public/.htaccess) : les trois autres variantes doivent rediriger
       # vers https://odc-admin.creacube.be en gardant chemin et paramètres — sans quoi la page de
