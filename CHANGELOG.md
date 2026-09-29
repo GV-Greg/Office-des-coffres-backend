@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date de merge] — PR #?
+
+### Sécurité
+- **Une seule adresse pour l'admin et l'API** (`public/.htaccess`). Les quatre variantes
+  (`http`/`https`, avec ou sans `www`) servaient toutes le panneau admin et l'API, dont la page
+  de connexion admin **en clair**. Elles redirigent désormais vers `https://odc-admin.creacube.be`,
+  chemin et paramètres conservés, en **302** le temps de vérifier la règle en prod (301 ensuite).
+  Un `POST` en `http://` échoue volontairement plutôt que d'être rejoué en https. Vérifié à chaque
+  déploiement (`deploy.yml`) et par `tests/Unit/Enforcement/HtaccessCanonicalOriginTest.php`.
+  Pas de HSTS : décision séparée.
+
 ## [2026-09-29] — PR #30
 
 ### Sécurité
