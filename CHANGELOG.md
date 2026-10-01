@@ -7,6 +7,13 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-01] — PR #36
+
+### Security
+- **Redirection vers l'origine canonique de l'admin passée en 301** (`public/.htaccess`). Elle
+  était en 302 depuis back #31, le temps de vérifier la règle en prod. Elle a tenu du 29/09 au
+  01/10 et l'étape « origine canonique » de `deploy.yml` la contrôle à chaque déploiement.
+
 ## [2026-09-30] — PR #34
 
 ### Fixed

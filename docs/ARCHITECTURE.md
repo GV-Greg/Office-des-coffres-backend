@@ -46,8 +46,8 @@ Pas de table `sessions`/`cache` (drivers `file`).
 
 ## Origine canonique (`public/.htaccess`)
 
-Tout passe par `https://odc-admin.creacube.be` : `www` et `http://` redirigent (302, puis 301
-une fois vérifié en prod), chemin et paramètres conservés, `/.well-known/` exclu — le panneau
+Tout passe par `https://odc-admin.creacube.be` : `www` et `http://` redirigent (301 depuis
+le 01/10/2026, après une phase en 302), chemin et paramètres conservés, `/.well-known/` exclu — le panneau
 admin et l'API répondaient sous quatre variantes, dont deux en clair (29/09/2026). Règle placée
 avant la redirection des slashs finaux (une 301) et le front controller. Un `POST` en `http://`
 échoue volontairement (rejoué en `GET` → 405) plutôt que d'être rejoué en https : le mot de passe
