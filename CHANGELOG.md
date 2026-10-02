@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date du merge] — PR #?
+## [date du merge] — PR #37
 
 ### Fixed
 - **Un jeton Bearer refusé n'écrit plus d'erreur dans `laravel.log`** (`bootstrap/app.php`). Le
