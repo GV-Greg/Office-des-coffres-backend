@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-02] — PR #37
+
+### Fixed
+- **Un jeton Bearer refusé n'écrit plus d'erreur dans `laravel.log`** (`bootstrap/app.php`). Le
+  `TokenGuard` de Passport signale tout jeton refusé, qu'il soit expiré, révoqué ou illisible.
+  Chaque expiration d'un jeton de joueur laissait donc une entrée
+  ERROR d'environ 90 lignes pour un 401 ordinaire. La sonde de latence en ajoutait 15 par jour.
+  Seul le refus `access_denied` est tu, les autres erreurs OAuth restent signalées. Gardé par
+  `Feature/Api/RejectedTokenReportingTest`, qui échoue sans le correctif.
+
 ## [2026-10-01] — PR #36
 
 ### Security
