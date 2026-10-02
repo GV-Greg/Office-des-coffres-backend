@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date du merge] — PR #?
+## [date du merge] — PR #40
 
 ### Fixed
 - **Plus de polices Font Awesome en 404 sur le panneau admin** (`resources/sass/app.scss`). Les
