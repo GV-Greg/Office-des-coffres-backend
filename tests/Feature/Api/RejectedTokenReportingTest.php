@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Exceptions;
 use League\OAuth2\Server\Exception\OAuthServerException;
 
 // Le TokenGuard de Passport fait `report($e)` sur tout jeton refusé : chaque jeton expiré d'un
-// joueur (toutes les 15 min de session) et chaque passage de la sonde de latence écrivaient une
-// erreur de ~90 lignes dans laravel.log. Un jeton refusé est un 401 ordinaire, pas une erreur.
+// joueur et chaque passage de la sonde de latence écrivaient une erreur de ~90 lignes dans
+// laravel.log. Un jeton refusé est un 401 ordinaire, pas une erreur.
 
 test('un jeton Bearer refusé n\'est pas consigné comme une erreur', function () {
     Exceptions::fake();
