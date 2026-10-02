@@ -116,9 +116,10 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   personnage doit être revalidé depuis le dashboard admin).
 - `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
   pagination (~300 villes, volume géré en un seul payload pour un sélecteur cascade côté front).
-  **Mis en cache** par `App\Support\MapTree` (store par défaut, TTL 7 jours, clé versionnée
-  `api.map.tree.vN`) : le cache porte le tableau, pas la réponse HTTP. ⚠️ Il survit au
-  déploiement : toute modification de la forme du tableau incrémente la version de la clé. Vidé par le trait `Models\Concerns\FlushesMapTree`
+  **Mis en cache** par `App\Support\MapTree` (store par défaut, TTL 7 jours) : le cache porte
+  le tableau, pas la réponse HTTP. ⚠️ Il survit au déploiement : sa clé
+  (`api.map.tree.<empreinte>`) est empreintée sur `MapTree.php` et les trois modèles, et un test
+  de forme garde le reste (colonne ajoutée par migration → `cache:clear` en prod). Vidé par le trait `Models\Concerns\FlushesMapTree`
   (`saved`/`deleted`) sur `Kingdom`/`Province`/`City` — aucun écran admin n'écrit ces tables,
   seul `MapSeeder` ; le TTL couvre les écritures hors Eloquent (SQL direct, `update()` de masse).
 - `Web\DashboardController` — `index` (liste personnages paginée, eager-load

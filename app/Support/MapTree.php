@@ -2,8 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\City;
 use App\Models\Kingdom;
+use App\Models\Province;
 use Illuminate\Support\Facades\Cache;
+use ReflectionClass;
 
 /**
  * Arbre royaumes → provinces → villes servi par `GET /api/v1/map`, mis en cache.
@@ -23,13 +26,21 @@ use Illuminate\Support\Facades\Cache;
  * semaine ne sert plus qu'à réparer seule une écriture hors Eloquent (SQL direct, `update()` de
  * masse), pour une requête lente par semaine.
  *
- * ⚠️ Le cache SURVIT AU DÉPLOIEMENT (`storage/framework/` est exclu du FTP). Toute modification de
- * la FORME du tableau (champ ajouté, retiré, renommé, autre tri) doit incrémenter la version de
- * `CACHE_KEY` : sinon l'ancienne forme reste servie jusqu'à une semaine au frontend déployé.
+ * ⚠️ Le cache SURVIT AU DÉPLOIEMENT (`storage/framework/` est exclu du FTP). La clé porte donc une
+ * EMPREINTE des fichiers qui décident de la forme du tableau — celui-ci et les trois modèles
+ * (`$casts`, accesseurs, `$hidden`…) : toute modification de l'un d'eux change la clé, et
+ * l'ancienne forme cesse d'être servie sans que personne n'ait à y penser. Coût : une requête
+ * lente après une modification, même cosmétique. Ce que l'empreinte ne voit pas — une colonne
+ * ajoutée par migration, qui traverse parce que provinces et villes sont lues en `select *` — est
+ * gardé par le test de forme de `tests/Feature/Api/MapTest.php`.
+ *
+ * L'ancienne clé n'est jamais effacée : le cache `file` ne supprime une entrée expirée qu'en la
+ * relisant, et personne ne relit une clé abandonnée (~70 Ko par changement d'empreinte).
+ * `php artisan cache:clear` en SSH fait le ménage.
  */
 class MapTree
 {
-    public const CACHE_KEY = 'api.map.tree.v1';
+    public const CACHE_PREFIX = 'api.map.tree.';
 
     public const TTL_SECONDS = 7 * 24 * 3600;
 
@@ -38,7 +49,7 @@ class MapTree
      */
     public static function get(): array
     {
-        return Cache::remember(self::CACHE_KEY, self::TTL_SECONDS, fn () => Kingdom::with([
+        return Cache::remember(self::key(), self::TTL_SECONDS, fn () => Kingdom::with([
             'provinces' => function ($query) {
                 $query->with(['cities' => function ($cities) {
                     $cities->orderByDesc('is_capital')->orderBy('city_name');
@@ -49,6 +60,36 @@ class MapTree
 
     public static function forget(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::key());
+    }
+
+    /**
+     * `api.map.tree.` + empreinte des fichiers qui décident de la forme du tableau, calculée une
+     * fois par requête (~2 ms par fichier mesurés sur le montage WSL du dev, le plus lent).
+     */
+    public static function key(): string
+    {
+        static $key = null;
+
+        return $key ??= self::CACHE_PREFIX.self::fingerprint(self::shapeFiles());
+    }
+
+    /**
+     * @param  array<int, string>  $files
+     */
+    public static function fingerprint(array $files): string
+    {
+        return substr(md5(implode('', array_map(fn (string $file) => md5_file($file), $files))), 0, 8);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function shapeFiles(): array
+    {
+        return array_map(
+            fn (string $class) => (new ReflectionClass($class))->getFileName(),
+            [self::class, Kingdom::class, Province::class, City::class],
+        );
     }
 }
