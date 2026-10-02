@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-02] — PR #40
+
+### Fixed
+- **Plus de polices Font Awesome en 404 sur le panneau admin** (`resources/sass/app.scss`). Les
+  feuilles SCSS de Font Awesome déclaraient des `@font-face` vers `build/webfonts/`, que Vite ne
+  copie pas : deux 404 par page en prod depuis l'installation de Breeze. Les icônes s'affichaient
+  malgré tout, en SVG, par le JS de Font Awesome importé dans `app.js` : le SCSS faisait doublon.
+  Il est retiré (CSS : 534 → 448 Ko), et le rendu a été vérifié en navigateur headless : 6 icônes
+  en SVG, aucune requête de police. Gardé par `Unit/Enforcement/AdminIconsTest`.
+
 ## [2026-10-02] — PR #39
 
 ### Performance
