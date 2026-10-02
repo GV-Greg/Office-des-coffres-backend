@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use League\OAuth2\Server\Exception\OAuthServerException;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,6 +25,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // Le TokenGuard de Passport signale tout jeton Bearer refusé (expiré, révoqué, illisible) :
+        // une erreur de ~90 lignes dans laravel.log pour un 401 ordinaire, à chaque expiration
+        // d'un jeton de joueur. Seul ce refus (`access_denied`) est tu, les autres erreurs OAuth
+        // restent signalées.
+        $exceptions->dontReportWhen(fn (Throwable $e) => $e instanceof OAuthServerException
+            && $e->getErrorType() === 'access_denied');
+
         // 429 de l'API au format des autres erreurs (le front affiche `message` tel quel) et en
         // français. Le corps `success: false` distingue aussi ce 429 de celui qu'O2Switch
         // renvoie de son côté sur des appels rapprochés.
