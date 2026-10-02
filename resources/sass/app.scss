@@ -1,10 +1,9 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
-@import '@fortawesome/fontawesome-free/scss/fontawesome.scss';
-@import '@fortawesome/fontawesome-free/scss/regular.scss';
-@import '@fortawesome/fontawesome-free/scss/solid.scss';
-@import '@fortawesome/fontawesome-free/scss/brands.scss';
+// Font Awesome passe par son JS (resources/js/app.js : SVG en ligne, sans police). Ses feuilles
+// SCSS faisaient doublon : 86 Ko de CSS, et des @font-face vers build/webfonts/ que Vite ne
+// copie pas — deux 404 par page admin en prod (02/10/2026), icônes affichées malgré tout.
 
 /* Styles page */
 
