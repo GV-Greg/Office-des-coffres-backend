@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date du merge] — PR #?
+## [date du merge] — PR #41
 
 ### Performance
 - **Cache de `/api/v1/map` porté d'1 h à 7 jours** (`App\Support\MapTree`). À 1 h, tout
