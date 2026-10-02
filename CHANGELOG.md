@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-02] — PR #38
+
+### Changed
+- **Le jeton d'accès vit 1 h au lieu de 15 min** (`AppServiceProvider`). Chaque expiration faisait
+  passer le joueur par le chemin le plus lent de l'API (préflight, `me` refusé, `refresh`, `me`),
+  vu à ~30 s en prod le 01/10. La révocation reste vérifiée en base à chaque requête : la
+  déconnexion et la suppression de compte coupent toujours l'accès aussitôt. Amendement de l'ADR
+  Passport dans `docs/DECISIONS.md`. Gardé par un test dans `Feature/Api/AuthTest`, qui échoue
+  à 15 min.
 ## [2026-10-02] — PR #37
 
 ### Fixed

@@ -56,7 +56,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Exige déjà un refresh token valide : limite généreuse, un onglet rafraîchit toutes
-        // les 15 min.
+        // les heures.
         RateLimiter::for('refresh', function (Request $request) {
             return Limit::perMinute(20)->by('refresh:'.$request->ip());
         });
@@ -67,14 +67,14 @@ class AppServiceProvider extends ServiceProvider
         );
 
         // Migration Sanctum → Passport (admin/strategies/cookies.md item #13) : access token
-        // court (15 min) dans tous les cas, refresh token long par défaut (30 j) — AuthController
+        // court (1 h, voir docs/DECISIONS.md) dans tous les cas, refresh token long par défaut (30 j) — AuthController
         // raccourcit explicitement l'expiration du refresh token à 12h après coup si
         // "remember_me" n'est pas coché, Passport n'ayant pas de notion de durée conditionnelle
         // à l'émission.
         $this->protectKeyGenerateInProduction();
 
         Passport::enablePasswordGrant();
-        Passport::tokensExpireIn(now()->addMinutes(15));
+        Passport::tokensExpireIn(now()->addHour());
         Passport::refreshTokensExpireIn(now()->addDays(30));
     }
 
