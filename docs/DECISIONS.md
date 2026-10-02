@@ -101,6 +101,22 @@ d'environnement (contenu PEM, `\n` échappés) plutôt qu'en fichiers `storage/o
 problème de permissions Unix sur les montages Windows (WSL/DrvFs) en dev, et simplifie le
 déploiement FTP (rien à déposer manuellement en plus de `.env`).
 
+**Amendement du 02/10/2026 — access token porté de 15 min à 1 h.** Chaque expiration faisait
+passer le joueur par le chemin le plus lent de l'API : préflight, `me` refusé, `refresh`, puis
+`me` à nouveau. C'est ce chemin qu'on a vu prendre ~30 s en prod le 01/10. Avec 1 h, une session
+de jeu courte ne renouvelle plus du tout ; un retour après une pause repasse toujours par le
+renouvellement. Les 15 min apportaient peu de sécurité :
+- la révocation est vérifiée en base à chaque requête (`isAccessTokenRevoked`) : déconnexion et
+  suppression de compte coupent l'accès aussitôt, quelle que soit la durée ;
+- le jeton d'accès et le refresh token sont rangés au même endroit côté navigateur, donc un vol de
+  l'un emporte l'autre.
+
+Ce qui change vraiment : un jeton d'accès volé meurt au prochain renouvellement de la victime
+(`RefreshTokenGrant` révoque l'ancien), au plus 1 h au lieu de 15 min. Sans « Rester connecté »,
+la session peut durer jusqu'à ~13 h au lieu de 12 h, le dernier jeton d'accès survivant au refresh
+token. 4 h étaient envisagées, 1 h a été retenue par Greg comme compromis. Ce n'est pas la cause de
+la lenteur, qui se cherche du côté de MySQL (`admin/content/brief-sonde-latence.md`).
+
 ## Reset complet de la base prod plutôt que migration corrective (incident du 05/08/2026)
 
 **Contexte** — Premier test réel d'inscription en prod : la base (`kywq6025_odc`) s'est révélée

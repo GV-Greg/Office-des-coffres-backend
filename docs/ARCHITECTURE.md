@@ -1,11 +1,11 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 29/09/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 02/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
-1. **API REST** (`/api/v1/*`, Passport — access token 15 min + refresh token 30 j/12h selon
+1. **API REST** (`/api/v1/*`, Passport — access token 1 h + refresh token 30 j/12h selon
    « Rester connecté », voir `docs/DECISIONS.md`) — consommée par le frontend Vue, utilisateurs
    publics du jeu.
 2. **Admin Blade** (`web.php`) — panneau d'administration de Greg, session-based (`web` guard).

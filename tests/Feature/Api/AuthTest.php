@@ -133,6 +133,19 @@ test('redemander un email pour un compte déjà vérifié ne renvoie rien', func
 
 // --- Login ---
 
+// Porté de 15 min à 1 h le 02/10/2026 (docs/DECISIONS.md) : un retour discret à 15 min
+// rouvrirait le chemin de renouvellement à chaque quart d'heure de jeu.
+test('le jeton d\'accès émis à la connexion vit une heure', function () {
+    User::factory()->create(['email' => 'duree@test.com', 'password' => bcrypt('password123')]);
+
+    $expiresIn = $this->postJson('/api/v1/auth/login', [
+        'email' => 'duree@test.com',
+        'password' => 'password123',
+    ])->assertOk()->json('expires_in');
+
+    expect($expiresIn)->toBeGreaterThan(3500)->toBeLessThanOrEqual(3600);
+});
+
 test('un utilisateur peut se connecter avec son email', function () {
     $user = User::factory()->create(['email' => 'artifice@test.com', 'password' => bcrypt('password123')]);
 
