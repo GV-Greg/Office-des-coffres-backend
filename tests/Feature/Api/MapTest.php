@@ -78,13 +78,24 @@ test('une suppression sur la carte vide le cache', function () {
     $this->getJson('/api/v1/map')->assertJsonCount(0, 'kingdoms.0.provinces.0.cities');
 });
 
-test('le cache de la carte expire au bout d\'une heure', function () {
+// Le test du second appel immédiat passe avec n'importe quel TTL. Celui-ci porte sur la DURÉE : il
+// échoue si le cache redescend à l'échelle d'une cadence de visite (1 h en back #39 : tout visiteur
+// arrivé après une heure de calme retrouvait le calcul complet).
+test('le cache de la carte survit à plusieurs jours sans visite', function () {
     seedMap();
     mapQueryCount();
 
-    $this->travel(59)->minutes();
+    $this->travel(3)->days();
+    expect(mapQueryCount())->toBe(0);
+});
+
+test('le cache de la carte se renouvelle au bout d\'une semaine', function () {
+    seedMap();
+    mapQueryCount();
+
+    $this->travel(6 * 24 + 23)->hours();
     expect(mapQueryCount())->toBe(0);
 
-    $this->travel(2)->minutes();
+    $this->travel(2)->hours();
     expect(mapQueryCount())->toBeGreaterThan(0);
 });

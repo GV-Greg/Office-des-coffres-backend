@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date du merge] — PR #?
+
+### Performance
+- **Cache de `/api/v1/map` porté d'1 h à 7 jours** (`App\Support\MapTree`). À 1 h, tout
+  visiteur arrivé après une heure de calme — le cas lent qui a ouvert l'enquête — trouvait le
+  cache expiré : le gain de back #39 ne valait que pour des appels rapprochés. La semaine ne sert
+  plus qu'à réparer une écriture hors Eloquent. La clé est versionnée (`api.map.tree.v1`) : le
+  cache survit au déploiement, une modification de la forme du tableau doit incrémenter la
+  version. Gardé par deux tests sur la durée dans `Feature/Api/MapTest` (0 requête SQL après
+  3 jours sans visite ; renouvellement après 7 jours), qui échouent avec un TTL d'1 h.
+
 ## [2026-10-02] — PR #40
 
 ### Fixed
