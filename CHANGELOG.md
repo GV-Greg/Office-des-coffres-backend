@@ -7,6 +7,20 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-02] — PR #41
+
+### Performance
+- **Cache de `/api/v1/map` porté d'1 h à 7 jours** (`App\Support\MapTree`). À 1 h, tout
+  visiteur arrivé après une heure de calme — le cas lent qui a ouvert l'enquête — trouvait le
+  cache expiré : le gain de back #39 ne valait que pour des appels rapprochés. La semaine ne sert
+  plus qu'à réparer une écriture hors Eloquent. Le cache survit au déploiement : sa clé porte
+  une **empreinte** de `MapTree.php` et des trois modèles, qui change seule quand l'un d'eux
+  change. Un test de forme garde ce que l'empreinte ne voit pas (colonne ajoutée par migration).
+  Mesure du 02/10 à 21:47 (heure belge), TTL d'1 h : `map` à 0,56 s d'attente serveur, cache
+  expiré, contre 0,21 à 0,25 s cache chaud. Gardé par `Feature/Api/MapTest` : deux tests sur
+  la durée (échouent avec 1 h), la forme du tableau, la liste des fichiers empreintés et le
+  changement d'empreinte — chacun vu en échec.
+
 ## [2026-10-02] — PR #40
 
 ### Fixed
