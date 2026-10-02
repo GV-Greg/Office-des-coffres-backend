@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date du merge] — PR #?
+
+### Performance
+- **L'arbre de `/api/v1/map` est mis en cache** (`App\Support\MapTree`, TTL 1 h). La route
+  renvoyait 69 938 octets identiques à chaque appel, pour une attente serveur de 0,43 à 8,83 s
+  en prod. Le cache porte les données, jamais la réponse HTTP. Il est vidé à toute écriture
+  Eloquent sur un royaume, une province ou une ville (trait `FlushesMapTree`), le TTL couvrant
+  les écritures hors Eloquent. JSON identique au bit près avant et après. Gardé par
+  `Feature/Api/MapTest`, qui compte les requêtes SQL (0 au second appel, contrôle positif au
+  premier) ; chaque test échoue quand on retire le cache, l'invalidation ou le TTL.
+
 ## [2026-10-02] — PR #38
 
 ### Changed

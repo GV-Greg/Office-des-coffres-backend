@@ -116,6 +116,10 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   personnage doit être revalidé depuis le dashboard admin).
 - `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
   pagination (~300 villes, volume géré en un seul payload pour un sélecteur cascade côté front).
+  **Mis en cache** par `App\Support\MapTree` (store par défaut, TTL 1 h) : le cache porte le
+  tableau, jamais la réponse HTTP. Vidé par le trait `Models\Concerns\FlushesMapTree`
+  (`saved`/`deleted`) sur `Kingdom`/`Province`/`City` — aucun écran admin n'écrit ces tables,
+  seul `MapSeeder` ; le TTL couvre les écritures hors Eloquent (SQL direct, `update()` de masse).
 - `Web\DashboardController` — `index` (liste personnages paginée, eager-load
   `user`/`city.province.kingdom`), `toggleValidation`, `users` (liste **tous** les users, avec
   recherche), `destroyUser`.
