@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [date du merge] — PR #? (MariaDB en dev et en CI)
+## [2026-10-04] — PR #43 (MariaDB en dev et en CI)
 
 ### Added
 - **Job CI `migrations`** (`tests.yml`) : `php artisan migrate` sur **MariaDB 11.4.13**, le moteur de
@@ -20,7 +20,11 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   prod écrite comme fait daté. Répétition du déploiement sur la structure de prod : les six
   migrations `2026_10_03_*` s'appliquent, 23 tables (brief `admin/content/brief-mariadb-dev.md`).
 
-## [date du merge] — PR #? (mandats — historique des postes)
+## [2026-10-04] — PR #44 (mandats de maire et de conseiller comtal, historique des postes)
+
+Lots 1 à 3 du brief `admin/content/brief-mandats.md` et historique des postes, livrés ensemble.
+
+#### Historique des postes
 
 ### Added
 - **Historique des postes par province** (fil `admin/echanges/mandats-historique`) : onglet admin
@@ -38,7 +42,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   « réelle (jeu) » ; `revoked` devient « L'Office a révoqué le mandat de votre personnage… Effet
   au… ». Anglais aligné.
 
-## [date du merge] — PR #? (mandats, lot 2 — partie API)
+#### Lot 2 — API joueur
 
 ### Changed
 - **Réponses d'erreur de l'API des mandats complètes et bilingues** (`App\Support\MandateApiErrors`,
@@ -52,7 +56,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   **« Retrenchment »**, relevé en jeu par Greg.
 - 10 tests (`Feature/Mandates/MandateApiErrorsTest`), contrôles positifs compris.
 
-## [date du merge] — PR #? (mandats, lot 3)
+#### Lot 3 — tâches planifiées
 
 ### Added
 - **Tâches planifiées des mandats** (`routes/console.php`, chaque jour à 09:00 Paris ; fil
@@ -67,7 +71,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 - 18 tests, contrôles positifs compris (horodatage écrit avant les envois, renouvellement validé
   non exclu, purge sur l'âge de la ligne, alerte retirée du tableau de bord).
 
-## [date du merge] — PR #?
+#### Lot 1 — modèle, gestes et administration
 
 ### Added
 - **Mandats de maire et de conseiller comtal, lot 1** (`admin/content/brief-mandats.md`, arbitrages
