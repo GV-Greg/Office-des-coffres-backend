@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\AccountDeletion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +51,8 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        $user->delete();
+        // Porte unique : archive l'historique des postes, puis supprime (AccountDeletion).
+        app(AccountDeletion::class)->deleteUser($user);
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

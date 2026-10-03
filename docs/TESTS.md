@@ -16,6 +16,7 @@ réservée à la fin d'une tâche cohérente ou juste avant un push.
 | `pest` | Suite complète | `tests/` |
 | `test:api` | Contrôleurs API REST | `tests/Feature/Api` |
 | `test:auth` | Auth API + scaffolding Breeze | `tests/Feature/Auth` + `AuthTest.php` |
+| `test:mandates` | Mandats (API joueur, admin, autorité, postes, langue) + garde-fou du cycle de vie | `tests/Feature/Mandates` + `UserDataLifecycleTest.php` |
 | `test:web` | Dashboard admin Blade | `DashboardTest.php` + `ProfileTest.php` |
 | `test:unit` | Tests unitaires purs | `tests/Unit` (voir plus bas) |
 | `test:filter -- <motif>` | Filtre par nom (`--filter` Pest natif) | selon le motif |

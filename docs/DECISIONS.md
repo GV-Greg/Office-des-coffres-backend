@@ -208,3 +208,31 @@ Enfin, l'agrégation en PHP plutôt qu'en SQL est négligeable à l'échelle de 
 si un module prend de l'ampleur.
 
 Raisonnement complet : `admin/strategies/donnees-utilisateur.md` §5.
+
+## Mandats : une seule fin effective, et un historique des postes dès le lot 1 (03/10/2026)
+
+**Contexte** — Le brief `admin/content/brief-mandats.md` prévoyait un `ended_at` à côté de
+`holds_until`, un `council_office_id` sur le mandat et aucun historique des postes. Vingt-neuf
+questions, arbitrées par Greg et Cowork dans `admin/echanges/mandats-lot1/`, ont montré trois
+défauts : deux dates de fin effective imposaient un `min()` à chaque lecture (le premier lecteur
+qui l'oublie lit un mandat révoqué comme actif) ; un poste change jusqu'à deux fois par jour et
+**tous** les postes sont vidés à chaque élection de dirigeant, si bien qu'un poste stocké sur le
+mandat perdait l'historique au premier événement ; et l'expiration, jamais stockée, laissait
+« ouverte » pour toujours toute période qui ne serait fermée que par un geste.
+
+**Décision** —
+- `holds_until` porte **toute** fin effective, et `holds_until_set_by` dit qui l'a fixée (nominal,
+  prolongation, passation, révocation). Une seule méthode écrit les deux, plus la fin de la
+  période de poste en cours (`MandateWorkflow::setHoldsUntil`).
+- `council_office_periods` est l'historique des postes ; le poste détenu est la période en
+  vigueur. Une période naît **fermée** à la fin du mandat, avec `end_reason = fin_du_mandat`, et
+  n'est jamais rouverte ni réécrite.
+- `MandateAuthority` ne répond que « maintenant » : un paramètre de date sur le passé arrivera avec
+  un besoin réel.
+
+**Conséquences** — La lecture n'a plus aucune condition à oublier ; la complexité est concentrée
+dans un service, à l'écriture, où elle est testée (contrôles positifs consignés au tour 18 du fil
+et dans la PR). L'exclusivité d'un poste dans une province ne s'exprime pas en MySQL (pas d'index
+partiel) : le test `officeOverlaps()` est le seul garde-fou. Les gestes qui recalculent une date
+(annulation de révocation, correction de `started_at`) refusent plutôt que d'écraser un fait
+constaté par un autre geste (Q23 à Q28).

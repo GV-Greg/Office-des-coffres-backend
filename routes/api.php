@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
+use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
+use App\Http\Controllers\Api\ProvinceHistoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -33,10 +35,29 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    // Référentiel des postes titrés d'un conseil comtal : public, aucune donnée de compte.
+    Route::get('council-offices', [MandateController::class, 'offices']);
+
     Route::middleware('auth:api')->group(function () {
         Route::get('characters',  [CharacterController::class, 'index']);
         Route::post('characters', [CharacterController::class, 'store']);
         Route::patch('characters/{character}', [CharacterController::class, 'update']);
+
+        // Mandats (admin/content/brief-mandats.md, lot 1) : toujours les personnages du porteur
+        // du jeton, 404 pour ceux d'un autre compte.
+        Route::get('mandates', [MandateController::class, 'index']);
+        // « Ma province » : historique des postes de la province de résidence du personnage.
+        Route::get('characters/{character}/province', [ProvinceHistoryController::class, 'show'])
+            ->where('character', '[0-9]+');
+        Route::middleware('throttle:6,1')->group(function () {
+            Route::post('characters/{character}/mandates', [MandateController::class, 'store']);
+            Route::post('mandates/{level}/{id}/renew', [MandateController::class, 'renew'])
+                ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
+            Route::post('mandates/council/{id}/office', [MandateController::class, 'declareOffice'])
+                ->where('id', '[0-9]+');
+        });
+        Route::delete('mandates/{level}/{id}', [MandateController::class, 'destroy'])
+            ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
     });
 
 });

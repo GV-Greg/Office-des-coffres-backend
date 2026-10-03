@@ -66,6 +66,9 @@
         "test:auth": [
             "@php ./vendor/bin/pest tests/Feature/Auth tests/Feature/Api/AuthTest.php"
         ],
+        "test:mandates": [
+            "@php ./vendor/bin/pest tests/Feature/Mandates tests/Feature/Enforcement/UserDataLifecycleTest.php"
+        ],
         "test:web": [
             "@php ./vendor/bin/pest tests/Feature/DashboardTest.php tests/Feature/ProfileTest.php"
         ],

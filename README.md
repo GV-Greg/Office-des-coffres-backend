@@ -198,8 +198,8 @@ docker exec odc-backend php artisan tinker --execute="
 **MariaDB 11.4.13** — base `office-des-coffres` (`utf8mb4_unicode_ci`). Version de prod relevée le
 04/10/2026 : à revérifier à chaque accès au serveur — si O2Switch change de version, l'image du dev
 (`docker-compose.dev.yml`) et celle de la CI (`.github/workflows/tests.yml`) suivent. Avant le
-04/10/2026, le dev tournait en MySQL 5.7, qui refusait un second `timestamp` NOT NULL dans une même
-table ; MariaDB 11.4 l'accepte.
+04/10/2026, le dev tournait en MySQL 5.7 : `council_office_periods` en garde des colonnes `dateTime`
+(MySQL 5.7 refusait un second `timestamp` NOT NULL ; MariaDB 11.4 l'accepte).
 
 | Table | Description |
 |---|---|
@@ -222,7 +222,8 @@ docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL/MariaDB) — passer `'city_id' => null` explicitement dans les factories de test.
 
-152 tests verts au 02/10/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
+309 tests verts au 03/10/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
+`Feature/Mandates/{MandateAdminTest,MandateApiErrorsTest,MandateApiTest,ProvinceHistoryApiTest,MandateAuthorityTest,MandateLanguageTest,MandateOfficeTest,MandateScheduleTest}`,
 `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`,
 `Feature/Enforcement/UserDataLifecycleTest`, `Feature/ModuleDataEncryptionTest`,
 `Unit/Enforcement/{AdminIconsTest,AdminRobotsTest,CookieUsageTest,DeployExcludeTest,HtaccessCanonicalOriginTest}`) —

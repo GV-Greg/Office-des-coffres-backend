@@ -1,0 +1,8 @@
+{{-- Fiche d'un mandat en cours : chaque date nommée une seule fois. --}}
+<dl class="grid grid-cols-2 lg:grid-cols-5 gap-x-4 gap-y-2 rounded-md bg-gray-900/40 px-3 py-2 text-sm">
+    <div class="col-span-2 lg:col-span-1 min-w-0"><dt class="text-xs text-gray-400">{{ __('mandates.admin.account') }}</dt><dd class="text-gray-100 truncate" title="{{ $mandate->character?->user?->email }}">{{ $mandate->character?->user?->email }}</dd></div>
+    <div><dt class="text-xs text-gray-400">{{ __('mandates.admin.retained_start') }}</dt><dd class="text-gray-100 tabular-nums">{{ \App\Support\MandateLabels::date($mandate->started_at) }}</dd></div>
+    <div><dt class="text-xs text-gray-400">{{ __('mandates.admin.in_office_from') }}</dt><dd class="text-gray-100 tabular-nums">{{ $mandate->in_office_from ? \App\Support\MandateLabels::date($mandate->in_office_from) : '—' }}</dd></div>
+    <div><dt class="text-xs text-gray-400">{{ __('mandates.admin.nominal_end') }}</dt><dd class="text-gray-100 tabular-nums">{{ \App\Support\MandateLabels::date($mandate->valid_until) }}</dd></div>
+    <div><dt class="text-xs text-gray-400">{{ __('mandates.admin.end') }}</dt><dd class="text-gray-100 tabular-nums">{{ \App\Support\MandateLabels::date($mandate->holds_until) }} @if($mandate->holds_until_set_by !== 'nominal')<span class="block text-xs text-amber-300">{{ __('mandates.admin.set_by.'.$mandate->holds_until_set_by) }}</span>@elseif($mandate::LEVEL === 'council' && ! $mandate->holds_until?->equalTo($mandate->valid_until))<span class="block text-xs text-gray-400">{{ __('mandates.admin.grace_note', ['days' => config('mandates.council_grace_days')]) }}</span>@endif</dd></div>
+</dl>

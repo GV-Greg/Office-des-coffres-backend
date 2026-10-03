@@ -148,6 +148,13 @@ return [
     'url'                  => 'Le format de l\'URL de :attribute n\'est pas valide.',
     'uuid'                 => 'Le champ :attribute doit être un UUID valide',
     'attributes'           => [
+        // Mandats (API joueur) : noms lisibles des champs, aussi dans lang/en/validation.php.
+        'level'              => 'niveau',
+        'city_id'            => 'ville',
+        'province_id'        => 'province',
+        'council_office_key' => 'poste',
+        'started_at'         => 'date de début',
+        'announcement_url'   => "lien vers l'annonce",
         'address'                  => 'adresse',
         'age'                      => 'âge',
         'amount'                   => 'montant',

@@ -9,6 +9,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-700 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
+                    {{-- GARDE-FOU du planificateur des mandats : première page après connexion. Ne pas retirer
+                         (le doublon des pages Mandats, lui, peut partir). --}}
+                    @include('mandates._scheduler_status')
                     @if(session('status') === 'character-validated')
                         <p class="mb-4 text-sm text-green-600 dark:text-green-400">
                             <i class="fa-solid fa-circle-check"></i>

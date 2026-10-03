@@ -1,10 +1,12 @@
 <?php
 
+use App\Support\MandateApiErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -25,6 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // API des mandats : toute erreur de validation (refus métier ou forme) porte codes et
+        // messages FR/EN (fil mandats-lot2, Q9-Q10). L'administration Blade n'est pas concernée.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            return MandateApiErrors::covers($request) ? MandateApiErrors::validation($e) : null;
+        });
+
         // Le TokenGuard de Passport signale tout jeton Bearer refusé (expiré, révoqué, illisible) :
         // une erreur de ~90 lignes dans laravel.log pour un 401 ordinaire, à chaque expiration
         // d'un jeton de joueur. Seul ce refus (`access_denied`) est tu, les autres erreurs OAuth
@@ -41,6 +49,14 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+
+            // API des mandats : même message, plus son code et sa version anglaise (MandateApiErrors).
+            // ⚠️ En prod, un 429 venu de PHP n'arrive JAMAIS au client (O2Switch retient la
+            // connexion, mesuré le 29/09/2026) : ce formatage n'y répare rien tant que l'hébergeur
+            // ne le laisse pas passer. Le reste de l'API garde son message français : item à part.
+            if (MandateApiErrors::covers($request)) {
+                return MandateApiErrors::error(429, 'mandates.api.throttled', ['seconds' => $seconds], $e->getHeaders());
+            }
 
             return response()->json([
                 'success' => false,
