@@ -17,7 +17,75 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 
 ### Changed
 - Le dev passe de MySQL 5.7 à **MariaDB 11.4.13** (conteneur `odc-db`) ; README à jour, version de
-  prod écrite comme fait daté (brief `admin/content/brief-mariadb-dev.md`).
+  prod écrite comme fait daté. Répétition du déploiement sur la structure de prod : les six
+  migrations `2026_10_03_*` s'appliquent, 23 tables (brief `admin/content/brief-mariadb-dev.md`).
+
+## [date du merge] — PR #? (mandats — historique des postes)
+
+### Added
+- **Historique des postes par province** (fil `admin/echanges/mandats-historique`) : onglet admin
+  « Historique » (conseil par titre, maires par ville, réattributions en évidence, villes sans
+  mandat comptées) et API `characters/{id}/province` pour la page joueur « Ma province ». Une seule
+  fonction de fusion (`OfficeHistory`).
+- **L'historique survit à la suppression d'un compte** : `office_history_archive` (catégorie D),
+  écrite par la **porte unique** `AccountDeletion`, par laquelle passent désormais les trois
+  suppressions de compte (API, admin, profil Breeze). Test structurel contre toute suppression
+  hors de la porte.
+- `GameCalendar` (année du jeu côté serveur), jumeau de `gameCalendar.js`, figé par un test jumeau.
+
+### Changed
+- **Emails des mandats** : adressés au joueur, personnage nommé (objets compris), dates
+  « réelle (jeu) » ; `revoked` devient « L'Office a révoqué le mandat de votre personnage… Effet
+  au… ». Anglais aligné.
+
+## [date du merge] — PR #? (mandats, lot 2 — partie API)
+
+### Changed
+- **Réponses d'erreur de l'API des mandats complètes et bilingues** (`App\Support\MandateApiErrors`,
+  `App\Exceptions\MandateRefusal`) : `codes` et `messages` {fr, en} pour chaque champ, refus
+  métier comme validation de forme ; 404 et 429 avec `code` et `messages`. Aucun code `admin.` ne
+  sort par l'API. `lang/en/mandates.php` gagne la section `api` ; `lang/{fr,en}/validation.php` les
+  noms de champs des mandats.
+- `GET /mandates` expose `requestable` par personnage et par niveau, et les libellés FR/EN des
+  titres, motifs et causes de fin ; `GET /council-offices` les libellés des titres.
+- Le code de révocation `deces` devient **`retranchement`** (terme du jeu, demande de Greg), en anglais
+  **« Retrenchment »**, relevé en jeu par Greg.
+- 10 tests (`Feature/Mandates/MandateApiErrorsTest`), contrôles positifs compris.
+
+## [date du merge] — PR #? (mandats, lot 3)
+
+### Added
+- **Tâches planifiées des mandats** (`routes/console.php`, chaque jour à 09:00 Paris ; fil
+  `admin/echanges/mandats-lot3/`) : rappel bilingue au joueur 2 jours après la fin effective de son
+  mandat, tant qu'il est renouvelable, et jamais à un maire dont la mairie a un successeur validé
+  (`mandates:send-reminders`), récapitulatif quotidien de la file de vérification aux comptes
+  `admin` tant qu'il reste des lignes en retard (`mandates:verification-digest`), purge des refus
+  de plus de 3 mois sans jamais toucher une demande en attente (`mandates:purge-rejected`).
+- **Battement du planificateur** (`App\Support\MandateHeartbeat`) : chaque tâche écrit son
+  dernier passage réussi ; au-delà de 36 h, `/dashboard` affiche une alerte qui nomme la tâche, et
+  `mandates:status` échoue. ⚠️ Prérequis en prod : la tâche cron `schedule:run` dans cPanel.
+- 18 tests, contrôles positifs compris (horodatage écrit avant les envois, renouvellement validé
+  non exclu, purge sur l'âge de la ligne, alerte retirée du tableau de bord).
+
+## [date du merge] — PR #?
+
+### Added
+- **Mandats de maire et de conseiller comtal, lot 1** (`admin/content/brief-mandats.md`, arbitrages
+  `admin/echanges/mandats-lot1/`). Un joueur demande la validation de son poste, l'administrateur
+  la vérifie, et le mandat devient une autorité datée que les modules liront par
+  `App\Services\MandateAuthority`.
+  - Schéma : `council_offices` (10 postes, semés par une migration qui appelle le seeder
+    idempotent), `mayor_mandates`, `council_mandates`, `council_office_periods` (historique des
+    postes). Catégorie A, `character_id` ajouté aux colonnes surveillées par le garde-fou du cycle
+    de vie.
+  - API joueur : demande, renouvellement (sans poste), annulation, « Déclarer mon poste »,
+    référentiel public des postes.
+  - Administration : file des demandes (validation groupée réservée aux renouvellements),
+    mandats en cours avec prolongation, passation et vidage des postes par province, correction
+    directe d'un poste, révocation avec ou sans successeur et son annulation, corrections de dates
+    et de motif, file de vérification des mandats terminés.
+  - Emails de décision bilingues, français puis anglais (`lang/en/mandates.php`, limité à l'email).
+  - 101 tests, dont des contrôles positifs consignés dans la PR.
 
 ## [2026-10-02] — PR #41
 

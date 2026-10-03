@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 02/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 03/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -25,6 +25,10 @@ admin n'ont pas de `Character`.
 | `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
 | `City` | `rk_cities` | `city_name`, `is_capital` | `belongsTo(Province)`, `hasMany(Character)` ⚠️ bug : FK déclarée `'user_id'` au lieu de `'city_id'` — relation cassée, non utilisée actuellement |
 | `Role`/`Permission` | Spatie | — | extensions vides de Spatie Permission |
+| `CouncilOffice` | `council_offices` | `key`, `position` — **aucun libellé en base** | les 10 postes titrés, semés par migration (voir « Mandats ») |
+| `MayorMandate` | `mayor_mandates` | `status`, dates nominales et effectives, motif | `belongsTo(Character)`, `belongsTo(City)` |
+| `CouncilMandate` | `council_mandates` | idem + `pending_office_id`, `office_requested_at` | `belongsTo(Character)`, `belongsTo(Province)`, `hasMany(CouncilOfficePeriod)` |
+| `CouncilOfficePeriod` | `council_office_periods` | `started_at`, `ended_at`, `end_reason` | `belongsTo(CouncilMandate)`, `belongsTo(CouncilOffice)` |
 | `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
 
 **Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
@@ -41,6 +45,10 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 4. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool, puis
    `pending_residence_change` bool ajouté par une migration ultérieure)
 5. Tables Spatie Permission v6 (`permissions`, `roles`, `model_has_*`, `role_has_permissions`) — mode non-teams, migration depuis un ancien Laratrust (drop des tables `permission_user`/`permission_role`/`role_user` en préambule)
+
+6. Mandats (03/10/2026) : `council_offices`, puis `mayor_mandates` + `council_mandates` +
+   `council_office_periods`, puis une migration qui **appelle le seeder idempotent**
+   `CouncilOfficeSeeder` (voir « Mandats »)
 
 Pas de table `sessions`/`cache` (drivers `file`).
 
@@ -72,6 +80,7 @@ et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre varian
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
 | GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
+| GET | `characters/{character}/province` | `Api\ProvinceHistoryController@show` | `auth:api` — « Ma province » : historique des postes de la province de **résidence** |
 
 **Plancher de toute l'API** : `throttleApi()` (`bootstrap/app.php`) applique le limiteur `api`
 (60/min par utilisateur Passport, sinon par IP) à tout `/api/*`. Limiteurs déclarés dans
@@ -82,6 +91,13 @@ c'est `RateLimitTest.php` qui fait foi.
 `auth:api` = guard **Passport** (`config/auth.php`), plus Sanctum — voir `docs/DECISIONS.md` pour
 l'ADR de bascule.
 
+| GET | `council-offices` | `Api\MandateController@offices` | public — les 10 postes titrés (`key`) |
+| GET | `mandates` | `Api\MandateController@index` | `auth:api` — mandats de tous les personnages du compte, statut effectif |
+| POST | `characters/{character}/mandates` | `Api\MandateController@store` | `auth:api`, `throttle:6,1` |
+| POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
+| POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
+| DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
+
 ### `routes/web.php` (admin Blade)
 
 | Méthode | URI | Nom | Contrôleur | Middleware |
@@ -90,6 +106,7 @@ l'ADR de bascule.
 | GET | `users` | `users` | `Web\DashboardController@users` | `auth,verified,role:admin` |
 | DELETE | `users/{user}` | `users.destroy` | `Web\DashboardController@destroyUser` | `auth,verified,role:admin` |
 | PATCH | `characters/{character}/validate` | `characters.validate` | `Web\DashboardController@toggleValidation` | `auth,verified,role:admin` |
+| GET/POST | `mandates/…` | `mandates.*` | `Web\MandateAdminController` (5 pages dont « Historique », 15 gestes) | `auth,verified,role:admin` |
 | GET/PATCH/DELETE | `/profile` | `profile.*` | `ProfileController` | `auth,verified` (self-service admin, pas un outil de gestion d'autres users) |
 
 `routes/auth.php` : scaffolding Breeze standard (register/login/logout Blade, reset password,
@@ -129,6 +146,9 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   transversales » dans `roadmap.md`).
   Sans lien avec `Api\MapController` (nouveau, actif, JSON).
 - `ProfileController` + `Auth/*` — scaffolding Breeze, non modifié.
+
+- `Api\MandateController` / `Web\MandateAdminController` — mandats, voir la section « Mandats ».
+  Ils ne valident que la forme : toutes les règles vivent dans `App\Services\MandateWorkflow`.
 
 ## Middleware & rôles
 
@@ -208,6 +228,89 @@ au déchiffrement, jamais au chiffrement.
 filtrable, l'IV aléatoire faisant échouer jusqu'à l'égalité. Filtrage en SQL, agrégation en PHP
 après déchiffrement — acceptable à l'échelle de cette communauté, rédhibitoire sur un gros volume.
 
+## Mandats (lot 1, 03/10/2026)
+
+Qui a le droit d'écrire au titre d'un poste, pour les modules futurs. Spécification :
+`admin/content/brief-mandats.md` ; **arbitrages qui la complètent et parfois la contredisent** :
+`admin/echanges/mandats-lot1/` (Q1 à Q29), à lire avant toute modification.
+
+| Pièce | Rôle |
+|---|---|
+| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)` — « maintenant » seulement, aucun paramètre de date |
+| `App\Services\MandateWorkflow` | **tous** les gestes (joueur et admin) ; seul écrivain de `holds_until` |
+| `App\Support\MandateCalendar` | jours civils `Europe/Paris` (`addDays`, jamais `addMonth`), stockés en UTC |
+| `App\Support\MandateLabels` | libellés FR/EN ; un motif sans libellé s'affiche par son **code**, jamais par la clé brute |
+| `App\Notifications\MandateDecision` | email **toujours bilingue, français puis anglais**, synchrone, jamais la note |
+| `config/mandates.php` | durées (30 / 60 j), prolongation (2 j), seuils, codes de motifs |
+
+Règles qui tiennent l'ensemble :
+- **Une seule fin effective** : l'autorité court de `in_office_from` à `holds_until`, quel que soit
+  le statut. Échéance, prolongation, passation et révocation écrivent toutes `holds_until`, par
+  `MandateWorkflow::setHoldsUntil()`, qui écrit **dans le même appel** `holds_until_set_by` et la fin
+  de la période de poste en cours. `valid_until` (fin nominale) ne bouge qu'avec une correction de
+  `started_at`.
+- **Le poste détenu est la période en vigueur** de `council_office_periods` — il n'y a pas de
+  `council_office_id` sur le mandat. Une période naît **fermée** à la fin du mandat
+  (`end_reason = fin_du_mandat`), n'est jamais rouverte ni réécrite. **Exclusivité** dans une
+  province : impossible à exprimer en MySQL, gardée par le test `officeOverlaps()` de
+  `MandateOfficeTest` — seul garde-fou.
+- Un poste ne se pose que sur un mandat **en fonction**. Le gagner le retire à son détenteur, à la
+  même seconde. **Tous les postes sont vidés à l'élection d'un dirigeant** (passation ou démission
+  du comte) : une province sans aucune autorité de poste est un **état légitime**.
+- **Une réponse négative de `MandateAuthority` veut dire « l'Office ne connaît pas »**, pas « le
+  siège est vacant » : seuls les mandats déclarés par les joueurs sont connus.
+- `character_id` en `cascadeOnDelete` (catégorie A, **portante** pour l'anonymisation §2-C) ; les
+  périodes suivent par `council_mandate_id`.
+- **Langue** : `lang/fr/mandates.php` complet (email, API, admin) ; `lang/en/mandates.php` limité à
+  ce qui part en anglais (l'email). Les pages Blade des mandats n'ont aucun texte en dur. Les pages
+  Blade antérieures restent à reprendre (passe de traduction à part).
+- ⚠️ **Prod** : le déploiement ne lance pas les migrations ; celle qui sème les 10 postes appelle
+  le seeder idempotent (couplage voulu, commenté). Les 10 titres anglais sont **relevés en jeu**
+  (Connétable = Sergeant, Prévôt des maréchaux = Constable) : jamais traduits.
+
+**Lot 2 — contrat de l'API joueur** (fil `admin/echanges/mandats-lot2/`) :
+- **Toute réponse d'erreur** des routes des mandats est complète (`App\Support\MandateApiErrors`,
+  branché dans `bootstrap/app.php`) : une 422 porte `errors` (inchangé), `codes` et
+  `messages[champ] = {fr, en}` — refus métier (`App\Exceptions\MandateRefusal`, code déduit de la
+  clé `mandates.api.<code>`) comme validation de forme (`validation.<règle>`, noms de champs dans
+  `lang/{fr,en}/validation.php`) ; un 404 ou un 429 porte `code` et `messages` au premier niveau.
+  `messages.fr` est toujours la chaîne d'`errors`. Les refus d'administration ont un code `admin.…`
+  que l'API **refuse d'émettre** (500). Aucune table code → texte côté frontend.
+- `GET /mandates` renvoie aussi `characters[].requestable.{mayor,council} = {can_request,
+  blocked_by}` (la règle de la demande, exposée telle quelle) et, sur chaque mandat, les libellés
+  `{fr, en}` des titres, motifs et causes de fin ; `GET /council-offices` sert les titres avec leur
+  `label`. **Pas de `status_label`** : un statut est une présentation du frontend.
+
+**Lot 3 — tâches planifiées** (`routes/console.php`, chaque jour à 09:00 Paris ; fil
+`admin/echanges/mandats-lot3/`) :
+
+| Commande | Effet |
+|---|---|
+| `mandates:send-reminders` | rappel bilingue au joueur **2 jours après la fin effective** de son mandat, tant qu'il est renouvelable (avant, l'élection est en cours) ; jamais deux fois (`reminder_sent_at`), jamais si un renouvellement existe (en attente ou validé), jamais pour un révoqué, jamais à un maire dont la mairie a un successeur validé |
+| `mandates:verification-digest` | un email par jour aux comptes `admin` tant que la file de vérification a des lignes en retard (4 j maire, 7 j conseiller titré), chaque ligne avec son ancienneté ; file sans retard = aucun email |
+| `mandates:purge-rejected` | supprime les `rejected` de plus de 3 mois (`processed_at`) ; une demande en attente n'est **jamais** purgée |
+| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche |
+
+`App\Support\MandateHeartbeat` : chaque tâche écrit en cache son dernier passage **réussi**, en fin
+d'exécution. Au-delà de 36 h, `/dashboard` (**le garde-fou**) et l'en-tête des pages Mandats (une
+commodité) affichent une alerte qui nomme la tâche. ⚠️ Rien ne tourne en prod sans la tâche cron
+`schedule:run` créée dans cPanel (voir `CLAUDE.md`, « Pièges de prod »).
+
+**Historique des postes** (fil `admin/echanges/mandats-historique`, 03/10/2026) :
+
+| Pièce | Rôle |
+|---|---|
+| `App\Services\OfficeHistory` | **la seule fonction de fusion** des deux sources : tables vivantes (personnages existants) + `office_history_archive` (personnages supprimés). Appelée par l'onglet Blade « Historique » **et** par l'API « Ma province ». Tri total (début, titre, ville, fin, pseudo) |
+| `office_history_archive` | ce qui **survit** à la suppression d'un compte (décision de Greg : l'information est publique en jeu). **Catégorie D**, aucune clé vers un compte ou un personnage : pseudo en texte, lieu en id **et** en texte, titre par sa clé. Écrite au moment de la suppression, jamais modifiée ensuite — un personnage est vivant **ou** archivé, jamais les deux |
+| `App\Services\AccountDeletion` | **la porte unique** de suppression d'un compte ou d'un personnage : archive, puis supprime. ⚠️ La cascade SQL ne prévient aucun personnage : un `$user->delete()` écrit ailleurs effacerait l'historique en silence. `Enforcement/AccountDeletionTest` échoue sur toute suppression de `User`/`Character` hors de ce service, et vérifie les trois chemins réels (API, admin, profil Breeze) |
+| `App\Support\GameCalendar` | année du jeu côté serveur (2026 → 1474), pour les **emails** seulement — l'API n'envoie que des dates réelles. ⚠️ **Jumeau** de `src/modules/gameCalendar.js` (frontend) : `Unit/GameCalendarTwinTest` fige la table **et** des conversions, son jumeau frontend aussi |
+
+Emails : toujours adressés au **joueur**, le personnage nommé ; date réelle d'abord, date de jeu entre
+parenthèses (`:date (:date_jeu)`), sauf pour un acte de l'Office (`:date` seule). La famille de chaque
+chaîne datée est figée par `MandateLanguageTest`.
+
+Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
+
 ## Tests
 
 `docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,
@@ -220,6 +323,7 @@ dans le test plutôt que parser le contenu de l'email (voir `AuthTest.php`).
 
 ## Contraintes projet
 
-- Backend **français uniquement** — `__()` + `lang/fr.json`, jamais de texte en dur dans une vue
-  Blade (y compris le code existant qu'on retouche).
+- Backend : **aucun texte en dur** — `__()` partout, `lang/fr` complet, `lang/en` seulement pour ce
+  qui est réellement rendu en anglais (aujourd'hui les emails des mandats). Interfaces Blade en
+  français, sans bascule de langue (arbitrage du 03/10/2026, fil `mandats-lot1`, Q5).
 - Ne jamais committer `.env`/credentials.
