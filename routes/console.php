@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +18,19 @@ use Illuminate\Support\Facades\Artisan;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+/*
+| Mandats — tâches quotidiennes (admin/content/brief-mandats.md, lot 3 ; fil admin/echanges/mandats-lot3).
+|
+| ⚠️ PRÉREQUIS EN PROD : O2Switch ne lance rien seul. Ces tâches n'ont d'effet qu'une fois créée,
+| dans cPanel → Tâches cron, la ligne :
+|     * * * * * cd <chemin du backend> && php artisan schedule:run >> /dev/null 2>&1
+| Chaque tâche écrit son passage RÉUSSI (MandateHeartbeat) ; le tableau de bord alerte au-delà de
+| 36 h. Aucune n'a d'effet sur l'autorité : l'expiration d'un mandat reste sèche.
+*/
+Schedule::command('mandates:send-reminders')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+Schedule::command('mandates:verification-digest')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+Schedule::command('mandates:purge-rejected')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));

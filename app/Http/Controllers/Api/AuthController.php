@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\BaseController;
 use App\Models\User;
 use App\Notifications\VerifyApiEmail;
+use App\Services\AccountDeletion;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -203,7 +204,9 @@ class AuthController extends BaseController
 
         $userId = $user->id;
 
-        DB::transaction(function () use ($user) {
+        // Porte unique (AccountDeletion) : l'historique des postes est archivé, puis le nettoyage
+        // ci-dessous et la suppression ont lieu dans la même transaction.
+        app(AccountDeletion::class)->deleteUser($user, function (User $user) {
             // Les tables OAuth de Passport n'ont pas de contrainte FK vers users : sans ce
             // nettoyage explicite, les jetons survivraient au compte qu'ils désignent.
             $accessTokenIds = $user->tokens()->pluck('id');
@@ -224,7 +227,7 @@ class AuthController extends BaseController
             // Les personnages partent en cascade (FK ON DELETE CASCADE sur characters.user_id) ;
             // model_has_roles et model_has_permissions sont détachées par le hook `deleting` des
             // traits HasRoles / HasPermissions de Spatie (vérifié, pas supposé — voir les tests).
-            $user->delete();
+            // La suppression elle-même est faite par AccountDeletion, juste après ce nettoyage.
         });
 
         // Trace d'audit volontairement non réidentifiante : l'id suffit à recouper une demande,

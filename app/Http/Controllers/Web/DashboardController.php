@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Character;
 use App\Models\User;
+use App\Services\AccountDeletion;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
@@ -60,9 +61,10 @@ class DashboardController extends Controller
         return view('users', ['users' => $users, 'search' => $search]);
     }
 
-    public function destroyUser(User $user): RedirectResponse
+    public function destroyUser(User $user, AccountDeletion $deletion): RedirectResponse
     {
-        $user->delete();
+        // Porte unique : archive l'historique des postes, puis supprime.
+        $deletion->deleteUser($user);
 
         return redirect()->route('users')->with('status', 'user-deleted');
     }

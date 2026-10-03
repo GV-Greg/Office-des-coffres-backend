@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Character extends Model
 {
@@ -36,5 +37,21 @@ class Character extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    /**
+     * @return HasMany<MayorMandate>
+     */
+    public function mayorMandates(): HasMany
+    {
+        return $this->hasMany(MayorMandate::class);
+    }
+
+    /**
+     * @return HasMany<CouncilMandate>
+     */
+    public function councilMandates(): HasMany
+    {
+        return $this->hasMany(CouncilMandate::class);
     }
 }

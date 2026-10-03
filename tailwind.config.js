@@ -27,6 +27,7 @@ export default {
             gray: colors.gray,
             red: colors.red,
             orange: colors.orange,
+            amber: colors.amber,   // mandats : prolongation, correction de décision
             yellow: colors.yellow,
             lime: colors.lime,
             green: colors.green,
