@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [date du merge] — PR #? (MariaDB en dev et en CI)
+
+### Added
+- **Job CI `migrations`** (`tests.yml`) : `php artisan migrate` sur **MariaDB 11.4.13**, le moteur de
+  la prod (pilote `mysql`, comme la prod). La suite Pest reste sur SQLite ; `deploy.yml` appelle ce
+  workflow, donc une migration refusée par le moteur de prod bloque le déploiement. **Vu échouer**
+  le 04/10/2026 (back #42, branche jetable, jamais mergée) : `1074 Column length too big`.
+
+### Changed
+- Le dev passe de MySQL 5.7 à **MariaDB 11.4.13** (conteneur `odc-db`) ; README à jour, version de
+  prod écrite comme fait daté (brief `admin/content/brief-mariadb-dev.md`).
+
 ## [2026-10-02] — PR #41
 
 ### Performance

@@ -19,7 +19,7 @@ Dépôt frontend : [Office-des-coffres-vuejs](https://github.com/GV-Greg/Office-
 | Laravel | 12.x | Framework |
 | Laravel Passport | 13.x | Authentification API (OAuth2 — access + refresh token, « Rester connecté ») |
 | Spatie Permission | 6.x | Gestion des rôles et permissions |
-| MySQL | 5.7 | Base de données |
+| MariaDB | 11.4.13 | Base de données — même moteur en dev, en CI (job `migrations`) et en prod (relevé sur la prod O2Switch le 04/10/2026, `php artisan db:show`). Pilote Laravel : `mysql`, comme en prod |
 | Vite | 6.x | Build des assets Blade |
 
 ---
@@ -195,7 +195,11 @@ docker exec odc-backend php artisan tinker --execute="
 
 ## Base de données
 
-**MySQL 5.7** — base `office-des-coffres`
+**MariaDB 11.4.13** — base `office-des-coffres` (`utf8mb4_unicode_ci`). Version de prod relevée le
+04/10/2026 : à revérifier à chaque accès au serveur — si O2Switch change de version, l'image du dev
+(`docker-compose.dev.yml`) et celle de la CI (`.github/workflows/tests.yml`) suivent. Avant le
+04/10/2026, le dev tournait en MySQL 5.7, qui refusait un second `timestamp` NOT NULL dans une même
+table ; MariaDB 11.4 l'accepte.
 
 | Table | Description |
 |---|---|
@@ -216,7 +220,7 @@ docker exec odc-backend ./vendor/bin/pint --test    # Vérifier le style (sans c
 docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 ```
 
-Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL) — passer `'city_id' => null` explicitement dans les factories de test.
+Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL/MariaDB) — passer `'city_id' => null` explicitement dans les factories de test.
 
 152 tests verts au 02/10/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
 `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`,
