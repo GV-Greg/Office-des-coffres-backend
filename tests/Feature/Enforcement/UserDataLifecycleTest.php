@@ -29,6 +29,17 @@ use Illuminate\Support\Facades\Schema;
 $declaredTables = [
     // A — cascade : la base garantit la suppression, aucun code applicatif nécessaire.
     'characters' => 'A',
+    // Mandats (§5quinquies) : un mandat sans titulaire n'a aucune valeur, et la cascade est
+    // PORTANTE pour §2-C — une ligne survivante ré-identifierait les entrées de module anonymisées.
+    // council_office_periods suit par sa FK council_mandate_id (cascade), sans character_id propre.
+    'mayor_mandates' => 'A',
+    'council_mandates' => 'A',
+
+    // D — conservation justifiée (fil mandats-historique, Q6 de Greg ; 12). L'historique des postes
+    // survit à la suppression d'un compte : l'information est publique en jeu. La table ne porte
+    // AUCUNE colonne de lien (pseudo en texte) — déclarée ici quand même, pour que la décision soit
+    // écrite. Seule App\Services\AccountDeletion y écrit (AccountDeletionTest).
+    'office_history_archive' => 'D',
 
     // B — nettoyage explicite dans AuthController::destroyAccount() ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte
@@ -43,8 +54,10 @@ $declaredTables = [
 ];
 
 // Colonnes qui trahissent un lien vers un compte. `model_id` couvre les pivots polymorphes de
-// Spatie, qui ne portent ni user_id ni email.
-$linkColumns = ['user_id', 'email', 'model_id'];
+// Spatie, qui ne portent ni user_id ni email. `character_id` (03/10/2026) : un personnage appartient
+// à un compte — sans cette colonne, les mandats et toutes les futures tables de module, rattachées
+// par personnage, échappaient au garde-fou.
+$linkColumns = ['user_id', 'email', 'model_id', 'character_id'];
 
 // `users` est le compte lui-même, pas une donnée qui lui est rattachée : sa suppression est le
 // point de départ, pas une conséquence à déclarer.
