@@ -212,7 +212,7 @@ après déchiffrement — acceptable à l'échelle de cette communauté, rédhib
 
 `docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,
 pas dupliqué ici). `CharacterFactory` utilise
-`RAND()` MySQL pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
+`RAND()` MySQL/MariaDB pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
 (incompatible SQLite/CI). Factories `KingdomFactory`/`ProvinceFactory`/`CityFactory` disponibles
 pour monter une carte de test. Tester un
 lien signé : construire l'URL directement avec `URL::temporarySignedRoute('verification.verify.api', ...)`
