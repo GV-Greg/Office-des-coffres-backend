@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #45 (dernier passage des comptes, `last_seen_at`)
+
+Étape 1 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
+
+### Added
+- **`users.last_seen_at`** (indexée) et **`deletion_notice_sent_at`** : mesure de l'inactivité promise
+  par `/legal/privacy` §5. Comptes existants remplis à la date de la migration, jamais à `created_at`.
+- `App\Support\LastSeen` (seul écrivain, une écriture par jour au plus, `updated_at` intact) et le
+  middleware `RecordLastSeen` (groupes `api` et `web`, écriture après la réponse). « Connexion » =
+  toute requête authentifiée ; `register`, `verifyEmail`, `login` et `refresh`, publiques, désignent
+  le compte elles-mêmes.
+
 ## [2026-10-04] — PR #43 (MariaDB en dev et en CI)
 
 ### Added
