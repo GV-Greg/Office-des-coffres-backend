@@ -58,7 +58,11 @@ Pas de table `sessions`/`cache` (drivers `file`).
 **Journaux applicatifs** (04/10/2026) : canal `stack` → `daily`, **180 jours** écrits en dur dans
 `config/logging.php` — durée promise par `/legal/privacy` §5 (12 mois maximum), figée par
 `Feature/Enforcement/LoggingRetentionTest`. ⚠️ Toute modification de cette durée oblige à relire la
-politique, et reste sans effet en prod avant `php artisan config:cache`. L'ancien `laravel.log`
+politique, et reste sans effet en prod avant `php artisan config:cache`. 🔴 **La rotation ne suffit
+pas** : Monolog garde les 180 derniers *fichiers*, pas jours, et ne purge qu'à la naissance d'un
+fichier — en `LOG_LEVEL=error`, des journaux de plus d'un an survivraient. **`logs:prune`**
+(planifiée à 09:00 Paris, heartbeat `logs`) efface par la date du nom de fichier : c'est elle, la
+garantie (`Feature/Policy/PruneLogsTest`). L'ancien `laravel.log`
 n'est plus écrit, ni effacé par la rotation : à supprimer à la main. Les journaux d'accès serveur
 appartiennent à O2Switch (cPanel), hors de ce dépôt.
 
@@ -331,7 +335,7 @@ Règles qui tiennent l'ensemble :
 | `mandates:send-reminders` | rappel bilingue au joueur **2 jours après la fin effective** de son mandat, tant qu'il est renouvelable (avant, l'élection est en cours) ; jamais deux fois (`reminder_sent_at`), jamais si un renouvellement existe (en attente ou validé), jamais pour un révoqué, jamais à un maire dont la mairie a un successeur validé |
 | `mandates:verification-digest` | un email par jour aux comptes `admin` tant que la file de vérification a des lignes en retard (4 j maire, 7 j conseiller titré), chaque ligne avec son ancienneté ; file sans retard = aucun email |
 | `mandates:purge-rejected` | supprime les `rejected` de plus de 3 mois (`processed_at`) ; une demande en attente n'est **jamais** purgée |
-| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche |
+| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche (mandats **et** `logs:prune`) |
 
 `App\Support\MandateHeartbeat` : chaque tâche écrit en cache son dernier passage **réussi**, en fin
 d'exécution. Au-delà de 36 h, `/dashboard` (**le garde-fou**) et l'en-tête des pages Mandats (une

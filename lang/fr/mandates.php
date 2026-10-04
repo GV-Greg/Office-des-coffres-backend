@@ -89,7 +89,7 @@ return [
 
     // Alerte du planificateur (tableau de bord et pages Mandats).
     'scheduler' => [
-        'stale_title' => 'Tâches planifiées des mandats en retard',
+        'stale_title' => 'Tâches planifiées en retard',
         'stale_line' => ':task (:command) — dernier passage réussi : :last.',
         'never' => 'aucun passage enregistré',
         'help' => 'Au-delà de :hours h sans passage réussi : le cron schedule:run ne tourne plus, ou la tâche échoue. Vérifier dans cPanel, puis lancer php artisan mandates:status en SSH.',
@@ -97,6 +97,7 @@ return [
             'reminders' => 'Rappels de fin de mandat',
             'verification' => 'Récapitulatif de la file de vérification',
             'purge' => 'Purge des refus',
+            'logs' => 'Purge des journaux (rétention promise par la politique)',
         ],
     ],
 
