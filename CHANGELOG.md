@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #48 (purge des journaux par date)
+
+Correctif de la PR #47.
+
+### Fixed
+- La rotation de Monolog garde les 180 derniers **fichiers**, pas jours, et ne purge qu'à la
+  naissance d'un fichier : en `LOG_LEVEL=error`, des journaux de plus d'un an survivaient.
+  **`logs:prune`** efface d'après la date du nom de fichier, chaque jour à 09:00 (Paris), avec
+  heartbeat `logs` (alerte `/dashboard`, `mandates:status`).
+
 ## [2026-10-04] — PR #47 (rotation des journaux, 180 jours)
 
 Étape 3 du brief `admin/content/brief-politique-promesses.md` (§3).
