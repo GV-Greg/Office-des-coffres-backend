@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #52 (gabarit des emails, tous bilingues)
+
+### Changed
+- **Gabarit des emails** aux couleurs de la charte (`resources/views/vendor/{mail,notifications}`) :
+  logo PNG, carte claire à liseré orange, bouton orange, pied « outil non officiel » bilingue.
+  Plus de « Bonjour ! » ajouté par Laravel avant notre salutation, signature sur plusieurs lignes,
+  ligne d'aide bilingue, filet entre français et anglais.
+- Signature « Ludiquement, » / « Playfully, » ; « English version below. » retiré ; email
+  d'inscription bilingue. `EmailLayoutTest` (10 tests).
+
 ## [2026-10-04] — PR #51 (première entrée du journal de la politique, purge activée)
 
 Étape 5 du brief `admin/content/brief-politique-promesses.md`, après la mise en ligne du texte
