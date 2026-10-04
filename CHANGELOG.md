@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #46 (notification des modifications de la politique, §10)
+
+Étape 2 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
+
+### Added
+- **`php artisan policy:notify <id>`** : lancée à la main, jamais planifiée ; refuse une entrée
+  inconnue, mal formée, non substantielle ou déjà envoyée ; comptes vérifiés seulement ; nombre de
+  destinataires et confirmation avant l'envoi.
+- Journal `resources/policy/changelog.php` (source unique, vide à la livraison), email
+  `PolicyUpdated` bilingue FR puis EN sans lien de désinscription, table `policy_notifications`
+  (anti double envoi, hors taxinomie des données utilisateur).
+
 ## [2026-10-04] — PR #45 (dernier passage des comptes, `last_seen_at`)
 
 Étape 1 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
