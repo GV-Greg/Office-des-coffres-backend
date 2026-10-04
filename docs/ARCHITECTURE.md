@@ -235,15 +235,19 @@ Préavis puis suppression promis par `/legal/privacy` §5 (brief `admin/content/
 ## Gabarit des emails (04/10/2026)
 
 Tous les emails passent par `resources/views/vendor/{mail,notifications}` (publiés depuis Laravel),
-habillés selon `CHARTE-GRAPHIQUE.md` : fond `slate-800`, logo PNG `public/images/email/logo-horizontal.png`
-(Gmail n'affiche pas le SVG ; servi par `app.url`), carte claire à liseré orange, bouton orange
+habillés selon `CHARTE-GRAPHIQUE.md` : fond `slate-800`, logo PNG servi par le **site des joueurs**
+(`app.frontend_url` + `/images/email/logo-horizontal.png`, fichier dans `frontend/public/` ; Gmail
+n'affiche pas le SVG), carte claire à liseré orange, bouton orange
 (plancher `#c2410c`), pied « outil non officiel » bilingue. Thème : `vendor/mail/html/themes/default.css`
 (inliné par Laravel, contrastes calculés en tête). Écarts voulus avec l'original : aucun titre par
 défaut (« Bonjour ! »), `———` rendu en filet entre français et anglais, signature sur plusieurs
 lignes, ligne d'aide bilingue (`lang/{fr,en}/mail.php`). **Tous les emails des joueurs sont
 bilingues, français puis anglais**, signés « Ludiquement, » / « Playfully, » (Greg). ⚠️ Les liens
-signés et le logo dépendent du `APP_URL` du serveur : les tâches planifiées n'ont pas de requête
-pour le déduire. Garde-fou : `Feature/Mail/EmailLayoutTest`.
+signés (confirmation d'email) dépendent du `APP_URL` du serveur : les tâches planifiées n'ont pas
+de requête pour le déduire. 🔴 **Aucun autre lien ni image vers le domaine de l'administration**
+(`odc-admin`) : dans un email de joueur, il ressemble à de l'hameçonnage (Greg, 05/10/2026). La
+**version texte** (`vendor/mail/text/message.blade.php`) reprend le même contenu. Garde-fou :
+`Feature/Mail/EmailLayoutTest` (HTML et texte).
 
 ## Gestion des utilisateurs (admin)
 

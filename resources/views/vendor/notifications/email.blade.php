@@ -5,7 +5,8 @@
       chaque langue — l'original en ajoutait une seconde, en tête ;
     - la ligne « ——— » qui sépare le français de l'anglais devient un filet ;
     - la signature garde ses retours à la ligne ;
-    - la ligne d'aide sous le bouton est bilingue (lang/{fr,en}/mail.php).
+    - la ligne d'aide sous le bouton est bilingue (lang/{fr,en}/mail.php), et son lien est un vrai
+      lien HTML : la syntaxe Markdown [..](..) restait brute dans la version texte.
 --}}
 <x-mail::message>
 @if (! empty($greeting))
@@ -41,7 +42,7 @@
 @isset($actionText)
 <x-slot:subcopy>
 {{ __('mail.subcopy', [], 'fr') }} / {{ __('mail.subcopy', [], 'en') }}<br>
-<span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})</span>
+<span class="break-all"><a href="{{ $actionUrl }}">{{ $displayableActionUrl }}</a></span>
 </x-slot:subcopy>
 @endisset
 </x-mail::message>

@@ -7,6 +7,8 @@ use App\Notifications\PolicyUpdated;
 use App\Notifications\UnverifiedAccountReminder;
 use App\Notifications\VerifyApiEmail;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Mail\Markdown;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -16,7 +18,13 @@ use Illuminate\Support\Str;
 // CHARTE-GRAPHIQUE.md : logo, pied « outil non officiel » bilingue, une seule salutation par
 // langue, ligne d'aide bilingue, « Ludiquement, » / « Playfully, » (Greg, 04/10/2026).
 
-function renderedEmails(): array
+const ADMIN_URL = 'https://odc-admin.example';
+const PLAYER_URL = 'https://joueurs.example';
+
+beforeEach(fn () => config(['app.url' => ADMIN_URL, 'app.frontend_url' => PLAYER_URL]));
+
+/** @return array<string, MailMessage> */
+function emailMessages(): array
 {
     $user = User::factory()->make(['id' => 42, 'created_at' => Carbon::parse('2026-09-11')]);
     $entry = ['date' => '2026-10-04', 'summary' => ['fr' => 'Résumé.', 'en' => 'Summary.'], 'substantial' => true, 'decided_by' => 'Greg'];
@@ -26,14 +34,27 @@ function renderedEmails(): array
         'préavis' => new InactiveAccountNotice(Carbon::parse('2025-11-02'), Carbon::parse('2026-11-03')),
         'rappel' => new UnverifiedAccountReminder(Carbon::parse('2026-10-11')),
         'inscription' => new VerifyApiEmail,
-    ])->map(fn ($notification) => $notification->toMail($user)->render()->toHtml())->all();
+    ])->map(fn ($notification) => $notification->toMail($user))->all();
+}
+
+function renderedEmails(): array
+{
+    return collect(emailMessages())->map(fn ($mail) => $mail->render()->toHtml())->all();
+}
+
+/** La version texte, telle que MailChannel la construit (multipart/alternative). */
+function textEmails(): array
+{
+    return collect(emailMessages())
+        ->map(fn ($mail) => (string) app(Markdown::class)->renderText($mail->markdown, $mail->data()))
+        ->all();
 }
 
 test('chaque email des joueurs porte le gabarit de l\'Office, bilingue, sans reliquat du gabarit Laravel', function (string $name) {
     $html = renderedEmails()[$name];
 
     expect($html)
-        ->toContain(rtrim(config('app.url'), '/').'/images/email/logo-horizontal.png')
+        ->toContain(PLAYER_URL.'/images/email/logo-horizontal.png')
         ->toContain(e(__('mail.unofficial', [], 'fr')))
         ->toContain(e(__('mail.unofficial', [], 'en')))
         // Après le « ? » : Markdown et e() n'encodent pas l'apostrophe de « s'ouvre » de la même façon.
@@ -72,9 +93,25 @@ test('un email Laravel sans signature propre en reçoit une (réinitialisation d
     expect($html)->toContain('class="salutation"')->toContain(config('app.name'));
 });
 
-test('le logo PNG existe là où les emails le cherchent', function () {
-    expect(public_path('images/email/logo-horizontal.png'))->toBeFile();
-});
+test('🔴 aucun email sans lien signé ne mentionne le domaine de l\'administration (HTML et texte)', function (string $name) {
+    // Un domaine « admin » dans un email de joueur ressemble à de l'hameçonnage (Greg, 05/10/2026).
+    // Le logo et le site viennent de app.frontend_url. Exception connue : les liens de confirmation
+    // d'email (inscription, rappel) sont signés par l'API, donc sur app.url.
+    expect(renderedEmails()[$name])->not->toContain(ADMIN_URL)
+        ->and(textEmails()[$name])->not->toContain(ADMIN_URL);
+})->with(['politique', 'préavis']);
+
+test('la version texte reprend le contenu de la version HTML, sans reliquat Laravel ni Markdown brut', function (string $name) {
+    $text = textEmails()[$name];
+
+    expect($text)
+        ->toStartWith(config('app.name').': '.PLAYER_URL)
+        ->toContain(__('mail.unofficial', [], 'fr'))->toContain(__('mail.unofficial', [], 'en'))
+        ->toContain('Ludiquement,')->toContain('Playfully,')
+        ->not->toContain('Tous droits réservés')->not->toContain('All rights reserved')
+        ->not->toContain('](')
+        ->not->toMatch('/^[ \t]+\S/m'); // aucune ligne indentée par le gabarit
+})->with(['politique', 'préavis', 'rappel', 'inscription']);
 
 test('l\'email d\'inscription annonce la vraie durée du lien', function () {
     config(['auth.verification.expire' => 45]);
