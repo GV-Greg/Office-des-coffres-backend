@@ -6,7 +6,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Horodatage du dernier passage RÉUSSI de chaque tâche quotidienne des mandats (fil
+ * Horodatage du dernier passage RÉUSSI de chaque tâche quotidienne (mandats, journaux ; fil
  * admin/echanges/mandats-lot3, Q5 et Q6).
  *
  * Pourquoi il existe : une file vide n'envoie aucun email — c'est voulu — mais le silence devient
@@ -20,11 +20,16 @@ use Illuminate\Support\Facades\Cache;
  */
 class MandateHeartbeat
 {
-    /** Les trois tâches, et la commande qui écrit chacune. */
+    /**
+     * Les tâches quotidiennes, et la commande qui écrit chacune. Né pour les mandats, le registre
+     * couvre aussi les tâches planifiées des promesses de la politique (fil politique-promesses,
+     * Q9 : pas de renommage, qui effacerait les horodatages en prod).
+     */
     public const TASKS = [
         'reminders' => 'mandates:send-reminders',
         'verification' => 'mandates:verification-digest',
         'purge' => 'mandates:purge-rejected',
+        'logs' => 'logs:prune',
     ];
 
     public static function record(string $task): void

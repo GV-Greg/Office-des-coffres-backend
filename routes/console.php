@@ -34,3 +34,10 @@ Schedule::command('mandates:verification-digest')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
 Schedule::command('mandates:purge-rejected')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+
+/*
+| Journaux — rétention de 180 jours promise par /legal/privacy §5 (config/logging.php). La rotation
+| du canal `daily` compte des fichiers, pas des jours : cette purge par date est la vraie garantie.
+*/
+Schedule::command('logs:prune')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
