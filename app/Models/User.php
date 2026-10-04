@@ -42,6 +42,8 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'deletion_notice_sent_at' => 'datetime',
         'password' => 'hashed',
     ];
 

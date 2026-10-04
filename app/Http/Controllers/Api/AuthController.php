@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseController;
 use App\Models\User;
 use App\Notifications\VerifyApiEmail;
 use App\Services\AccountDeletion;
+use App\Support\LastSeen;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ use Illuminate\Support\Str;
 use Laravel\Passport\AuthCode;
 use Laravel\Passport\DeviceCode;
 use Laravel\Passport\RefreshToken;
+use Laravel\Passport\Token;
 
 class AuthController extends BaseController
 {
@@ -35,6 +37,9 @@ class AuthController extends BaseController
         ]);
 
         $user->notify(new VerifyApiEmail());
+
+        // Aucune ligne ne doit rester durablement à last_seen_at nul (fil politique-promesses, 02).
+        LastSeen::markForRequest($request, $user);
 
         return response()->json([
             'success' => true,
@@ -80,6 +85,9 @@ class AuthController extends BaseController
         // fois ce jeton expiré.
         $token = $user->createToken('email-verification')->accessToken;
 
+        // Route publique (hors auth:api) qui authentifie : le middleware ne la voit pas seul.
+        LastSeen::markForRequest($request, $user);
+
         return redirect(config('app.frontend_url') . '/verify-email?token=' . $token);
     }
 
@@ -120,6 +128,8 @@ class AuthController extends BaseController
             return $this->sendError("Émission du jeton d'accès impossible.", [], 500);
         }
 
+        LastSeen::markForRequest($request, $user);
+
         return response()->json([
             'success' => true,
             ...$tokens,
@@ -148,6 +158,13 @@ class AuthController extends BaseController
 
         if (! ($validated['remember_me'] ?? false)) {
             $this->shortenRefreshTokenExpiration($data['access_token']);
+        }
+
+        // Un client qui ne fait que rafraîchir son jeton est un joueur actif : route publique,
+        // le compte se retrouve par le jeton tout juste émis (fil politique-promesses, E1).
+        $user = Token::find($this->accessTokenId($data['access_token']))?->user;
+        if ($user) {
+            LastSeen::markForRequest($request, $user);
         }
 
         return response()->json([
@@ -297,13 +314,20 @@ class AuthController extends BaseController
      */
     private function shortenRefreshTokenExpiration(string $accessToken): void
     {
-        $payload = json_decode(base64_decode(strtr(explode('.', $accessToken)[1] ?? '', '-_', '+/')), true);
-        $accessTokenId = $payload['jti'] ?? null;
+        $accessTokenId = $this->accessTokenId($accessToken);
 
         if ($accessTokenId) {
             RefreshToken::where('access_token_id', $accessTokenId)
                 ->update(['expires_at' => now()->addHours(12)]);
         }
+    }
+
+    /** L'access token est un JWT dont le claim `jti` est l'id de la ligne oauth_access_tokens. */
+    private function accessTokenId(string $accessToken): ?string
+    {
+        $payload = json_decode(base64_decode(strtr(explode('.', $accessToken)[1] ?? '', '-_', '+/')), true);
+
+        return $payload['jti'] ?? null;
     }
 
     private function userPayload(User $user): array

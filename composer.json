@@ -64,7 +64,7 @@
             "@php ./vendor/bin/pest tests/Feature/Api"
         ],
         "test:auth": [
-            "@php ./vendor/bin/pest tests/Feature/Auth tests/Feature/Api/AuthTest.php"
+            "@php ./vendor/bin/pest tests/Feature/Auth tests/Feature/Api/AuthTest.php tests/Feature/Api/LastSeenTest.php"
         ],
         "test:mandates": [
             "@php ./vendor/bin/pest tests/Feature/Mandates tests/Feature/Enforcement/UserDataLifecycleTest.php"
