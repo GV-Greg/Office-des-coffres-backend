@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 03/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 04/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -19,7 +19,7 @@ admin n'ont pas de `Character`.
 
 | Modèle | Table | Champs notables | Relations |
 |---|---|---|---|
-| `User` | `users` | `email`, `password` (pas de `name`) | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
+| `User` | `users` | `email`, `password` (pas de `name`), `last_seen_at`, `deletion_notice_sent_at` (voir « Dernier passage ») | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
 | `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création), `is_validated` (bool, défaut `false`), `pending_residence_change` (bool — distingue « nouveau personnage » d'un « changement de résidence » à revalider) | `belongsTo(User)`, `belongsTo(City)` |
 | `Kingdom` | `rk_kingdoms` | `kingdom_name` | `hasMany(Province)` |
 | `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
@@ -152,11 +152,27 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
 
 ## Middleware & rôles
 
-- Aucun middleware custom — uniquement les défauts Laravel.
+- Un seul middleware maison : `RecordLastSeen` (groupes `api` et `web`, voir « Dernier passage »).
 - `bootstrap/app.php` enregistre l'alias `role` → `Spatie\Permission\Middleware\RoleMiddleware`.
 - **Un seul rôle Spatie : `admin`**, seedé via `UserSeeder` sur `SEEDER_SUPER_ADMIN_EMAIL`. Aucune
   permission Spatie créée (uniquement le rôle, vérifié via `role:admin` ou `hasRole('admin')` côté
   Blade).
+
+## Dernier passage (`last_seen_at`, 04/10/2026)
+
+Mesure de l'inactivité promise par `/legal/privacy` §5 (brief `admin/content/brief-politique-promesses.md`,
+fil `admin/echanges/politique-promesses`). **« Connexion » = toute requête authentifiée**, API comme
+panneau Blade.
+
+- `App\Support\LastSeen` est le **seul écrivain** : au plus une écriture par jour, gardée par une
+  lecture du modèle déjà chargé ; un passage remet `deletion_notice_sent_at` à `null` (préavis
+  annulé, pas suspendu). Écriture hors Eloquent : `updated_at` ne bouge pas.
+- `App\Http\Middleware\RecordLastSeen` écrit dans `terminate()`, **après la réponse**.
+- ⚠️ `register`, `verifyEmail`, `login` et `refresh` sont **hors du groupe `auth:api`** : le
+  middleware ne les voit pas seul, elles désignent le compte par `LastSeen::markForRequest()`.
+  Une nouvelle route publique qui authentifie doit faire de même.
+- Lignes existantes remplies **à la date de la migration**, jamais à `created_at` : le compteur
+  part du jour où on sait compter.
 
 ## Gestion des utilisateurs (admin)
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RecordLastSeen;
 use App\Support\MandateApiErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Limiteur 'api' (AppServiceProvider) : défini sans ce branchement, il ne gardait rien.
         $middleware->throttleApi();
+
+        // Dernier passage authentifié (App\Support\LastSeen), écrit après la réponse : mesure de
+        // l'inactivité promise par /legal/privacy §5 (fil admin/echanges/politique-promesses).
+        $middleware->appendToGroup('api', RecordLastSeen::class);
+        $middleware->appendToGroup('web', RecordLastSeen::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // API des mandats : toute erreur de validation (refus métier ou forme) porte codes et
