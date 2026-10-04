@@ -50,6 +50,9 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
    `council_office_periods`, puis une migration qui **appelle le seeder idempotent**
    `CouncilOfficeSeeder` (voir « Mandats »)
 
+7. `users.last_seen_at` + `deletion_notice_sent_at` (04/10/2026, voir « Dernier passage »), puis
+   `policy_notifications` (voir « Notification des modifications de la politique »)
+
 Pas de table `sessions`/`cache` (drivers `file`).
 
 ## Origine canonique (`public/.htaccess`)
@@ -173,6 +176,22 @@ panneau Blade.
   Une nouvelle route publique qui authentifie doit faire de même.
 - Lignes existantes remplies **à la date de la migration**, jamais à `created_at` : le compteur
   part du jour où on sait compter.
+
+## Notification des modifications de la politique (§10, 04/10/2026)
+
+`/legal/privacy` §10 promet que toute modification substantielle est notifiée par email (brief
+`admin/content/brief-politique-promesses.md` §4, fil `admin/echanges/politique-promesses`, Q5-Q6).
+
+| Pièce | Rôle |
+|---|---|
+| `resources/policy/changelog.php` | **source unique** du journal (aucune copie dans `admin/`) : date, résumé FR/EN, `substantial`, `decided_by` |
+| `App\Support\PolicyChangelog` | lecture + contrôle de forme d'une entrée |
+| `php artisan policy:notify <id>` | lancée **à la main** par Greg, jamais planifiée ; refuse une entrée inconnue, mal formée, non substantielle ou déjà envoyée ; comptes **vérifiés** seulement ; affiche le nombre de destinataires et demande confirmation (`--force` pour s'en passer) |
+| `App\Notifications\PolicyUpdated` | email bilingue FR puis EN, lien vers `/legal/privacy`, **aucun lien de désinscription** (information légale) |
+| `policy_notifications` | une ligne par entrée envoyée (anti double envoi). **Hors taxinomie** des données utilisateur tant qu'elle ne porte aucun lien vers un compte — une colonne par destinataire rouvrirait la question |
+
+⚠️ N'ajouter une entrée substantielle au journal qu'une fois le texte **en ligne** : l'email renvoie
+à la page. « Substantielle » est une décision humaine, jamais déduite d'un diff.
 
 ## Gestion des utilisateurs (admin)
 
