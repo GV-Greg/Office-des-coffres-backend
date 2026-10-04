@@ -30,6 +30,7 @@ class MandateHeartbeat
         'verification' => 'mandates:verification-digest',
         'purge' => 'mandates:purge-rejected',
         'logs' => 'logs:prune',
+        'accounts' => 'accounts:purge',
     ];
 
     public static function record(string $task): void

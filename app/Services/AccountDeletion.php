@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Laravel\Passport\AuthCode;
+use Laravel\Passport\DeviceCode;
+use Laravel\Passport\RefreshToken;
 
 /**
  * LA porte unique de suppression d'un compte ou d'un personnage (fil mandats-historique, 12).
@@ -22,20 +25,47 @@ class AccountDeletion
     public function __construct(private readonly OfficeHistory $history) {}
 
     /**
-     * Archive puis supprime un compte. `$alsoInTransaction` : le nettoyage propre à l'appelant
-     * (jetons OAuth…), exécuté dans la même transaction, avant la suppression.
+     * Archive, efface les traces sans clé étrangère, puis supprime un compte — pour TOUS les
+     * chemins (API, admin, profil Breeze, purge des comptes inactifs). Jusqu'au 04/10/2026, seul le
+     * chemin API effaçait les jetons OAuth et password_reset_tokens : les deux autres laissaient
+     * survivre une adresse email à la suppression du compte.
      */
-    public function deleteUser(User $user, ?callable $alsoInTransaction = null): void
+    public function deleteUser(User $user): void
     {
-        DB::transaction(function () use ($user, $alsoInTransaction) {
+        DB::transaction(function () use ($user) {
             foreach ($user->characters()->get() as $character) {
                 $this->history->archiveCharacter($character);
             }
-            if ($alsoInTransaction !== null) {
-                $alsoInTransaction($user);
-            }
+            $this->deleteTracesWithoutForeignKey($user);
             $user->delete();
         });
+    }
+
+    /**
+     * Catégorie B de admin/strategies/donnees-utilisateur.md : ces tables ne portent pas de FK vers
+     * `users`, la cascade ne les vide pas.
+     */
+    private function deleteTracesWithoutForeignKey(User $user): void
+    {
+        // Tables OAuth de Passport : sans ce nettoyage, les jetons survivraient au compte qu'ils
+        // désignent.
+        $accessTokenIds = $user->tokens()->pluck('id');
+        RefreshToken::whereIn('access_token_id', $accessTokenIds)->delete();
+        $user->tokens()->delete();
+
+        // Le projet n'utilise ni le code d'autorisation ni le device flow, mais Passport expose leurs
+        // routes par défaut (`oauth/authorize`, `oauth/device/code`) : rien ne garantit que ces
+        // tables restent vides, et leur user_id n'est qu'une colonne indexée.
+        AuthCode::where('user_id', $user->id)->delete();
+        DeviceCode::where('user_id', $user->id)->delete();
+
+        // Clé par email, sans FK vers users : c'est la table qui laissait survivre une adresse
+        // email à un effacement art. 17 (écart constaté en prod le 19/09/2026).
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+        // Les personnages partent en cascade (FK ON DELETE CASCADE sur characters.user_id) ;
+        // model_has_roles et model_has_permissions sont détachées par le hook `deleting` des
+        // traits HasRoles / HasPermissions de Spatie (vérifié, pas supposé — voir les tests).
     }
 
     /** Archive puis supprime un personnage (aucun écran ne le propose encore). */

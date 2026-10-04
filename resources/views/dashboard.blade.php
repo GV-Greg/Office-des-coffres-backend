@@ -12,6 +12,8 @@
                     {{-- GARDE-FOU du planificateur des mandats : première page après connexion. Ne pas retirer
                          (le doublon des pages Mandats, lui, peut partir). --}}
                     @include('mandates._scheduler_status')
+                    {{-- Comptes inactifs que la purge laisse en place (mandat en cours) : à trancher par Greg. --}}
+                    @include('accounts._purge_blocked')
                     @if(session('status') === 'character-validated')
                         <p class="mb-4 text-sm text-green-600 dark:text-green-400">
                             <i class="fa-solid fa-circle-check"></i>

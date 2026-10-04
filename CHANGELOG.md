@@ -7,6 +7,22 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #49 (purge des comptes inactifs et non confirmés, en simulation)
+
+Étape 4 du brief `admin/content/brief-politique-promesses.md` (§2).
+
+### Added
+- **`accounts:purge`** (09:00 Paris, heartbeat `accounts`, `--dry-run`) : préavis à 11 mois sans
+  passage puis suppression à 12 mois (≥ 30 j après le préavis) ; rappel aux comptes non confirmés à
+  J+23, avec un lien valable jusqu'à la suppression, puis suppression à J+30 (≥ 7 j après le rappel).
+  Aucune suppression sans avis enregistré ; `last_seen_at` nul jamais prévenu ni supprimé ; mandat
+  en cours → signalé sur `/dashboard`, pas supprimé. **Livrée en simulation** (`accounts.enforce` =
+  `false`) tant que la politique en ligne annonce 2 ans.
+
+### Fixed
+- `AccountDeletion` efface les jetons OAuth et `password_reset_tokens` pour **tous** les chemins de
+  suppression : par l'admin ou le profil Breeze, l'adresse email survivait dans `password_reset_tokens`.
+
 ## [2026-10-04] — PR #48 (purge des journaux par date)
 
 Correctif de la PR #47.

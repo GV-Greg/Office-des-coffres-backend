@@ -41,7 +41,8 @@ $declaredTables = [
     // écrite. Seule App\Services\AccountDeletion y écrit (AccountDeletionTest).
     'office_history_archive' => 'D',
 
-    // B — nettoyage explicite dans AuthController::destroyAccount() ou par un hook de paquet.
+    // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
+    // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte
     // (OAuth), clé par email, ou pivot polymorphe.
     'oauth_access_tokens' => 'B',
@@ -65,7 +66,7 @@ $notAccountData = ['users', 'migrations'];
 
 $categories = <<<'TXT'
     A — cascade (FK ->cascadeOnDelete, le défaut)
-    B — nettoyage explicite dans destroyAccount() (ou par un hook de paquet, à vérifier)
+    B — nettoyage explicite dans AccountDeletion (ou par un hook de paquet, à vérifier)
     C — anonymisation (user_id à NULL, contenu conservé) — pour la donnée dont d'autres dépendent
     D — conservation justifiée, à condition d'être non réidentifiante
     TXT;
@@ -80,7 +81,7 @@ $howToFix = <<<TXT
       1. Cette donnée intéresse-t-elle quelqu'un d'autre que son auteur ? Non → A, terminé.
       2. Peut-elle survivre sans son auteur ? Oui → C (et la table doit être conçue pour).
       3. La table peut-elle porter une FK vers `users` ? Non → B, ligne explicite dans
-         destroyAccount() ET entrée dans ce test.
+         AccountDeletion ET entrée dans ce test.
 
     Ajouter la ligne ici sans répondre à ces trois questions ne fait que désactiver le garde-fou.
     TXT;

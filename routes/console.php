@@ -41,3 +41,11 @@ Schedule::command('mandates:purge-rejected')
 */
 Schedule::command('logs:prune')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+
+/*
+| Comptes — préavis puis suppression des comptes inactifs (1 an) et jamais confirmés (30 jours),
+| promis par /legal/privacy §5 (config/accounts.php). Simulation imposée tant que accounts.enforce
+| est faux : le texte en ligne doit annoncer la règle avant qu'elle s'applique.
+*/
+Schedule::command('accounts:purge')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
