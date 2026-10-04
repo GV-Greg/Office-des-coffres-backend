@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #51 (première entrée du journal de la politique, purge activée)
+
+Étape 5 du brief `admin/content/brief-politique-promesses.md`, après la mise en ligne du texte
+(front #79).
+
+### Changed
+- Journal `resources/policy/changelog.php` : entrée `2026-10-04-comptes-inactifs` (substantielle,
+  Greg), premier envoi réel de `policy:notify`.
+- `accounts.enforce` → `true` : `accounts:purge` cesse d'être une simulation. Lié par test à
+  l'entrée substantielle du journal.
+
 ## [2026-10-04] — PR #50 (purge : refus de tourner sans configuration valide)
 
 Correctif de la PR #49, après un incident en prod le 04/10/2026 (rien envoyé, rien supprimé).
