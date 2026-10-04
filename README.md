@@ -222,10 +222,10 @@ docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL/MariaDB) — passer `'city_id' => null` explicitement dans les factories de test.
 
-335 tests verts au 04/10/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
+338 tests verts au 04/10/2026 (`Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
 `Feature/Mandates/{MandateAdminTest,MandateApiErrorsTest,MandateApiTest,ProvinceHistoryApiTest,MandateAuthorityTest,MandateLanguageTest,MandateOfficeTest,MandateScheduleTest}`,
 `Feature/Policy/PolicyNotifyTest`, `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`,
-`Feature/Enforcement/UserDataLifecycleTest`, `Feature/ModuleDataEncryptionTest`,
+`Feature/Enforcement/{LoggingRetentionTest,UserDataLifecycleTest}`, `Feature/ModuleDataEncryptionTest`,
 `Unit/Enforcement/{AdminIconsTest,AdminRobotsTest,CookieUsageTest,DeployExcludeTest,HtaccessCanonicalOriginTest}`) —
 scripts et découpage détaillés dans `docs/TESTS.md`.
 

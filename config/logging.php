@@ -52,9 +52,12 @@ return [
     */
 
     'channels' => [
+        // Rotation quotidienne (04/10/2026, brief admin/content/brief-politique-promesses.md §3) :
+        // `single` faisait grandir laravel.log sans limite, alors que /legal/privacy §5 promet des
+        // logs techniques « conservés 12 mois maximum, puis effacés ».
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            'channels' => ['daily'],
             'ignore_exceptions' => false,
         ],
 
@@ -69,7 +72,11 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
+            // ⚠️ DURÉE DE RÉTENTION PROMISE (/legal/privacy §5 : 12 mois maximum) — 180 jours,
+            // décision de Greg du 04/10/2026. Écrite ici, jamais héritée d'un défaut (14). Toute
+            // modification oblige à relire la politique. LoggingRetentionTest la fige.
+            // ⚠️ Prod : sans effet avant `php artisan config:cache` en SSH (config en cache).
+            'days' => 180,
             'replace_placeholders' => true,
         ],
 

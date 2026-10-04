@@ -17,7 +17,7 @@ réservée à la fin d'une tâche cohérente ou juste avant un push.
 | `test:api` | Contrôleurs API REST | `tests/Feature/Api` |
 | `test:auth` | Auth API + scaffolding Breeze + dernier passage (`last_seen_at`) | `tests/Feature/Auth` + `AuthTest.php` + `LastSeenTest.php` |
 | `test:mandates` | Mandats (API joueur, admin, autorité, postes, langue) + garde-fou du cycle de vie | `tests/Feature/Mandates` + `UserDataLifecycleTest.php` |
-| `test:policy` | Politique de confidentialité (`policy:notify`, journal, email §10) | `tests/Feature/Policy` |
+| `test:policy` | Promesses de la politique de confidentialité (`policy:notify`, email §10, rétention des journaux) | `tests/Feature/Policy` + `LoggingRetentionTest.php` |
 | `test:web` | Dashboard admin Blade | `DashboardTest.php` + `ProfileTest.php` |
 | `test:unit` | Tests unitaires purs | `tests/Unit` (voir plus bas) |
 | `test:filter -- <motif>` | Filtre par nom (`--filter` Pest natif) | selon le motif |
