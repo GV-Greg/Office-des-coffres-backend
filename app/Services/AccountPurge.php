@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use LogicException;
+use RuntimeException;
 
 /**
  * Règles de la purge des comptes (/legal/privacy §5 ; brief politique-promesses §2 ; fil
@@ -128,8 +129,38 @@ class AccountPurge
         $user->forceFill($values)->syncOriginalAttributes(array_keys($values));
     }
 
+    /**
+     * Durées de config/accounts.php, ou une exception — jamais 0 par défaut.
+     *
+     * 🔴 Incident du 04/10/2026 (prod) : la config était en cache AVANT l'arrivée de
+     * config/accounts.php ; chaque durée valait null, donc 0 jour, et TOUT compte vérifié devenait
+     * « à prévenir, suppression aujourd'hui ». Seule la simulation imposée (enforce null) a évité
+     * l'envoi. Une durée absente ou nulle arrête désormais la purge (fail closed).
+     */
     private function days(string $key): int
     {
-        return (int) config("accounts.{$key}");
+        $value = config("accounts.{$key}");
+
+        if (! is_int($value) || $value <= 0) {
+            throw new RuntimeException(__('accounts.command.misconfigured', ['key' => "accounts.{$key}"]));
+        }
+
+        return $value;
+    }
+
+    /** Vérifie toute la configuration avant le moindre geste : tout ou rien. */
+    public function assertConfigured(): void
+    {
+        foreach (['inactivity_days', 'inactivity_notice_days', 'unverified_days',
+            'unverified_reminder_after_days', 'unverified_min_notice_days'] as $key) {
+            $this->days($key);
+        }
+        if (! is_bool(config('accounts.enforce'))) {
+            throw new RuntimeException(__('accounts.command.misconfigured', ['key' => 'accounts.enforce']));
+        }
+        if ($this->days('inactivity_notice_days') >= $this->days('inactivity_days')
+            || $this->days('unverified_reminder_after_days') >= $this->days('unverified_days')) {
+            throw new RuntimeException(__('accounts.command.misconfigured', ['key' => 'accounts.*_days (ordre)']));
+        }
     }
 }

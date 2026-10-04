@@ -221,6 +221,10 @@ Préavis puis suppression promis par `/legal/privacy` §5 (brief `admin/content/
   `COALESCE(last_seen_at, created_at)`.
 - Un compte dont un personnage tient un mandat **en cours** n'est pas supprimé : signalé dans la
   sortie et sur `/dashboard` (`accounts._purge_blocked`, cache `accounts.purge.blocked`).
+- 🔴 **Config absente ou incohérente → la purge ne fait rien** (`AccountPurge::assertConfigured()`,
+  aucune durée par défaut, pas de heartbeat). Incident du 04/10/2026 : config en cache d'avant
+  `config/accounts.php`, durées à `null` = 0 jour, tout compte vérifié « à prévenir, suppression
+  aujourd'hui » — seule la simulation imposée a évité l'envoi. Même garde sur `logs:prune`.
 - 🔴 **`accounts.enforce` = `false`** dans le dépôt : simulation imposée tant que le texte en ligne
   annonce 2 ans. Passe à `true` avec la mise en ligne du nouveau texte (puis `config:cache` en prod).
 - La suppression passe par `AccountDeletion::deleteUser()`, qui efface désormais les traces sans

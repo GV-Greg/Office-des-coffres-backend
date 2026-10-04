@@ -78,3 +78,14 @@ test('chaque passage réussi est enregistré, et la tâche a son libellé dans l
     expect(MandateHeartbeat::lastSuccess('logs'))->not->toBeNull()
         ->and(__('mandates.scheduler.tasks.logs'))->not->toBe('mandates.scheduler.tasks.logs');
 });
+
+test('🔴 durée absente (cache périmé) : rien n\'est effacé, pas de heartbeat', function () {
+    config(['logging.channels.daily.days' => null]);
+    touch("{$this->dir}/laravel-2020-01-01.log");
+    touch("{$this->dir}/laravel-2026-10-03.log");
+
+    $this->artisan('logs:prune')->assertFailed();
+
+    expect(logFiles($this->dir))->toHaveCount(2)
+        ->and(MandateHeartbeat::lastSuccess('logs'))->toBeNull();
+});

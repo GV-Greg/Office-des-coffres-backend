@@ -29,7 +29,15 @@ class PruneLogs extends Command
     public function handle(): int
     {
         $path = (string) config('logging.channels.daily.path');
-        $days = (int) config('logging.channels.daily.days');
+        $days = config('logging.channels.daily.days');
+
+        // Sans durée (config en cache périmée), (int) null = 0 effacerait TOUS les journaux sauf
+        // celui du jour : on s'arrête, sans heartbeat (incident accounts:purge du 04/10/2026).
+        if (! is_int($days) || $days <= 0) {
+            $this->error(__('logs.misconfigured'));
+
+            return self::FAILURE;
+        }
         $base = preg_quote(pathinfo($path, PATHINFO_FILENAME), '/');
         $limit = Carbon::now()->startOfDay()->subDays($days);
         $deleted = 0;

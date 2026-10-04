@@ -32,6 +32,7 @@ return [
             'failed' => "ÉCHEC d'envoi",
         ],
         'detail_deletion' => 'suppression à partir du :date',
+        'misconfigured' => ':key absente ou invalide — config en cache périmée ? Lancer php artisan config:cache en SSH. Rien n\'a été fait.',
         'summary' => ':remind rappel(s), :notify préavis, :delete suppression(s), :blocked bloqué(s), :failed échec(s).',
     ],
 

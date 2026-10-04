@@ -306,3 +306,32 @@ test('chaque clé des emails existe en français ET en anglais', function () {
 
     expect($keys('en'))->toBe($keys('fr'));
 });
+
+// ─── Configuration absente : incident du 04/10/2026 ───────────────────────────────────────────
+
+test('🔴 config absente (cache périmé) : la purge ne fait RIEN — ni avis, ni suppression, ni heartbeat', function (?array $overrides) {
+    // null = fichier absent du cache ; sinon la vraie config avec des valeurs cassées.
+    config(['accounts' => $overrides === null ? [] : array_replace(require config_path('accounts.php'), ['enforce' => true], $overrides)]);
+    $active = verifiedAccount(0);
+    $toDelete = unverifiedAccount(30, 7);
+
+    $this->artisan('accounts:purge')->assertFailed();
+
+    Notification::assertNothingSent();
+    expect(User::find($toDelete->id))->not->toBeNull()
+        ->and($active->fresh()->deletion_notice_sent_at)->toBeNull()
+        ->and(MandateHeartbeat::lastSuccess('accounts'))->toBeNull();
+})->with([
+    'fichier absent du cache' => [null],
+    'enforce non booléen' => [['enforce' => null]],
+    'une durée à 0' => [['inactivity_days' => 0]],
+    'préavis plus long que l\'inactivité' => [['inactivity_notice_days' => 400]],
+]);
+
+test('🔴 config absente : la suppression elle-même refuse, quel que soit l\'appelant', function () {
+    $user = verifiedAccount(730, 400);
+    config(['accounts' => []]);
+
+    expect(fn () => app(AccountPurge::class)->delete($user))->toThrow(RuntimeException::class);
+    expect(User::find($user->id))->not->toBeNull();
+});
