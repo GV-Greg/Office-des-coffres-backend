@@ -93,13 +93,13 @@ test('un email Laravel sans signature propre en reçoit une (réinitialisation d
     expect($html)->toContain('class="salutation"')->toContain(config('app.name'));
 });
 
-test('🔴 aucun email sans lien signé ne mentionne le domaine de l\'administration (HTML et texte)', function (string $name) {
+test('🔴 aucun email ne mentionne le domaine de l\'administration (HTML et texte)', function (string $name) {
     // Un domaine « admin » dans un email de joueur ressemble à de l'hameçonnage (Greg, 05/10/2026).
-    // Le logo et le site viennent de app.frontend_url. Exception connue : les liens de confirmation
-    // d'email (inscription, rappel) sont signés par l'API, donc sur app.url.
+    // Logo, site ET liens de confirmation (App\Support\EmailVerificationLink) viennent de
+    // app.frontend_url ; la page du site rappelle l'API.
     expect(renderedEmails()[$name])->not->toContain(ADMIN_URL)
         ->and(textEmails()[$name])->not->toContain(ADMIN_URL);
-})->with(['politique', 'préavis']);
+})->with(['politique', 'préavis', 'rappel', 'inscription']);
 
 test('la version texte reprend le contenu de la version HTML, sans reliquat Laravel ni Markdown brut', function (string $name) {
     $text = textEmails()[$name];

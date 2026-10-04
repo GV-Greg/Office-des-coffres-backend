@@ -63,12 +63,22 @@ class AuthController extends BaseController
         ]);
     }
 
-    public function verifyEmail(Request $request, int $id, string $hash): RedirectResponse
+    /**
+     * Deux façons d'arriver ici, depuis le 05/10/2026 :
+     * - en JSON, appelé par la page /verify-email du site des joueurs : c'est là que pointent les
+     *   emails (App\Support\EmailVerificationLink) — jamais l'API, dont le domaine « admin » ferait
+     *   passer l'email pour de l'hameçonnage ;
+     * - en navigation directe, pour les liens envoyés avant : redirection vers le site, comme avant.
+     * La signature (middleware `signed`) est vérifiée dans les deux cas.
+     */
+    public function verifyEmail(Request $request, int $id, string $hash): RedirectResponse|JsonResponse
     {
         $user = User::find($id);
 
         if (! $user || ! hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            return redirect(config('app.frontend_url') . '/verify-email?error=invalid');
+            return $request->expectsJson()
+                ? $this->sendError('Lien de vérification invalide.', [], 403)
+                : redirect(config('app.frontend_url') . '/verify-email?error=invalid');
         }
 
         if (! $user->hasVerifiedEmail()) {
@@ -85,7 +95,9 @@ class AuthController extends BaseController
         // Route publique (hors auth:api) qui authentifie : le middleware ne la voit pas seul.
         LastSeen::markForRequest($request, $user);
 
-        return redirect(config('app.frontend_url') . '/verify-email?token=' . $token);
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'access_token' => $token])
+            : redirect(config('app.frontend_url') . '/verify-email?token=' . $token);
     }
 
     public function login(Request $request): JsonResponse

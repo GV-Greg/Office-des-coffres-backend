@@ -25,8 +25,8 @@ test('un utilisateur peut créer un compte', function () {
     Notification::fake();
 
     $response = $this->postJson('/api/v1/auth/register', [
-        'email'        => 'artifice@test.com',
-        'password'     => 'password123',
+        'email' => 'artifice@test.com',
+        'password' => 'password123',
         'confirmation' => 'password123',
     ]);
 
@@ -43,24 +43,24 @@ test('l\'inscription échoue si l\'email est déjà utilisé', function () {
     User::factory()->create(['email' => 'pris@test.com']);
 
     $this->postJson('/api/v1/auth/register', [
-        'email'        => 'pris@test.com',
-        'password'     => 'password123',
+        'email' => 'pris@test.com',
+        'password' => 'password123',
         'confirmation' => 'password123',
     ])->assertStatus(422)->assertJsonPath('errors.email.0', fn ($msg) => str_contains($msg, 'déjà'));
 });
 
 test('l\'inscription échoue si la confirmation ne correspond pas', function () {
     $this->postJson('/api/v1/auth/register', [
-        'email'        => 'test@test.com',
-        'password'     => 'password123',
+        'email' => 'test@test.com',
+        'password' => 'password123',
         'confirmation' => 'different',
     ])->assertStatus(422)->assertJsonValidationErrors(['confirmation']);
 });
 
 test('l\'inscription échoue si le mot de passe est trop court', function () {
     $this->postJson('/api/v1/auth/register', [
-        'email'        => 'test@test.com',
-        'password'     => 'court',
+        'email' => 'test@test.com',
+        'password' => 'court',
         'confirmation' => 'court',
     ])->assertStatus(422)->assertJsonValidationErrors(['password']);
 });
@@ -70,7 +70,7 @@ test('l\'inscription échoue si le mot de passe est trop court', function () {
 function signedVerifyUrl(User $user): string
 {
     return URL::temporarySignedRoute('verification.verify.api', now()->addMinutes(60), [
-        'id'   => $user->id,
+        'id' => $user->id,
         'hash' => sha1($user->getEmailForVerification()),
     ]);
 }
@@ -81,8 +81,53 @@ test('le lien de vérification confirme l\'email et connecte automatiquement', f
     $response = $this->get(signedVerifyUrl($user));
 
     $response->assertRedirect();
-    expect($response->headers->get('Location'))->toStartWith(config('app.frontend_url') . '/verify-email?token=');
+    expect($response->headers->get('Location'))->toStartWith(config('app.frontend_url').'/verify-email?token=');
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+// --- Verify email depuis le site des joueurs (05/10/2026) ---
+// L'email pointe vers /verify-email du site ; la page rappelle l'API en JSON avec les mêmes
+// paramètres. La redirection ci-dessus reste pour les liens envoyés avant.
+
+function frontendVerifyLink(User $user): array
+{
+    $url = (new VerifyApiEmail)->toMail($user)->actionUrl;
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $q);
+
+    return [$url, $q];
+}
+
+test('l\'email de confirmation pointe vers le site des joueurs, jamais vers l\'API', function () {
+    [$url, $q] = frontendVerifyLink(User::factory()->unverified()->create());
+
+    expect($url)->toStartWith(rtrim(config('app.frontend_url'), '/').'/verify-email?')
+        ->and(array_keys($q))->toBe(['id', 'hash', 'expires', 'signature'])
+        ->and($url)->not->toContain('/api/');
+});
+
+test('la page du site confirme l\'email en rappelant l\'API en JSON avec les paramètres du lien', function () {
+    $user = User::factory()->unverified()->create();
+    [, $q] = frontendVerifyLink($user);
+
+    $this->getJson("/api/v1/auth/verify-email/{$q['id']}/{$q['hash']}?expires={$q['expires']}&signature={$q['signature']}")
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonStructure(['access_token']);
+
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
+test('en JSON, une signature altérée ou un hash faux sont refusés (403)', function () {
+    $user = User::factory()->unverified()->create();
+    [, $q] = frontendVerifyLink($user);
+
+    $this->getJson("/api/v1/auth/verify-email/{$q['id']}/{$q['hash']}?expires={$q['expires']}&signature=faux")
+        ->assertStatus(403);
+
+    $bad = URL::temporarySignedRoute('verification.verify.api', now()->addHour(), ['id' => $user->id, 'hash' => 'faux']);
+    $this->getJson($bad)->assertStatus(403)->assertJsonPath('success', false);
+
+    expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
 });
 
 test('un lien de vérification avec un hash incorrect redirige avec une erreur', function () {
@@ -92,20 +137,20 @@ test('un lien de vérification avec un hash incorrect redirige avec une erreur',
     // (simule un lien altéré/pour un autre compte) : doit être rejeté par le contrôleur,
     // pas seulement par le middleware `signed`.
     $url = URL::temporarySignedRoute('verification.verify.api', now()->addMinutes(60), [
-        'id'   => $user->id,
+        'id' => $user->id,
         'hash' => sha1('autre-email@test.com'),
     ]);
 
     $response = $this->get($url);
 
-    $response->assertRedirect(config('app.frontend_url') . '/verify-email?error=invalid');
+    $response->assertRedirect(config('app.frontend_url').'/verify-email?error=invalid');
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
 });
 
 test('un lien de vérification altéré (signature invalide) est rejeté', function () {
     $user = User::factory()->unverified()->create();
 
-    $this->get('/api/v1/auth/verify-email/' . $user->id . '/wronghash?expires=9999999999&signature=invalid')
+    $this->get('/api/v1/auth/verify-email/'.$user->id.'/wronghash?expires=9999999999&signature=invalid')
         ->assertForbidden();
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
@@ -150,15 +195,15 @@ test('un utilisateur peut se connecter avec son email', function () {
     $user = User::factory()->create(['email' => 'artifice@test.com', 'password' => bcrypt('password123')]);
 
     $response = $this->postJson('/api/v1/auth/login', [
-        'email'    => 'artifice@test.com',
+        'email' => 'artifice@test.com',
         'password' => 'password123',
     ]);
 
     $response->assertOk()
-             ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in', 'user' => ['id', 'email', 'is_admin', 'characters']])
-             ->assertJsonPath('success', true)
-             ->assertJsonPath('user.email', 'artifice@test.com')
-             ->assertJsonPath('user.is_admin', false);
+        ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in', 'user' => ['id', 'email', 'is_admin', 'characters']])
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('user.email', 'artifice@test.com')
+        ->assertJsonPath('user.is_admin', false);
 });
 
 test('la connexion indique is_admin=true pour un compte avec le rôle admin', function () {
@@ -167,7 +212,7 @@ test('la connexion indique is_admin=true pour un compte avec le rôle admin', fu
     $user->assignRole('admin');
 
     $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'password123',
     ])->assertOk()->assertJsonPath('user.is_admin', true);
 });
@@ -176,25 +221,25 @@ test('le login échoue si l\'email n\'est pas vérifié', function () {
     $user = User::factory()->unverified()->create(['password' => bcrypt('password123')]);
 
     $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'password123',
     ])->assertStatus(403)
-      ->assertJsonPath('success', false)
-      ->assertJsonPath('message', 'Email non vérifié.');
+        ->assertJsonPath('success', false)
+        ->assertJsonPath('message', 'Email non vérifié.');
 });
 
 test('le login échoue avec un mauvais mot de passe', function () {
     $user = User::factory()->create(['password' => bcrypt('password123')]);
 
     $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'mauvais',
     ])->assertStatus(401)->assertJsonPath('success', false);
 });
 
 test('le login échoue avec un email inconnu', function () {
     $this->postJson('/api/v1/auth/login', [
-        'email'    => 'inconnu@test.com',
+        'email' => 'inconnu@test.com',
         'password' => 'password123',
     ])->assertStatus(401)->assertJsonPath('success', false);
 });
@@ -206,7 +251,7 @@ test('la connexion retourne la liste des personnages du compte', function () {
     $user->characters()->create(['pseudo' => 'Buldo', 'city_id' => $city->id, 'is_validated' => false]);
 
     $response = $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'password123',
     ]);
 
@@ -223,11 +268,11 @@ test('un utilisateur authentifié peut récupérer son profil avec ses personnag
 
     Passport::actingAs($user);
     $this->getJson('/api/v1/auth/me')
-         ->assertOk()
-         ->assertJsonPath('success', true)
-         ->assertJsonPath('user.email', $user->email)
-         ->assertJsonPath('user.is_admin', false)
-         ->assertJsonPath('user.characters.0.pseudo', 'Artifice');
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('user.email', $user->email)
+        ->assertJsonPath('user.is_admin', false)
+        ->assertJsonPath('user.characters.0.pseudo', 'Artifice');
 });
 
 test('/me retourne une liste vide si le compte n\'a pas encore de personnage', function () {
@@ -235,8 +280,8 @@ test('/me retourne une liste vide si le compte n\'a pas encore de personnage', f
 
     Passport::actingAs($user);
     $this->getJson('/api/v1/auth/me')
-         ->assertOk()
-         ->assertJsonPath('user.characters', []);
+        ->assertOk()
+        ->assertJsonPath('user.characters', []);
 });
 
 test('/me retourne 401 sans token', function () {
@@ -246,15 +291,15 @@ test('/me retourne 401 sans token', function () {
 // --- Logout ---
 
 test('un utilisateur peut se déconnecter', function () {
-    $user  = User::factory()->create();
+    $user = User::factory()->create();
     // Token personnel réellement persisté (contrairement à Passport::actingAs, en mémoire
     // seulement) : logout() appelle ->token()->revoke(), qui a besoin d'une ligne DB réelle.
     $token = $user->createToken('api-token')->accessToken;
 
     $this->withToken($token)
-         ->postJson('/api/v1/auth/logout')
-         ->assertOk()
-         ->assertJsonPath('success', true);
+        ->postJson('/api/v1/auth/logout')
+        ->assertOk()
+        ->assertJsonPath('success', true);
 });
 
 // --- Refresh ---
@@ -263,7 +308,7 @@ test('un utilisateur peut rafraîchir son token via le refresh_token', function 
     $user = User::factory()->create(['password' => bcrypt('password123')]);
 
     $login = $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'password123',
     ]);
 
@@ -272,8 +317,8 @@ test('un utilisateur peut rafraîchir son token via le refresh_token', function 
     ]);
 
     $response->assertOk()
-             ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in'])
-             ->assertJsonPath('success', true);
+        ->assertJsonStructure(['success', 'access_token', 'refresh_token', 'expires_in'])
+        ->assertJsonPath('success', true);
 
     expect($response->json('access_token'))->not->toBe($login->json('access_token'));
 });
@@ -282,8 +327,8 @@ test('le refresh échoue avec un refresh_token invalide', function () {
     $this->postJson('/api/v1/auth/refresh', [
         'refresh_token' => 'invalide',
     ])->assertStatus(401)
-      ->assertJsonPath('success', false)
-      ->assertJsonPath('message', 'Session expirée, reconnecte-toi.');
+        ->assertJsonPath('success', false)
+        ->assertJsonPath('message', 'Session expirée, reconnecte-toi.');
 });
 
 // oauth_refresh_tokens n'a pas de colonne created_at (stub Passport standard) : on retrouve
@@ -300,15 +345,15 @@ test('remember_me=false raccourcit l\'expiration du refresh token à 12h, contre
     $user = User::factory()->create(['password' => bcrypt('password123')]);
 
     $withoutRememberMe = $this->postJson('/api/v1/auth/login', [
-        'email'       => $user->email,
-        'password'    => 'password123',
+        'email' => $user->email,
+        'password' => 'password123',
         'remember_me' => false,
     ]);
     $shortLived = refreshTokenFor($withoutRememberMe->json('access_token'));
 
     $withRememberMe = $this->postJson('/api/v1/auth/login', [
-        'email'       => $user->email,
-        'password'    => 'password123',
+        'email' => $user->email,
+        'password' => 'password123',
         'remember_me' => true,
     ]);
     $longLived = refreshTokenFor($withRememberMe->json('access_token'));
@@ -327,14 +372,14 @@ test('un utilisateur peut supprimer son compte avec son mot de passe', function 
     // Vrai couple access+refresh token : on veut vérifier que les deux disparaissent, ce que
     // Passport::actingAs (en mémoire) ne permettrait pas de contrôler.
     $login = $this->postJson('/api/v1/auth/login', [
-        'email'    => $user->email,
+        'email' => $user->email,
         'password' => 'password123',
     ]);
     $refreshToken = refreshTokenFor($login->json('access_token'));
 
     $this->withToken($login->json('access_token'))
-         ->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
-         ->assertNoContent();
+        ->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
+        ->assertNoContent();
 
     $this->assertDatabaseMissing('users', ['id' => $user->id]);
     $this->assertDatabaseMissing('characters', ['user_id' => $user->id]);
@@ -353,7 +398,7 @@ test('la suppression efface le jeton de réinitialisation de mot de passe', func
 
     Passport::actingAs($user);
     $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
-         ->assertNoContent();
+        ->assertNoContent();
 
     $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
 });
@@ -362,8 +407,8 @@ test('la suppression efface les codes OAuth d\'autorisation et de device du comp
     // Le projet n'utilise ni l'un ni l'autre de ces grants, mais Passport expose leurs routes
     // par défaut et leur user_id n'est qu'une colonne indexée : rien ne garantit que ces tables
     // restent vides (catégorie B de admin/strategies/donnees-utilisateur.md).
-    $user   = User::factory()->create(['password' => bcrypt('password123')]);
-    $autre  = User::factory()->create();
+    $user = User::factory()->create(['password' => bcrypt('password123')]);
+    $autre = User::factory()->create();
     $client = (string) Str::uuid();
 
     foreach ([$user->id, $autre->id] as $userId) {
@@ -380,7 +425,7 @@ test('la suppression efface les codes OAuth d\'autorisation et de device du comp
 
     Passport::actingAs($user);
     $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
-         ->assertNoContent();
+        ->assertNoContent();
 
     $this->assertDatabaseMissing('oauth_auth_codes', ['user_id' => $user->id]);
     $this->assertDatabaseMissing('oauth_device_codes', ['user_id' => $user->id]);
@@ -406,7 +451,7 @@ test('la suppression détache les rôles et les permissions Spatie du compte', f
 
     Passport::actingAs($user);
     $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
-         ->assertNoContent();
+        ->assertNoContent();
 
     $this->assertDatabaseMissing('model_has_roles', ['model_id' => $user->id, 'model_type' => User::class]);
     $this->assertDatabaseMissing('model_has_permissions', ['model_id' => $user->id, 'model_type' => User::class]);
@@ -419,9 +464,9 @@ test('la suppression échoue avec un mot de passe incorrect et ne touche à rien
 
     Passport::actingAs($user);
     $this->deleteJson('/api/v1/auth/account', ['password' => 'mauvais-mot-de-passe'])
-         ->assertStatus(403)
-         ->assertJsonPath('success', false)
-         ->assertJsonPath('message', 'Mot de passe incorrect.');
+        ->assertStatus(403)
+        ->assertJsonPath('success', false)
+        ->assertJsonPath('message', 'Mot de passe incorrect.');
 
     $this->assertDatabaseHas('users', ['id' => $user->id]);
     $this->assertDatabaseHas('characters', ['user_id' => $user->id, 'pseudo' => 'Buldo']);
@@ -432,8 +477,8 @@ test('la suppression exige le mot de passe', function () {
 
     Passport::actingAs($user);
     $this->deleteJson('/api/v1/auth/account', [])
-         ->assertStatus(422)
-         ->assertJsonValidationErrors('password');
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('password');
 
     $this->assertDatabaseHas('users', ['id' => $user->id]);
 });
@@ -442,14 +487,14 @@ test('la suppression de compte retourne 401 sans token', function () {
     $user = User::factory()->create(['password' => bcrypt('password123')]);
 
     $this->deleteJson('/api/v1/auth/account', ['password' => 'password123'])
-         ->assertStatus(401);
+        ->assertStatus(401);
 
     $this->assertDatabaseHas('users', ['id' => $user->id]);
 });
 
 test('la suppression ne porte que sur le compte du porteur du jeton', function () {
     $victime = User::factory()->create(['password' => bcrypt('password123')]);
-    $city    = City::factory()->create();
+    $city = City::factory()->create();
     $victime->characters()->create(['pseudo' => 'Innocent', 'city_id' => $city->id, 'is_validated' => true]);
 
     $attaquant = User::factory()->create(['password' => bcrypt('password123')]);
@@ -458,12 +503,12 @@ test('la suppression ne porte que sur le compte du porteur du jeton', function (
     // Aucun identifiant n'est accepté : ni en body, ni dans l'URL (la route n'existe pas).
     $this->deleteJson('/api/v1/auth/account', [
         'password' => 'password123',
-        'user_id'  => $victime->id,
-        'id'       => $victime->id,
+        'user_id' => $victime->id,
+        'id' => $victime->id,
     ])->assertNoContent();
 
     $this->deleteJson("/api/v1/auth/account/{$victime->id}", ['password' => 'password123'])
-         ->assertStatus(404);
+        ->assertStatus(404);
 
     $this->assertDatabaseMissing('users', ['id' => $attaquant->id]);
     $this->assertDatabaseHas('users', ['id' => $victime->id]);

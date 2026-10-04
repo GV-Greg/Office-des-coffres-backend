@@ -85,7 +85,7 @@ et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre varian
 | POST | `auth/register` | `Api\AuthController@register` | public, `throttle:register` (5/min/IP) |
 | POST | `auth/login` | `Api\AuthController@login` | public, `throttle:login` (5/min par email+IP, 30/min par IP) |
 | POST | `auth/resend-verification` | `Api\AuthController@resendVerification` | public, `throttle:6,1` |
-| GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) |
+| GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) — JSON si appelée par la page `/verify-email` du site, redirection sinon |
 | POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi), `throttle:refresh` (20/min/IP) |
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
@@ -242,10 +242,13 @@ n'affiche pas le SVG), carte claire à liseré orange, bouton orange
 (inliné par Laravel, contrastes calculés en tête). Écarts voulus avec l'original : aucun titre par
 défaut (« Bonjour ! »), `———` rendu en filet entre français et anglais, signature sur plusieurs
 lignes, ligne d'aide bilingue (`lang/{fr,en}/mail.php`). **Tous les emails des joueurs sont
-bilingues, français puis anglais**, signés « Ludiquement, » / « Playfully, » (Greg). ⚠️ Les liens
-signés (confirmation d'email) dépendent du `APP_URL` du serveur : les tâches planifiées n'ont pas
-de requête pour le déduire. 🔴 **Aucun autre lien ni image vers le domaine de l'administration**
-(`odc-admin`) : dans un email de joueur, il ressemble à de l'hameçonnage (Greg, 05/10/2026). La
+bilingues, français puis anglais**, signés « Ludiquement, » / « Playfully, » (Greg). 🔴 **Aucun lien
+ni image vers le domaine de l'administration** (`odc-admin`) : dans un email de joueur, il ressemble
+à de l'hameçonnage (Greg, 05/10/2026). Les **liens de confirmation d'email** pointent vers
+`/verify-email` du site (`App\Support\EmailVerificationLink`, seul générateur), qui rappelle
+`auth/verify-email/{id}/{hash}` **en JSON** avec les paramètres signés ; la signature reste
+calculée sur `APP_URL` (⚠️ les tâches planifiées n'ont pas de requête pour le déduire). En
+navigation directe, l'API redirige encore, pour les liens envoyés avant le 05/10/2026. La
 **version texte** (`vendor/mail/text/message.blade.php`) reprend le même contenu. Garde-fou :
 `Feature/Mail/EmailLayoutTest` (HTML et texte).
 

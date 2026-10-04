@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Support\EmailVerificationLink;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Rappel avant suppression d'un compte jamais confirmé (/legal/privacy §5). Porte un NOUVEAU lien de
@@ -38,10 +38,7 @@ class UnverifiedAccountReminder extends Notification
 
     public function verificationUrl(object $notifiable): string
     {
-        return URL::temporarySignedRoute('verification.verify.api', $this->deletionDate, [
-            'id' => $notifiable->getKey(),
-            'hash' => sha1($notifiable->getEmailForVerification()),
-        ]);
+        return EmailVerificationLink::url($notifiable, $this->deletionDate);
     }
 
     /** @return array<int, string> */
