@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #50 (purge : refus de tourner sans configuration valide)
+
+Correctif de la PR #49, après un incident en prod le 04/10/2026 (rien envoyé, rien supprimé).
+
+### Fixed
+- Config en cache d'avant `config/accounts.php` : durées lues à 0 jour, la simulation listait le
+  compte de Greg pour un préavis « suppression le jour même ». `accounts:purge` refuse désormais de
+  tourner si une durée manque, vaut 0 ou est incohérente (rien fait, pas de heartbeat) ; même garde
+  sur `logs:prune`, qui aurait effacé tous les journaux sauf celui du jour.
+
 ## [2026-10-04] — PR #49 (purge des comptes inactifs et non confirmés, en simulation)
 
 Étape 4 du brief `admin/content/brief-politique-promesses.md` (§2).
