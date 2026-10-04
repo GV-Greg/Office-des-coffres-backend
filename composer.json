@@ -63,6 +63,9 @@
         "test:api": [
             "@php ./vendor/bin/pest tests/Feature/Api"
         ],
+        "test:policy": [
+            "@php ./vendor/bin/pest tests/Feature/Policy"
+        ],
         "test:auth": [
             "@php ./vendor/bin/pest tests/Feature/Auth tests/Feature/Api/AuthTest.php tests/Feature/Api/LastSeenTest.php"
         ],
