@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-04] — PR #47 (rotation des journaux, 180 jours)
+
+Étape 3 du brief `admin/content/brief-politique-promesses.md` (§3).
+
+### Changed
+- Journaux applicatifs : canal `stack` → `daily`, **180 jours** écrits en dur (le défaut était 14),
+  pour tenir la promesse de `/legal/privacy` §5 (12 mois maximum). `LoggingRetentionTest` déplie la
+  pile et échoue sur tout canal sans rotation. ⚠️ Prod : `config:cache` en SSH, et l'ancien
+  `laravel.log` à supprimer à la main.
+
 ## [2026-10-04] — PR #46 (notification des modifications de la politique, §10)
 
 Étape 2 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
