@@ -52,9 +52,6 @@ class MandateReminder extends Notification
                 'date' => MandateLabels::date($this->mandate->holds_until),
                 'date_jeu' => MandateLabels::gameDate($this->mandate->holds_until),
             ], $locale);
-            if ($locale === 'fr') {
-                $lines[] = __('mandates.email.english_below', [], 'fr');
-            }
         }
 
         return $lines;

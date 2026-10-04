@@ -4,8 +4,7 @@
 return [
     'email' => [
         'greeting' => 'Hello,',
-        'english_below' => 'English version below.',
-        'salutation' => "Regards,\nOffice des coffres",
+        'salutation' => "Playfully,\nOffice des coffres",
 
         'inactive_subject' => 'Office des coffres — your account will be deleted for inactivity',
         'inactive_notice' => 'Your Office des coffres account has not been used since :last_seen. As stated in the privacy policy, an inactive account is deleted after a notice: unless you log in, yours will be deleted from :date, together with its characters.',

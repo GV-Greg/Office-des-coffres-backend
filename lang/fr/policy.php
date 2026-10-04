@@ -10,8 +10,7 @@ return [
         'intro' => "La politique de confidentialité de l'Office des coffres a été modifiée le :date. Ce qui change :",
         'why' => "Vous recevez cet email parce qu'un compte de l'Office est enregistré à cette adresse. C'est une information légale, pas une lettre d'information : chaque modification substantielle de la politique est notifiée à tous les comptes.",
         'action' => 'Lire la politique',
-        'english_below' => 'English version below.',
-        'salutation' => "Cordialement,\nOffice des coffres",
+        'salutation' => "Ludiquement,\nOffice des coffres",
     ],
 
     'command' => [

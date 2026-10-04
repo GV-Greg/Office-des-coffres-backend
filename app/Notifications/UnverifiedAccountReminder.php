@@ -59,9 +59,6 @@ class UnverifiedAccountReminder extends Notification
             $lines[] = __('accounts.email.greeting', [], $locale);
             $lines[] = __('accounts.email.unverified_notice', $dates, $locale);
             $lines[] = __('accounts.email.unverified_not_you', [], $locale);
-            if ($locale === 'fr') {
-                $lines[] = __('accounts.email.english_below', [], 'fr');
-            }
         }
 
         return $lines;

@@ -1,0 +1,324 @@
+/*
+ * Thème des emails de l'Office des coffres (04/10/2026) — d'après CHARTE-GRAPHIQUE.md.
+ * Laravel l'inline dans chaque balise (CssToInlineStyles) : pas de variables CSS, pas de dégradé
+ * sans couleur de repli, pas de police web (la charte n'en charge aucune).
+ *
+ * Fond sombre (thème de référence, slate-800), carte claire (slate-50) au texte slate-800,
+ * liseré orange en tête de carte, bouton orange « standard ». Contrastes (WCAG 4,5:1) :
+ *   texte #1e293b / carte #f8fafc ......... 14,0:1
+ *   liens #c2410c / carte #f8fafc .......... 4,96:1
+ *   bouton blanc / #c2410c (plancher) ...... 5,18:1  (odc--orange --b1, assets/odc-buttons.css)
+ *   aide #475569 / carte #f8fafc ........... 7,24:1
+ *   pied #cbd5e1 / fond #1e293b ............ 10,6:1
+ *   lien du pied #fbbf24 / fond #1e293b .... 8,76:1
+ */
+
+/* Base */
+
+body,
+body *:not(html):not(style):not(br):not(tr):not(code) {
+    box-sizing: border-box;
+    font-family: Inter, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    position: relative;
+}
+
+body {
+    -webkit-text-size-adjust: none;
+    background-color: #1e293b;
+    color: #1e293b;
+    height: 100%;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    width: 100% !important;
+}
+
+p,
+ul,
+ol,
+blockquote {
+    line-height: 1.6;
+    text-align: left;
+}
+
+a {
+    color: #c2410c;
+}
+
+a img {
+    border: none;
+}
+
+/* Typography */
+
+h1 {
+    color: #1e293b;
+    font-size: 19px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+h3 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 0;
+    text-align: left;
+}
+
+p {
+    color: #1e293b;
+    font-size: 16px;
+    line-height: 1.6em;
+    margin-top: 0;
+    text-align: left;
+}
+
+p.sub {
+    font-size: 12px;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* Filet entre la version française et la version anglaise */
+
+hr.lang-separator {
+    border: 0;
+    border-top: 1px solid #cbd5e1;
+    margin: 28px 0;
+}
+
+p.salutation {
+    margin-top: 8px;
+}
+
+/* Layout */
+
+.wrapper {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #1e293b;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.content {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Header */
+
+.header {
+    padding: 32px 0 24px;
+    text-align: center;
+}
+
+.header a {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Logo : PNG (Gmail n'affiche pas le SVG), 480 px servis en 240 pour les écrans denses. */
+
+.logo {
+    height: auto;
+    max-height: 76px;
+    width: 240px;
+}
+
+/* Body */
+
+.body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    background-color: #1e293b;
+    border-bottom: 0;
+    border-top: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.inner-body {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    background-color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    border-top: 4px solid #c2410c;
+    margin: 0 auto;
+    padding: 0;
+    width: 570px;
+}
+
+.inner-body a {
+    word-break: break-all;
+}
+
+/* …sauf le bouton : sur mobile, « Confirm » se coupait en « Confi / rm ». */
+.inner-body a.button {
+    word-break: normal;
+}
+
+/* Subcopy */
+
+.subcopy {
+    border-top: 1px solid #cbd5e1;
+    margin-top: 25px;
+    padding-top: 25px;
+}
+
+.subcopy p {
+    color: #475569;
+    font-size: 13px;
+}
+
+/* Footer */
+
+.footer {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 570px;
+    margin: 0 auto;
+    padding: 0;
+    text-align: center;
+    width: 570px;
+}
+
+.footer p {
+    color: #cbd5e1;
+    font-size: 12px;
+    text-align: center;
+}
+
+.footer a {
+    color: #fbbf24;
+    text-decoration: underline;
+}
+
+/* Tables */
+
+.table table {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    width: 100%;
+}
+
+.table th {
+    border-bottom: 1px solid #cbd5e1;
+    margin: 0;
+    padding-bottom: 8px;
+}
+
+.table td {
+    color: #1e293b;
+    font-size: 15px;
+    line-height: 18px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+.content-cell {
+    max-width: 100vw;
+    padding: 32px;
+}
+
+/* Buttons : pilule orange « standard » (charte §6.2), une seule par email. */
+
+.action {
+    -premailer-cellpadding: 0;
+    -premailer-cellspacing: 0;
+    -premailer-width: 100%;
+    margin: 30px auto;
+    padding: 0;
+    text-align: center;
+    width: 100%;
+    float: unset;
+}
+
+.button {
+    -webkit-text-size-adjust: none;
+    border-radius: 9999px;
+    color: #fff;
+    display: inline-block;
+    font-weight: bold;
+    overflow: hidden;
+    text-align: center;
+    text-decoration: none;
+}
+
+.button-blue,
+.button-primary {
+    /* Face unie au plancher de contraste : un dégradé ne couvrirait pas la « marge » du bouton,
+       faite d'une bordure de la même couleur (la seule marge que respectent tous les clients). */
+    background-color: #c2410c;
+    border: 12px solid #c2410c;
+    border-width: 12px 28px;
+    box-shadow: 0 2px 4px rgba(69, 26, 3, 0.35);
+}
+
+.button-green,
+.button-success {
+    background-color: #15803d;
+    border: 12px solid #15803d;
+    border-width: 12px 26px;
+}
+
+.button-red,
+.button-error {
+    background-color: #dc2626;
+    border: 12px solid #dc2626;
+    border-width: 12px 26px;
+}
+
+/* Panels */
+
+.panel {
+    border-left: #c2410c solid 4px;
+    margin: 21px 0;
+}
+
+.panel-content {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    padding: 16px;
+}
+
+.panel-content p {
+    color: #1e293b;
+}
+
+.panel-item {
+    padding: 0;
+}
+
+.panel-item p:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Utilities */
+
+.break-all {
+    word-break: break-all;
+}

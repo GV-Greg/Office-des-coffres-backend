@@ -51,9 +51,6 @@ class PolicyUpdated extends Notification
             $lines[] = __('policy.email.intro', ['date' => $date], $locale);
             $lines[] = $this->entry['summary'][$locale];
             $lines[] = __('policy.email.why', [], $locale);
-            if ($locale === 'fr') {
-                $lines[] = __('policy.email.english_below', [], 'fr');
-            }
         }
 
         return $lines;

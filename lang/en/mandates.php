@@ -69,8 +69,7 @@ return [
         'comment_fr' => "Administrator's comment (written in French):",
         'comment_en' => "Administrator's comment (written in English):",
         'action' => 'View my profile',
-        'english_below' => 'English version below.',
-        'salutation' => "Regards,\nOffice des coffres",
+        'salutation' => "Playfully,\nOffice des coffres",
     ],
 
     // Refusals the API may send to a player, in FR AND EN (thread mandats-lot2, Q9). Same keys as
