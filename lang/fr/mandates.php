@@ -73,8 +73,7 @@ return [
         'comment_fr' => "Commentaire de l'administrateur (rédigé en français) :",
         'comment_en' => "Commentaire de l'administrateur (rédigé en anglais) :",
         'action' => 'Voir mon profil',
-        'english_below' => 'English version below.',
-        'salutation' => "Cordialement,\nOffice des coffres",
+        'salutation' => "Ludiquement,\nOffice des coffres",
     ],
 
     // Récapitulatif quotidien de la file de vérification, pour les administrateurs (français seul).

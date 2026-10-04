@@ -26,14 +26,28 @@ class VerifyApiEmail extends VerifyEmail
         );
     }
 
+    /**
+     * Bilingue, français puis anglais, comme tous les emails des joueurs (Greg, 04/10/2026) : la
+     * langue de l'inscrit n'est pas connue à ce stade.
+     */
     protected function buildMailMessage($url)
     {
-        return (new MailMessage)
-            ->subject('Confirmez votre adresse email — Office des coffres')
-            ->line("Merci de vous être inscrit sur l'Office des coffres.")
-            ->action('Confirmer mon email', $url)
-            ->line('Ce lien expire dans 60 minutes.')
-            ->line("Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer cet email.")
-            ->salutation("Cordialement,\nOffice des coffres");
+        $minutes = (int) Config::get('auth.verification.expire', 60);
+        $mail = (new MailMessage)
+            ->subject(__('verification.email.subject', [], 'fr').' / '.__('verification.email.subject', [], 'en'));
+
+        foreach (['fr', 'en'] as $locale) {
+            if ($locale === 'en') {
+                $mail->line('———');
+            }
+            $mail->line(__('verification.email.greeting', [], $locale))
+                ->line(__('verification.email.thanks', [], $locale))
+                ->line(__('verification.email.expires', ['minutes' => $minutes], $locale))
+                ->line(__('verification.email.not_you', [], $locale));
+        }
+
+        return $mail
+            ->action(__('verification.email.action', [], 'fr').' / '.__('verification.email.action', [], 'en'), $url)
+            ->salutation(__('verification.email.salutation', [], 'fr')."\n\n".__('verification.email.salutation', [], 'en'));
     }
 }

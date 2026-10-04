@@ -75,9 +75,6 @@ class MandateDecision extends Notification
                 'post' => MandateLabels::post($this->mandate, $locale),
             ], $locale);
             array_push($lines, ...$this->body($locale));
-            if ($locale === 'fr') {
-                $lines[] = __('mandates.email.english_below', [], 'fr');
-            }
         }
 
         return $lines;

@@ -50,9 +50,6 @@ class InactiveAccountNotice extends Notification
             $lines[] = __('accounts.email.inactive_notice', $dates, $locale);
             $lines[] = __('accounts.email.inactive_keep', $dates, $locale);
             $lines[] = __('accounts.email.history_kept', [], $locale);
-            if ($locale === 'fr') {
-                $lines[] = __('accounts.email.english_below', [], 'fr');
-            }
         }
 
         return $lines;
