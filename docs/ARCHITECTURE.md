@@ -225,8 +225,9 @@ Préavis puis suppression promis par `/legal/privacy` §5 (brief `admin/content/
   aucune durée par défaut, pas de heartbeat). Incident du 04/10/2026 : config en cache d'avant
   `config/accounts.php`, durées à `null` = 0 jour, tout compte vérifié « à prévenir, suppression
   aujourd'hui » — seule la simulation imposée a évité l'envoi. Même garde sur `logs:prune`.
-- 🔴 **`accounts.enforce` = `false`** dans le dépôt : simulation imposée tant que le texte en ligne
-  annonce 2 ans. Passe à `true` avec la mise en ligne du nouveau texte (puis `config:cache` en prod).
+- 🔴 **`accounts.enforce`** : `false` impose la simulation. Passé à `true` le 04/10/2026, une fois le
+  texte (1 an, comptes non confirmés) en ligne (front #79) ; `AccountPurgeTest` lie ce réglage à
+  l'entrée substantielle du journal de la politique. Une règle ne s'applique qu'après que le texte la dit.
 - La suppression passe par `AccountDeletion::deleteUser()`, qui efface désormais les traces sans
   clé étrangère (jetons OAuth, `password_reset_tokens`) pour **tous** les chemins — avant le
   04/10/2026, seul le chemin API le faisait.

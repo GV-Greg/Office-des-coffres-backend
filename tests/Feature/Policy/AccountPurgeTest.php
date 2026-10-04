@@ -8,6 +8,7 @@ use App\Notifications\UnverifiedAccountReminder;
 use App\Services\AccountPurge;
 use App\Support\LastSeen;
 use App\Support\MandateHeartbeat;
+use App\Support\PolicyChangelog;
 use Database\Seeders\PassportClientSeeder;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationSending;
@@ -254,8 +255,14 @@ test('accounts.enforce = false impose la simulation, même sans --dry-run', func
         ->and($toRemind->fresh()->deletion_notice_sent_at)->toBeNull();
 });
 
-test('le dépôt livre la purge en simulation : le texte en ligne annonce encore 2 ans', function () {
-    expect((require config_path('accounts.php'))['enforce'])->toBeFalse();
+test('la purge n\'est active que si le journal de la politique porte une entrée substantielle', function () {
+    // Le texte doit annoncer la règle avant qu'elle s'applique (brief §6) ; activée le 04/10/2026
+    // avec l'entrée « 2026-10-04-comptes-inactifs » (front #79 en ligne).
+    $enforced = (require config_path('accounts.php'))['enforce'];
+    $substantial = collect((new PolicyChangelog)->all())->where('substantial', true);
+
+    expect($enforced)->toBeTrue()
+        ->and($substantial->keys()->all())->toContain('2026-10-04-comptes-inactifs');
 });
 
 test('un avis qui n\'est pas parti n\'est pas enregistré : pas de suppression possible sur lui', function () {
