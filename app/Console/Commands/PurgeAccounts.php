@@ -10,6 +10,7 @@ use App\Support\MandateHeartbeat;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -34,6 +35,16 @@ class PurgeAccounts extends Command
 
     public function handle(AccountPurge $purge): int
     {
+        // Config absente (cache périmé en prod) ou incohérente : on s'arrête AVANT tout geste, sans
+        // heartbeat — l'alerte de /dashboard nommera la tâche le lendemain.
+        try {
+            $purge->assertConfigured();
+        } catch (RuntimeException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
         $simulate = $this->option('dry-run') || ! config('accounts.enforce');
         if (! config('accounts.enforce')) {
             $this->warn(__('accounts.command.not_enforced'));
