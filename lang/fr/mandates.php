@@ -98,6 +98,7 @@ return [
             'verification' => 'Récapitulatif de la file de vérification',
             'purge' => 'Purge des refus',
             'logs' => 'Purge des journaux (rétention promise par la politique)',
+            'accounts' => 'Purge des comptes inactifs et non confirmés',
         ],
     ],
 

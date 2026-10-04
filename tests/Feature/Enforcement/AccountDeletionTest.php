@@ -3,7 +3,9 @@
 use App\Models\OfficeHistoryArchive;
 use App\Models\User;
 use App\Services\OfficeHistory;
+use Database\Seeders\PassportClientSeeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
@@ -155,3 +157,26 @@ test('un personnage archivé n\'apparaît qu\'une fois : vivant OU archivé, jam
 
     expect(count(provinceHistory($this->map['provinceA']->id)['council']))->toBe($countBefore);
 });
+
+test('chaque chemin efface les traces sans clé étrangère : jetons OAuth et password_reset_tokens', function (string $path) {
+    $this->seed(PassportClientSeeder::class);
+    $user = mandatePlayer($this->map['cityA'])->user;
+    $user->createToken('ancien');
+    DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => 'x', 'created_at' => now()]);
+    $traces = fn () => [
+        DB::table('oauth_access_tokens')->where('user_id', $user->id)->count(),
+        DB::table('password_reset_tokens')->where('email', $user->email)->count(),
+    ];
+    expect($traces())->toBe([1, 1]); // contrôle positif
+
+    match ($path) {
+        'api' => (function () use ($user) {
+            Passport::actingAs($user);
+            $this->deleteJson('/api/v1/auth/account', ['password' => 'password'])->assertNoContent();
+        })->call($this),
+        'admin' => $this->actingAs(mandateAdmin())->delete("/users/{$user->id}")->assertRedirect(),
+        'profile' => $this->actingAs($user)->delete('/profile', ['password' => 'password'])->assertRedirect('/'),
+    };
+
+    expect($traces())->toBe([0, 0]);
+})->with(['api', 'admin', 'profile']);

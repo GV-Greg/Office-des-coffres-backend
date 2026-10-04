@@ -204,6 +204,29 @@ panneau Blade.
 ⚠️ N'ajouter une entrée substantielle au journal qu'une fois le texte **en ligne** : l'email renvoie
 à la page. « Substantielle » est une décision humaine, jamais déduite d'un diff.
 
+## Purge des comptes (`accounts:purge`, 04/10/2026)
+
+Préavis puis suppression promis par `/legal/privacy` §5 (brief `admin/content/brief-politique-promesses.md`
+§2, fil `admin/echanges/politique-promesses`). Planifiée à 09:00 Paris, heartbeat `accounts`.
+
+| Chemin | Avis (`deletion_notice_sent_at`) | Suppression |
+|---|---|---|
+| Compte vérifié inactif (`last_seen_at`) | préavis à 335 j (11 mois), `InactiveAccountNotice` | à 365 j **et** ≥ 30 j après le préavis |
+| Compte jamais confirmé (`created_at`) | rappel à J+23, `UnverifiedAccountReminder` (nouveau lien signé, valable jusqu'à la suppression) | à J+30 **et** ≥ 7 j après le rappel |
+
+- Règles dans `App\Services\AccountPurge`, durées dans `config/accounts.php`. 🔴 **Aucune suppression
+  sans avis enregistré** : `AccountPurge::delete()` lève une `LogicException`, quel que soit
+  l'appelant. Un avis n'est enregistré qu'une fois l'email parti ; un passage l'annule (`LastSeen`).
+- ⚠️ Un `last_seen_at` **nul** ne rend jamais un compte prévenable ni supprimable — ne jamais écrire
+  `COALESCE(last_seen_at, created_at)`.
+- Un compte dont un personnage tient un mandat **en cours** n'est pas supprimé : signalé dans la
+  sortie et sur `/dashboard` (`accounts._purge_blocked`, cache `accounts.purge.blocked`).
+- 🔴 **`accounts.enforce` = `false`** dans le dépôt : simulation imposée tant que le texte en ligne
+  annonce 2 ans. Passe à `true` avec la mise en ligne du nouveau texte (puis `config:cache` en prod).
+- La suppression passe par `AccountDeletion::deleteUser()`, qui efface désormais les traces sans
+  clé étrangère (jetons OAuth, `password_reset_tokens`) pour **tous** les chemins — avant le
+  04/10/2026, seul le chemin API le faisait.
+
 ## Gestion des utilisateurs (admin)
 
 Tout vit dans `Web\DashboardController` + `users.blade.php` :
@@ -335,7 +358,7 @@ Règles qui tiennent l'ensemble :
 | `mandates:send-reminders` | rappel bilingue au joueur **2 jours après la fin effective** de son mandat, tant qu'il est renouvelable (avant, l'élection est en cours) ; jamais deux fois (`reminder_sent_at`), jamais si un renouvellement existe (en attente ou validé), jamais pour un révoqué, jamais à un maire dont la mairie a un successeur validé |
 | `mandates:verification-digest` | un email par jour aux comptes `admin` tant que la file de vérification a des lignes en retard (4 j maire, 7 j conseiller titré), chaque ligne avec son ancienneté ; file sans retard = aucun email |
 | `mandates:purge-rejected` | supprime les `rejected` de plus de 3 mois (`processed_at`) ; une demande en attente n'est **jamais** purgée |
-| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche (mandats **et** `logs:prune`) |
+| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche (mandats, `logs:prune`, `accounts:purge`) |
 
 `App\Support\MandateHeartbeat` : chaque tâche écrit en cache son dernier passage **réussi**, en fin
 d'exécution. Au-delà de 36 h, `/dashboard` (**le garde-fou**) et l'en-tête des pages Mandats (une
@@ -348,7 +371,7 @@ commodité) affichent une alerte qui nomme la tâche. ⚠️ Rien ne tourne en p
 |---|---|
 | `App\Services\OfficeHistory` | **la seule fonction de fusion** des deux sources : tables vivantes (personnages existants) + `office_history_archive` (personnages supprimés). Appelée par l'onglet Blade « Historique » **et** par l'API « Ma province ». Tri total (début, titre, ville, fin, pseudo) |
 | `office_history_archive` | ce qui **survit** à la suppression d'un compte (décision de Greg : l'information est publique en jeu). **Catégorie D**, aucune clé vers un compte ou un personnage : pseudo en texte, lieu en id **et** en texte, titre par sa clé. Écrite au moment de la suppression, jamais modifiée ensuite — un personnage est vivant **ou** archivé, jamais les deux |
-| `App\Services\AccountDeletion` | **la porte unique** de suppression d'un compte ou d'un personnage : archive, puis supprime. ⚠️ La cascade SQL ne prévient aucun personnage : un `$user->delete()` écrit ailleurs effacerait l'historique en silence. `Enforcement/AccountDeletionTest` échoue sur toute suppression de `User`/`Character` hors de ce service, et vérifie les trois chemins réels (API, admin, profil Breeze) |
+| `App\Services\AccountDeletion` | **la porte unique** de suppression d'un compte ou d'un personnage : archive, efface les traces sans FK (jetons OAuth, `password_reset_tokens`), puis supprime. ⚠️ La cascade SQL ne prévient aucun personnage : un `$user->delete()` écrit ailleurs effacerait l'historique en silence. `Enforcement/AccountDeletionTest` échoue sur toute suppression de `User`/`Character` hors de ce service, et vérifie les trois chemins réels (API, admin, profil Breeze) |
 | `App\Support\GameCalendar` | année du jeu côté serveur (2026 → 1474), pour les **emails** seulement — l'API n'envoie que des dates réelles. ⚠️ **Jumeau** de `src/modules/gameCalendar.js` (frontend) : `Unit/GameCalendarTwinTest` fige la table **et** des conversions, son jumeau frontend aussi |
 
 Emails : toujours adressés au **joueur**, le personnage nommé ; date réelle d'abord, date de jeu entre
