@@ -219,8 +219,13 @@ test('Q4 : le rappel porte un lien de vérification valable jusqu\'à la suppres
         return $notification->deletionDate->toDateString() === daysAgo(23)->addDays(30)->toDateString();
     });
 
+    // Le lien pointe vers le site des joueurs, qui rappelle l'API avec les mêmes paramètres.
+    expect($url)->toStartWith(rtrim(config('app.frontend_url'), '/').'/verify-email?');
+    parse_str(parse_url($url, PHP_URL_QUERY), $q);
+
     Carbon::setTestNow(Carbon::parse(PURGE_NOW)->addDays(6)); // bien au-delà des 60 minutes d'un lien d'inscription
-    $this->get($url)->assertRedirect();
+    $this->getJson("/api/v1/auth/verify-email/{$q['id']}/{$q['hash']}?expires={$q['expires']}&signature={$q['signature']}")
+        ->assertOk()->assertJsonPath('success', true);
 
     expect($user->fresh()->hasVerifiedEmail())->toBeTrue()
         ->and($user->fresh()->deletion_notice_sent_at)->toBeNull();

@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-05] — PR #53 (plus aucun lien vers le domaine admin dans les emails)
+
+Suite d'un email de test classé en spam (SPF, DKIM et DMARC pourtant PASS). Décision de Greg :
+aucun domaine `odc-admin` dans un email de joueur — il ressemble à de l'hameçonnage.
+
+### Fixed
+- Logo servi par le site des joueurs (front #80) ; version texte des emails alignée sur le HTML
+  (elle affichait le panneau admin en tête, « Tous droits réservés » et un lien en Markdown brut).
+- Liens de confirmation d'email vers `/verify-email` du site (`EmailVerificationLink`, front #81),
+  qui rappelle l'API en JSON ; la redirection reste pour les liens envoyés avant.
+
 ## [2026-10-04] — PR #52 (gabarit des emails, tous bilingues)
 
 ### Changed

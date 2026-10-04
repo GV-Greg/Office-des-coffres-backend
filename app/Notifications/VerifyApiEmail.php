@@ -2,11 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Support\EmailVerificationLink;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\URL;
 
 class VerifyApiEmail extends VerifyEmail
 {
@@ -14,16 +14,13 @@ class VerifyApiEmail extends VerifyEmail
      * Lien signé pointant vers l'API (pas la route Blade verification.verify) —
      * AuthController::verifyEmail() redirige ensuite vers le frontend.
      */
+    /**
+     * Lien vers le site des joueurs (App\Support\EmailVerificationLink), qui rappelle l'API : jamais
+     * l'adresse de l'API elle-même dans l'email.
+     */
     protected function verificationUrl($notifiable)
     {
-        return URL::temporarySignedRoute(
-            'verification.verify.api',
-            Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
-            [
-                'id' => $notifiable->getKey(),
-                'hash' => sha1($notifiable->getEmailForVerification()),
-            ]
-        );
+        return EmailVerificationLink::url($notifiable, Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)));
     }
 
     /**
