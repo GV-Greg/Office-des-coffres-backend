@@ -64,7 +64,7 @@
             "@php ./vendor/bin/pest tests/Feature/Api"
         ],
         "test:policy": [
-            "@php ./vendor/bin/pest tests/Feature/Policy"
+            "@php ./vendor/bin/pest tests/Feature/Policy tests/Feature/Enforcement/LoggingRetentionTest.php"
         ],
         "test:auth": [
             "@php ./vendor/bin/pest tests/Feature/Auth tests/Feature/Api/AuthTest.php tests/Feature/Api/LastSeenTest.php"

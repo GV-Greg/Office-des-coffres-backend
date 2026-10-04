@@ -55,6 +55,13 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 
 Pas de table `sessions`/`cache` (drivers `file`).
 
+**Journaux applicatifs** (04/10/2026) : canal `stack` → `daily`, **180 jours** écrits en dur dans
+`config/logging.php` — durée promise par `/legal/privacy` §5 (12 mois maximum), figée par
+`Feature/Enforcement/LoggingRetentionTest`. ⚠️ Toute modification de cette durée oblige à relire la
+politique, et reste sans effet en prod avant `php artisan config:cache`. L'ancien `laravel.log`
+n'est plus écrit, ni effacé par la rotation : à supprimer à la main. Les journaux d'accès serveur
+appartiennent à O2Switch (cPanel), hors de ce dépôt.
+
 ## Origine canonique (`public/.htaccess`)
 
 Tout passe par `https://odc-admin.creacube.be` : `www` et `http://` redirigent (301 depuis
