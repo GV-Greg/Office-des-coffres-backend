@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-07] — PR #54 (les tests n'écrivent plus dans les journaux)
+
+### Changed
+- `phpunit.xml` : `LOG_CHANNEL=null` (`force="true"`, sinon le `LOG_CHANNEL` du conteneur
+  l'emporte). Les erreurs **simulées** par les tests — « SMTP refusé » de `PolicyNotifyTest` —
+  finissaient dans `storage/logs` du poste de dev, indiscernables d'une vraie : elles ont été prises
+  le 07/10 pour un échec de `policy:notify` en prod (fil `bilan-mines`, 09 et 10). Contrôle positif :
+  avec l'ancienne configuration, la ligne réapparaît.
+
 ## [2026-10-05] — PR #53 (plus aucun lien vers le domaine admin dans les emails)
 
 Suite d'un email de test classé en spam (SPF, DKIM et DMARC pourtant PASS). Décision de Greg :

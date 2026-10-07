@@ -23,6 +23,10 @@
         <env name="CACHE_DRIVER" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
+        <!-- Aucun log écrit par les tests : une erreur simulée (ex. « SMTP refusé », PolicyNotifyTest)
+             finissait dans storage/logs, indiscernable d'une vraie — fil bilan-mines/09 et 10. force :
+             sinon le LOG_CHANNEL du conteneur l'emporte. -->
+        <env name="LOG_CHANNEL" value="null" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="MODULE_DATA_KEY" value="base64:b2RjLXRlc3QtbW9kdWxlLWRhdGEta2V5LTMyYnl0ZXM="/>
         <env name="QUEUE_CONNECTION" value="sync"/>
