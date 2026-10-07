@@ -129,6 +129,57 @@ test('holdsCouncilOffice distingue les titres, et un conseiller sans poste n\'en
         ->and($this->authority->activeCouncilMandate($plain))->not->toBeNull();
 });
 
+// ─── canManageMines (Registre des mines, fil admin/echanges/registre-mines, R1) ───────────────
+
+test('canManageMines renvoie la province du commissaire aux mines comme du bailli', function () {
+    atGameTime('2026-05-10 12:00');
+    $commissaire = mandatePlayer($this->map['cityA']);
+    approvedCouncil($commissaire, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+    $bailli = mandatePlayer($this->map['cityA2']);
+    approvedCouncil($bailli, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'bailli');
+
+    expect($this->authority->canManageMines($commissaire)?->id)->toBe($this->map['provinceA']->id)
+        ->and($this->authority->canManageMines($bailli)?->id)->toBe($this->map['provinceA']->id);
+});
+
+test('canManageMines vérifie le TITRE : un autre poste ou un conseiller sans poste n\'y ont pas droit', function () {
+    atGameTime('2026-05-10 12:00');
+    $judge = mandatePlayer($this->map['cityA']);
+    approvedCouncil($judge, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'juge');
+    $plain = mandatePlayer($this->map['cityA2']);
+    approvedCouncil($plain, $this->map['provinceA'], '2026-05-01', '2026-05-03');
+    $nobody = mandatePlayer($this->map['cityA']);
+
+    expect($this->authority->canManageMines($judge))->toBeNull()
+        ->and($this->authority->canManageMines($plain))->toBeNull()
+        ->and($this->authority->activeCouncilMandate($plain))->not->toBeNull() // membre du conseil, et pourtant non
+        ->and($this->authority->canManageMines($nobody))->toBeNull();
+});
+
+test('canManageMines donne la province du POSTE, pas celle de la résidence (Greg, 05/10/2026)', function () {
+    atGameTime('2026-05-10 12:00');
+    // Réside à Bourges (Berry), commissaire aux mines en Artois.
+    $character = mandatePlayer($this->map['cityB']);
+    approvedCouncil($character, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+
+    expect($this->authority->canManageMines($character)?->id)->toBe($this->map['provinceA']->id)
+        ->and($character->city->province_id)->toBe($this->map['provinceB']->id);
+});
+
+test('canManageMines ne répond que pour maintenant : un mandat pas encore en fonction ou fini ne compte pas', function () {
+    // Un poste ne se pose que sur un mandat en fonction : on le crée le 10/05, puis on regarde avant.
+    atGameTime('2026-05-10 12:00');
+    $character = mandatePlayer($this->map['cityA']);
+    $mandate = approvedCouncil($character, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+    expect($this->authority->canManageMines($character))->not->toBeNull();
+
+    atGameTime('2026-05-02 12:00'); // mandat pas encore en fonction (03/05), poste pas encore posé
+    expect($this->authority->canManageMines($character))->toBeNull();
+
+    Carbon::setTestNow($mandate->fresh()->holds_until->copy()->addMinute());
+    expect($this->authority->canManageMines($character))->toBeNull();
+});
+
 // ─── Prolongation et passation (règle 2 bis) ───────────────────────────────────────────────
 
 test('la prolongation ajoute 2 jours aux conseillers en prolongation, exige une note et ne touche jamais la fin nominale', function () {

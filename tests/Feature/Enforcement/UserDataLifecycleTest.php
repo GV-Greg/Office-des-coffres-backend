@@ -41,6 +41,12 @@ $declaredTables = [
     // écrite. Seule App\Services\AccountDeletion y écrit (AccountDeletionTest).
     'office_history_archive' => 'D',
 
+    // C — pseudonymisation (brief Registre des mines §5) : le relevé est la mémoire de la province,
+    // il RESTE ; `character_id` passe à NULL par la base (nullOnDelete), poste et date demeurent.
+    // « Pseudonymisé », jamais « anonymisé » : l'historique des postes peut relier date et poste à
+    // un nom. Tenu par Mines/MineReportSchemaTest.
+    'mine_reports' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte
