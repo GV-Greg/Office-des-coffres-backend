@@ -29,6 +29,7 @@ admin n'ont pas de `Character`.
 | `MayorMandate` | `mayor_mandates` | `status`, dates nominales et effectives, motif | `belongsTo(Character)`, `belongsTo(City)` |
 | `CouncilMandate` | `council_mandates` | idem + `pending_office_id`, `office_requested_at` | `belongsTo(Character)`, `belongsTo(Province)`, `hasMany(CouncilOfficePeriod)` |
 | `CouncilOfficePeriod` | `council_office_periods` | `started_at`, `ended_at`, `end_reason` | `belongsTo(CouncilMandate)`, `belongsTo(CouncilOffice)` |
+| `MineReport` | `mine_reports` | axes en clair (`province_id`, `reported_at`, `character_id` **nullable**, `office_key`), `payload` **chiffré** (`EncryptedModuleData`), `active` (1 / NULL), `replaced_by_id`, `replaced_at` | `belongsTo(Province)`, `belongsTo(Character)`, `replacedBy()` — Registre des mines, voir plus bas |
 | `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
 
 **Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
@@ -52,6 +53,9 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 
 7. `users.last_seen_at` + `deletion_notice_sent_at` (04/10/2026, voir « Dernier passage »), puis
    `policy_notifications` (voir « Notification des modifications de la politique »)
+
+8. `mine_reports` (08/10/2026, Registre des mines PR 1a) — **aucune écriture applicative encore** :
+   l'API (PR 1b) attend le texte de la politique en ligne et `policy:notify`.
 
 Pas de table `sessions`/`cache` (drivers `file`).
 
@@ -330,7 +334,7 @@ Qui a le droit d'écrire au titre d'un poste, pour les modules futurs. Spécific
 
 | Pièce | Rôle |
 |---|---|
-| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)` — « maintenant » seulement, aucun paramètre de date |
+| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1), `canReadMines(Character): ?Province` (les mêmes **plus le dirigeant**, en lecture seule — Greg, 08/10/2026) — « maintenant » seulement, aucun paramètre de date |
 | `App\Services\MandateWorkflow` | **tous** les gestes (joueur et admin) ; seul écrivain de `holds_until` |
 | `App\Support\MandateCalendar` | jours civils `Europe/Paris` (`addDays`, jamais `addMonth`), stockés en UTC |
 | `App\Support\MandateLabels` | libellés FR/EN ; un motif sans libellé s'affiche par son **code**, jamais par la clé brute |
@@ -402,6 +406,15 @@ commodité) affichent une alerte qui nomme la tâche. ⚠️ Rien ne tourne en p
 Emails : toujours adressés au **joueur**, le personnage nommé ; date réelle d'abord, date de jeu entre
 parenthèses (`:date (:date_jeu)`), sauf pour un acte de l'Office (`:date` seule). La famille de chaque
 chaîne datée est figée par `MandateLanguageTest`.
+
+**Registre des mines — PR 1a, schéma seul (08/10/2026)** (brief `admin/content/brief-registre-mines.md`,
+fil `admin/echanges/registre-mines`) : table `mine_reports`, modèle `MineReport`. Axes en clair, payload
+chiffré (collage brut, relevé analysé, prix, taux). 🔴 **Ajout seul** : un relevé ne se supprime jamais, il
+se remplace ; « un seul relevé actif par province et par date » est tenu **par la base** — `active` = 1 en
+vigueur, NULL remplacé, index unique `(province_id, reported_at, active)` qui ignore les NULL (vérifié sur
+MariaDB et SQLite). Jamais `false` au lieu de NULL : deux remplacés du même jour se heurteraient.
+`character_id` en **nullOnDelete, catégorie C** : le relevé reste, le lien vers l'auteur est coupé par la
+base — « pseudonymisé », jamais « anonymisé ». Postes : `MineReport::OFFICES` = `MandateAuthority::MINE_OFFICES`.
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 

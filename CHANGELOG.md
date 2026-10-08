@@ -7,6 +7,27 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-08] — PR #55 (Registre des mines, PR 1a : schéma)
+
+Brief `admin/content/brief-registre-mines.md` §2, §3, §5 ; fil `admin/echanges/registre-mines` (07 :
+feu vert de Greg pour la PR 1a seule). **Ne stocke rien** : l'API d'écriture (PR 1b) attend le texte
+de la politique en ligne et `policy:notify`.
+
+### Added
+- Table `mine_reports` + modèle `MineReport` : axes en clair, `payload` chiffré par `MODULE_DATA_KEY`.
+- **Ajout seul, tenu par la base** : `active` = 1 / NULL et index unique `(province_id, reported_at,
+  active)` — un seul relevé actif par province et par date, les remplacés s'accumulent (vérifié sur
+  MariaDB et SQLite ; contrôle positif : sans l'index, le test échoue).
+- `character_id` en `nullOnDelete`, **catégorie C** (`UserDataLifecycleTest`) : le relevé reste, le lien
+  vers l'auteur est coupé.
+- `MandateAuthority::canReadMines()` : le dirigeant de la province (comte, duc…) **consulte** le registre (Greg,
+  08/10/2026 : « c'est le chef de la province ») ; l'écriture reste à `canManageMines()`. Remplace le
+  « jamais le comte » du brief §4. Contrôle positif fait.
+- `MandateAuthority::canManageMines()` : province du **poste** (commissaire aux mines ou bailli), jamais
+  la résidence ; vérifie le titre.
+
+⚠️ **Prod** : migration à lancer en SSH (`php artisan migrate`), le déploiement ne le fait pas.
+
 ## [2026-10-07] — PR #54 (les tests n'écrivent plus dans les journaux)
 
 ### Changed
