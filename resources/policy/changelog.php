@@ -33,4 +33,15 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Registre des mines (front #84 et #85, en ligne le 08/10/2026) — une entrée propre à cette
+    // modification (Greg, 07/10 : une entrée par PR de politique, jamais fusionnées).
+    '2026-10-08-registre-des-mines' => [
+        'date' => '2026-10-08',
+        'summary' => [
+            'fr' => "La politique de confidentialité décrit désormais le Registre des mines, qui ouvrira bientôt : ce qu'il conserve quand un commissaire aux mines ou un bailli y enregistre un relevé, sans limite de durée, qui peut le consulter (ces deux titulaires et le dirigeant de la province), et ce qui se passe si vous supprimez votre compte : le relevé reste, mais le lien avec votre compte est supprimé.",
+            'en' => "The privacy policy now describes the Mine Registry, which will open soon: what it stores when a Mines Superintendent or Sheriff saves a report to it, with no time limit, who can read it (those two office-holders and the province's leader), and what happens if you delete your account: the report remains, but its link to your account is removed.",
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
