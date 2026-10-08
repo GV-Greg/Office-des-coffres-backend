@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-08] — PR #57 (Registre des mines, PR 1b : écriture)
+
+Brief `admin/content/brief-registre-mines.md` §3, §6 ; fil `admin/echanges/registre-mines` (R3, R3 bis).
+Ouverte après `policy:notify 2026-10-08-registre-des-mines` (texte d'abord).
+
+### Added
+- `POST /api/v1/characters/{character}/mine-reports` (`auth:api`, `throttle:6,1`) → `App\Services\MineRegistry`,
+  seul écrivain : autorisation `canManageMines()`, province du **poste**, date du jour **à Paris côté
+  serveur**, poste estampillé, payload chiffré (texte brut, relevé analysé, prix, taux).
+- **Ajout seul** : même province et même jour → 409 avec l'auteur à remplacer, puis remplacement sur
+  `confirm_replace` (l'ancien reste, `active` NULL, `replaced_by_id`).
+- **R3 bis** : refus si le relevé **analysé** est identique ou en dit strictement moins
+  (`MineRegistry::facts()`, clavetage sur le nœud, sans libellé de langue). Contrôles positifs faits.
+- Messages FR/EN `lang/{fr,en}/mines.php`, au contrat de `MandateApiErrors` (codes `mine_*`).
+
 ## [2026-10-08] — PR #56 (journal de la politique : le Registre des mines)
 
 ### Added

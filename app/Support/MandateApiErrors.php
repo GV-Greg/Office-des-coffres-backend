@@ -35,7 +35,7 @@ class MandateApiErrors
 
     public static function covers(Request $request): bool
     {
-        return $request->is('api/v1/mandates', 'api/v1/mandates/*', 'api/v1/characters/*/mandates', 'api/v1/characters/*/province', 'api/v1/council-offices');
+        return $request->is('api/v1/mandates', 'api/v1/mandates/*', 'api/v1/characters/*/mandates', 'api/v1/characters/*/province', 'api/v1/characters/*/mine-reports', 'api/v1/council-offices');
     }
 
     public static function validation(ValidationException $exception): JsonResponse

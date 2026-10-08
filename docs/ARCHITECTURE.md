@@ -115,6 +115,7 @@ l'ADR de bascule.
 | POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
 | POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
 | DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
+| POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
 
 ### `routes/web.php` (admin Blade)
 
@@ -415,6 +416,17 @@ vigueur, NULL remplacé, index unique `(province_id, reported_at, active)` qui i
 MariaDB et SQLite). Jamais `false` au lieu de NULL : deux remplacés du même jour se heurteraient.
 `character_id` en **nullOnDelete, catégorie C** : le relevé reste, le lien vers l'auteur est coupé par la
 base — « pseudonymisé », jamais « anonymisé ». Postes : `MineReport::OFFICES` = `MandateAuthority::MINE_OFFICES`.
+
+**Registre des mines — PR 1b, écriture (08/10/2026)** : `POST characters/{character}/mine-reports`
+(`Api\MineReportController`, forme seulement) → **`App\Services\MineRegistry`, seul écrivain**.
+Autorisation `canManageMines()` (le dirigeant consulte mais n'écrit pas) ; province du **poste** ; date
+= jour du collage **à Paris, calculée par le serveur** ; poste estampillé à l'écriture. Même province et
+même jour : **409** tant que `confirm_replace` n'est pas envoyé (la réponse nomme l'auteur remplacé),
+puis remplacement — l'ancien passe `active` NULL avec `replaced_by_id`. 🔴 **R3 bis** : refus (422) si le
+relevé **analysé** est identique, ou s'il en dit strictement moins — comparaison par
+`MineRegistry::facts()`, faits « chemin → valeur » clavetés sur le nœud, sans libellé de langue, nombres
+normalisés ; jamais sur le texte collé. Erreurs au contrat de `MandateApiErrors` (clés `mines.api.*`,
+`lang/{fr,en}/mines.php`).
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
+use App\Http\Controllers\Api\MineReportController;
 use App\Http\Controllers\Api\ProvinceHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,6 +52,8 @@ Route::prefix('v1')->group(function () {
             ->where('character', '[0-9]+');
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/mandates', [MandateController::class, 'store']);
+            // Registre des mines — écriture (PR 1b) : toutes les règles dans App\Services\MineRegistry.
+            Route::post('characters/{character}/mine-reports', [MineReportController::class, 'store']);
             Route::post('mandates/{level}/{id}/renew', [MandateController::class, 'renew'])
                 ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
             Route::post('mandates/council/{id}/office', [MandateController::class, 'declareOffice'])

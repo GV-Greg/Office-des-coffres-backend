@@ -34,6 +34,11 @@ class MandateRefusal extends ValidationException
      */
     public static function codeFor(string $key): string
     {
+        // Registre des mines : même contrat, ses clés sous mines.api.* (codes préfixés mine_).
+        if (str_starts_with($key, 'mines.api.')) {
+            return substr($key, strlen('mines.api.'));
+        }
+
         return str_starts_with($key, 'mandates.api.')
             ? substr($key, strlen('mandates.api.'))
             : 'admin.'.substr($key, strrpos($key, '.') + 1);
