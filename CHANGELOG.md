@@ -14,6 +14,8 @@ du workspace ; ce fichier n'en retient que le résumé daté.
   personnage peut écrire / consulter **maintenant**, ou `null`. L'écran du Bilan l'affiche **avant**
   l'envoi (brief §2) ; la règle reste au backend (`canManageMines` / `canReadMines`).
 - Réponses d'écriture : `report.province_name`, et `office_label {fr, en}` sur l'auteur remplacé.
+- 🐛 Le relevé analysé garde désormais le **libellé** et la **ressource** de chaque mine : sans règle de
+  validation, Laravel les retirait (relevé enregistré en dev par Greg le 08/10). Contrôle positif fait.
 - ⚠️ **Route ajoutée** : `php artisan route:cache` en SSH après le déploiement (sinon 404).
 
 ## [2026-10-08] — PR #57 (Registre des mines, PR 1b : écriture)

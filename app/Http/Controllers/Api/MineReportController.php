@@ -58,6 +58,10 @@ class MineReportController extends Controller
             'report.mines' => ['required', 'array', 'min:1', 'max:50'],
             'report.mines.*.number' => ['required', 'integer', 'min:1'],
             'report.mines.*.noeud' => ['nullable', 'string', 'max:20'],
+            // Libellé et ressource : la comparaison R3 bis les ignore, mais les lectures (PR 4) en ont besoin
+            // pour valoriser la production. Sans règle, Laravel les retire de validated() (constaté le 08/10).
+            'report.mines.*.label' => ['nullable', 'string', 'max:100'],
+            'report.mines.*.resource' => ['nullable', 'string', 'in:OR,FER,PIERRE,ARGILE,SEL'],
             'report.mines.*.days' => ['present', 'array'],
             'report.states' => ['nullable', 'array', 'max:50'],
             'prices' => ['nullable', 'array'],

@@ -215,3 +215,10 @@ test('l\'auteur remplacé porte le libellé de son poste en FR et EN (l\'écran 
         ->assertJsonPath('existing.office_label.fr', 'Commissaire aux mines')
         ->assertJsonPath('existing.office_label.en', 'Mines Superintendent');
 });
+
+test('le relevé analysé garde le libellé et la ressource de chaque mine (lectures, PR 4)', function () use ($twoDays) {
+    postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated();
+
+    expect(MineReport::sole()->payload['report']['mines'][0])
+        ->toMatchArray(['number' => 1, 'noeud' => '236', 'label' => "Mine d'or", 'resource' => 'OR']);
+});
