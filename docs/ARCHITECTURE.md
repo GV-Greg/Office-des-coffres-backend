@@ -317,6 +317,7 @@ coup imposerait une migration de données sur des lignes de prod (ADR du 20/09/2
 | `App\Support\ModuleDataEncrypter` | `Encrypter` dédié, gère le préfixe `base64:` comme `APP_KEY` |
 | `App\Casts\EncryptedModuleData` | cast `:string` (défaut) ou `:array` pour un payload JSON |
 | `AppServiceProvider` | binding paresseux du chiffreur + `key:generate` désactivée en production |
+| `php artisan module-data:check` | lecture seule : forme de la clé et des clés antérieures, aller-retour, relecture de **chaque** donnée chiffrée (`ENCRYPTED_COLUMNS`). À lancer après tout changement de clé, après `config:cache`. Le chiffreur refuse lui-même une clé mal formée en la **nommant**, jamais en l'affichant (incident du 09/10/2026 : clé sans préfixe `base64:` → « Server Error » muet) |
 
 **La clé n'est jamais `APP_KEY`** : `key:generate` la fait tourner en routine, ce qui ne coûte
 qu'une reconnexion, alors que la même rotation sur des données de module les rendrait

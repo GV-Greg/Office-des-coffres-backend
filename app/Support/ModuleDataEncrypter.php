@@ -40,27 +40,48 @@ class ModuleDataEncrypter extends Encrypter
             );
         }
 
-        $encrypter = new self(
-            static::parseKey($key),
-            $cipher = $config['cipher'] ?? 'AES-256-CBC'
-        );
+        $cipher = $config['cipher'] ?? 'AES-256-CBC';
+        $encrypter = new self(static::validKey($key, 'MODULE_DATA_KEY', $cipher), $cipher);
 
         // Essayées au déchiffrement uniquement (Encrypter::getAllKeys), jamais au chiffrement :
         // une donnée réécrite repart toujours sur la clé courante.
+        $previous = array_values(array_filter($config['previous_keys'] ?? []));
+
         return $encrypter->previousKeys(array_map(
-            static fn (string $previous): string => static::parseKey($previous),
-            array_values(array_filter($config['previous_keys'] ?? []))
+            static fn (string $key, int $i): string => static::validKey($key, 'MODULE_DATA_PREVIOUS_KEYS #'.($i + 1), $cipher),
+            $previous,
+            array_keys($previous)
         ));
+    }
+
+    /**
+     * Clé décodée, ou exception qui dit LAQUELLE est fausse et POURQUOI — jamais sa valeur. Sans ce
+     * contrôle, une clé collée sans son préfixe `base64:` (incident du 09/10/2026 en prod) arrivait
+     * au framework telle quelle et produisait une erreur générique, rendue en « Server Error ».
+     */
+    protected static function validKey(string $key, string $name, string $cipher): string
+    {
+        $raw = static::parseKey($key);
+
+        if ($raw === false || ! static::supported($raw, $cipher)) {
+            throw new RuntimeException(
+                "{$name} est mal formée : elle doit s'écrire en entier, préfixe « base64: » compris, "
+                .'sans guillemets ni espace, et donner 32 octets une fois décodée ('.$cipher.'). '
+                .'Contrôle : php artisan module-data:check — voir admin/strategies/donnees-utilisateur.md §5.'
+            );
+        }
+
+        return $raw;
     }
 
     /**
      * Même traitement du préfixe `base64:` que `EncryptionServiceProvider::parseKey()`, pour que
      * `MODULE_DATA_KEY` s'écrive exactement comme `APP_KEY` dans le `.env`.
      */
-    protected static function parseKey(string $key): string
+    protected static function parseKey(string $key): string|false
     {
         return Str::startsWith($key, $prefix = 'base64:')
-            ? base64_decode(Str::after($key, $prefix))
+            ? base64_decode(Str::after($key, $prefix), true)
             : $key;
     }
 }
