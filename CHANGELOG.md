@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-09] — PR #59 (contrôle de la clé des données de module)
+
+Incident du 09/10/2026 : `MODULE_DATA_KEY` collée sans son préfixe `base64:` → « Server Error » muet à la
+première inscription au Registre des mines.
+
+### Added
+- `ModuleDataEncrypter` refuse une clé mal formée (préfixe, base64 strict, 32 octets) en la **nommant**
+  (`MODULE_DATA_KEY`, `MODULE_DATA_PREVIOUS_KEYS #n`), jamais en l'affichant.
+- `php artisan module-data:check` (lecture seule) : forme des clés, aller-retour, relecture de chaque
+  donnée déjà chiffrée — une clé perdue se voit avant qu'une réécriture ne la rende irrattrapable.
+  À lancer après tout changement de clé, après `config:cache`. 5 tests, contrôle positif fait.
+
 ## [2026-10-08] — PR #58 (Registre des mines : accès affichable)
 
 ### Added
