@@ -115,6 +115,7 @@ l'ADR de bascule.
 | POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
 | POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
 | DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
+| GET | `characters/{character}/mine-registry` | `Api\MineReportController@access` | `auth:api` — Registre des mines : `{write, read}` = province (id, nom) où le personnage peut écrire / lire, ou `null` |
 | POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
 
 ### `routes/web.php` (admin Blade)

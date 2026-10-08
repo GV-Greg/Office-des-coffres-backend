@@ -180,3 +180,38 @@ test('la forme est validée : pas de mines, pas de texte collé → 422 bilingue
         ->assertUnprocessable()
         ->assertJsonStructure(['codes' => ['raw', 'report.mines'], 'messages' => ['raw' => ['fr', 'en']]]);
 });
+
+// ─── Accès : ce que l'écran affiche AVANT l'envoi (brief §2) ───────────────────────────────
+
+test('l\'accès dit la province du POSTE pour écrire et lire ; le dirigeant lit seulement ; un joueur sans poste, rien', function () {
+    $this->getJson("/api/v1/characters/{$this->commissaire->id}/mine-registry")
+        ->assertOk()
+        ->assertJsonPath('write.id', $this->map['provinceA']->id)
+        ->assertJsonPath('write.name', 'Artois')
+        ->assertJsonPath('read.name', 'Artois');
+
+    $leader = mandatePlayer($this->map['cityA']);
+    approvedCouncil($leader, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'leader');
+    Passport::actingAs($leader->user);
+    $this->getJson("/api/v1/characters/{$leader->id}/mine-registry")
+        ->assertOk()->assertJsonPath('write', null)->assertJsonPath('read.name', 'Artois');
+
+    $nobody = mandatePlayer($this->map['cityA']);
+    Passport::actingAs($nobody->user);
+    $this->getJson("/api/v1/characters/{$nobody->id}/mine-registry")
+        ->assertOk()->assertJsonPath('write', null)->assertJsonPath('read', null);
+});
+
+test('l\'accès d\'un personnage d\'un autre compte : 404', function () {
+    Passport::actingAs(User::factory()->create());
+    $this->getJson("/api/v1/characters/{$this->commissaire->id}/mine-registry")->assertNotFound();
+});
+
+test('l\'auteur remplacé porte le libellé de son poste en FR et EN (l\'écran le nomme)', function () use ($twoDays) {
+    postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated()->assertJsonPath('report.province_name', 'Artois');
+
+    postReport($this, $this->commissaire, mineDay($twoDays + ['2026-05-10' => ['heures' => 1]]))
+        ->assertStatus(409)
+        ->assertJsonPath('existing.office_label.fr', 'Commissaire aux mines')
+        ->assertJsonPath('existing.office_label.en', 'Mines Superintendent');
+});

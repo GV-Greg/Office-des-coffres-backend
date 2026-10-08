@@ -50,6 +50,9 @@ Route::prefix('v1')->group(function () {
         // « Ma province » : historique des postes de la province de résidence du personnage.
         Route::get('characters/{character}/province', [ProvinceHistoryController::class, 'show'])
             ->where('character', '[0-9]+');
+        // Registre des mines : ce que le personnage peut faire maintenant, et dans quelle province.
+        Route::get('characters/{character}/mine-registry', [MineReportController::class, 'access'])
+            ->where('character', '[0-9]+');
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/mandates', [MandateController::class, 'store']);
             // Registre des mines — écriture (PR 1b) : toutes les règles dans App\Services\MineRegistry.

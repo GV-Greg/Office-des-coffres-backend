@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [AAAA-MM-JJ — date de merge, à remplir au merge] — PR #58 (Registre des mines : accès affichable)
+
+### Added
+- `GET /api/v1/characters/{character}/mine-registry` → `{write, read}` : province (id, nom) où le
+  personnage peut écrire / consulter **maintenant**, ou `null`. L'écran du Bilan l'affiche **avant**
+  l'envoi (brief §2) ; la règle reste au backend (`canManageMines` / `canReadMines`).
+- Réponses d'écriture : `report.province_name`, et `office_label {fr, en}` sur l'auteur remplacé.
+- ⚠️ **Route ajoutée** : `php artisan route:cache` en SSH après le déploiement (sinon 404).
+
 ## [2026-10-08] — PR #57 (Registre des mines, PR 1b : écriture)
 
 Brief `admin/content/brief-registre-mines.md` §3, §6 ; fil `admin/echanges/registre-mines` (R3, R3 bis).
