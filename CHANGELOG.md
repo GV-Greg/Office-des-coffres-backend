@@ -20,6 +20,9 @@ de la politique en ligne et `policy:notify`.
   MariaDB et SQLite ; contrôle positif : sans l'index, le test échoue).
 - `character_id` en `nullOnDelete`, **catégorie C** (`UserDataLifecycleTest`) : le relevé reste, le lien
   vers l'auteur est coupé.
+- `MandateAuthority::canReadMines()` : le dirigeant de la province (comte, duc…) **consulte** le registre (Greg,
+  08/10/2026 : « c'est le chef de la province ») ; l'écriture reste à `canManageMines()`. Remplace le
+  « jamais le comte » du brief §4. Contrôle positif fait.
 - `MandateAuthority::canManageMines()` : province du **poste** (commissaire aux mines ou bailli), jamais
   la résidence ; vérifie le titre.
 

@@ -334,7 +334,7 @@ Qui a le droit d'écrire au titre d'un poste, pour les modules futurs. Spécific
 
 | Pièce | Rôle |
 |---|---|
-| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1) — « maintenant » seulement, aucun paramètre de date |
+| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1), `canReadMines(Character): ?Province` (les mêmes **plus le dirigeant**, en lecture seule — Greg, 08/10/2026) — « maintenant » seulement, aucun paramètre de date |
 | `App\Services\MandateWorkflow` | **tous** les gestes (joueur et admin) ; seul écrivain de `holds_until` |
 | `App\Support\MandateCalendar` | jours civils `Europe/Paris` (`addDays`, jamais `addMonth`), stockés en UTC |
 | `App\Support\MandateLabels` | libellés FR/EN ; un motif sans libellé s'affiche par son **code**, jamais par la clé brute |

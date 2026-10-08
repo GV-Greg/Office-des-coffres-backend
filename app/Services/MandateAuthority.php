@@ -73,6 +73,23 @@ class MandateAuthority
     }
 
     /**
+     * Postes qui CONSULTENT le Registre des mines : ceux qui le tiennent, plus le dirigeant de la
+     * province (comte, duc…) — Greg, 08/10/2026 : « c'est le chef de la province et devrait pouvoir
+     * voir tout ce qui concerne sa province ». Lecture seule : l'écriture reste à MINE_OFFICES.
+     * Remplace le « le comte n'y accède pas » du brief Registre §4. Les autres conseillers, jamais.
+     */
+    public const MINE_READER_OFFICES = [...self::MINE_OFFICES, 'leader'];
+
+    /**
+     * Province dont le personnage peut CONSULTER le Registre des mines maintenant, ou null. Même règle
+     * que canManageMines (province du mandat, par le titre, maintenant seulement), élargie au dirigeant.
+     */
+    public function canReadMines(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::MINE_READER_OFFICES)->first()?->province;
+    }
+
+    /**
      * Mandat de conseil en fonction dont la période de poste EN VIGUEUR (council_office_periods) porte
      * l'un de ces titres — sur un mandat lui-même en fonction (Q17).
      *

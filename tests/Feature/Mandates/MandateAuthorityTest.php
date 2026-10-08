@@ -180,6 +180,31 @@ test('canManageMines ne répond que pour maintenant : un mandat pas encore en fo
     expect($this->authority->canManageMines($character))->toBeNull();
 });
 
+// Greg, 08/10/2026 : le dirigeant (comte, duc…) CONSULTE le Registre des mines de sa province — il en
+// est le chef ; l'écriture reste au commissaire aux mines et au bailli. Les autres conseillers, jamais.
+test('canReadMines : le dirigeant consulte sans pouvoir écrire, les teneurs du registre consultent aussi', function () {
+    atGameTime('2026-05-10 12:00');
+    $leader = mandatePlayer($this->map['cityA']);
+    approvedCouncil($leader, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'leader');
+    $bailli = mandatePlayer($this->map['cityA2']);
+    approvedCouncil($bailli, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'bailli');
+
+    expect($this->authority->canReadMines($leader)?->id)->toBe($this->map['provinceA']->id)
+        ->and($this->authority->canManageMines($leader))->toBeNull()
+        ->and($this->authority->canReadMines($bailli)?->id)->toBe($this->map['provinceA']->id);
+});
+
+test('canReadMines vérifie le TITRE : un autre poste ou un conseiller sans poste ne consultent pas', function () {
+    atGameTime('2026-05-10 12:00');
+    $judge = mandatePlayer($this->map['cityA']);
+    approvedCouncil($judge, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'juge');
+    $plain = mandatePlayer($this->map['cityA2']);
+    approvedCouncil($plain, $this->map['provinceA'], '2026-05-01', '2026-05-03');
+
+    expect($this->authority->canReadMines($judge))->toBeNull()
+        ->and($this->authority->canReadMines($plain))->toBeNull();
+});
+
 // ─── Prolongation et passation (règle 2 bis) ───────────────────────────────────────────────
 
 test('la prolongation ajoute 2 jours aux conseillers en prolongation, exige une note et ne touche jamais la fin nominale', function () {
