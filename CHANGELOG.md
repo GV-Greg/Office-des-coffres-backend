@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [AAAA-MM-JJ — date de merge, à remplir au merge] — PR #58 (Registre des mines : accès affichable)
+## [2026-10-08] — PR #58 (Registre des mines : accès affichable)
 
 ### Added
 - `GET /api/v1/characters/{character}/mine-registry` → `{write, read}` : province (id, nom) où le
