@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-09] — PR #60 (Registre des mines, PR 4a : lecture)
+
+Brief `admin/content/brief-registre-mines.md` §7 ; fil `admin/echanges/registre-mines` (R4).
+
+### Added
+- `GET /api/v1/characters/{character}/mine-registry/reports` → `App\Services\MineRegistryReader` :
+  relevés de la province (en vigueur et remplacés), déchiffrés **sans le texte brut**, estampilles,
+  dates du mandat **du lecteur** (entrée en fonction, mi-mandat +30 j, fin +60 j, Paris) et
+  **prédécesseur** (relevés d'autres personnages dans les 30 jours avant, groupés). 403 bilingue sans
+  poste de lecture. Contrôle positif fait.
+- `MandateAuthority::mineReaderMandate()`.
+- ⚠️ **Route ajoutée** : `php artisan route:cache` en SSH après le déploiement.
+
 ## [2026-10-09] — PR #59 (contrôle de la clé des données de module)
 
 Incident du 09/10/2026 : `MODULE_DATA_KEY` collée sans son préfixe `base64:` → « Server Error » muet à la

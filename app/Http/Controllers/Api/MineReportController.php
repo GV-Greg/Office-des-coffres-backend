@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Province;
 use App\Services\MandateAuthority;
 use App\Services\MineRegistry;
+use App\Services\MineRegistryReader;
 use App\Services\MineReplacementNeedsConfirmation;
 use App\Support\MandateApiErrors;
 use App\Support\MandateLabels;
@@ -43,6 +44,25 @@ class MineReportController extends Controller
             'write' => $province($this->authority->canManageMines($character)),
             'read' => $province($this->authority->canReadMines($character)),
         ]);
+    }
+
+    /**
+     * Le registre de la province, pour qui peut le consulter (commissaire aux mines, bailli, dirigeant).
+     * Faits seulement — voir App\Services\MineRegistryReader.
+     */
+    public function reports(Request $request, int $character, MineRegistryReader $reader): JsonResponse
+    {
+        $character = $request->user()->characters()->find($character);
+        if (! $character) {
+            return MandateApiErrors::error(404, 'mandates.api.character_not_found');
+        }
+
+        $registry = $reader->readFor($character);
+        if ($registry === null) {
+            return MandateApiErrors::error(403, 'mines.api.mine_not_reader');
+        }
+
+        return response()->json(['success' => true] + $registry);
     }
 
     public function store(Request $request, int $character): JsonResponse
