@@ -86,7 +86,17 @@ class MandateAuthority
      */
     public function canReadMines(Character $character): ?Province
     {
-        return $this->councilMandateHoldingOffice($character, self::MINE_READER_OFFICES)->first()?->province;
+        return $this->mineReaderMandate($character)?->province;
+    }
+
+    /**
+     * Mandat en fonction par lequel le personnage consulte le Registre des mines MAINTENANT, ou null.
+     * Les lectures s'y calent (fil registre-mines, R4) : mi-mandat et fin de mandat à partir de SON
+     * `in_office_from`, prédécesseur = relevés d'autres personnages dans les 30 jours qui précèdent.
+     */
+    public function mineReaderMandate(Character $character): ?CouncilMandate
+    {
+        return $this->councilMandateHoldingOffice($character, self::MINE_READER_OFFICES)->with('province')->first();
     }
 
     /**

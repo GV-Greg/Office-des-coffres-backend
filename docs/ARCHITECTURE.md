@@ -115,6 +115,7 @@ l'ADR de bascule.
 | POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
 | POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
 | DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
+| GET | `characters/{character}/mine-registry/reports` | `Api\MineReportController@reports` | `auth:api` — Registre des mines, **lecture** (commissaire, bailli, dirigeant) : relevés déchiffrés sans le texte brut, mandat du lecteur, prédécesseur ; 403 sinon |
 | GET | `characters/{character}/mine-registry` | `Api\MineReportController@access` | `auth:api` — Registre des mines : `{write, read}` = province (id, nom) où le personnage peut écrire / lire, ou `null` |
 | POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
 
@@ -429,6 +430,14 @@ relevé **analysé** est identique, ou s'il en dit strictement moins — compara
 `MineRegistry::facts()`, faits « chemin → valeur » clavetés sur le nœud, sans libellé de langue, nombres
 normalisés ; jamais sur le texte collé. Erreurs au contrat de `MandateApiErrors` (clés `mines.api.*`,
 `lang/{fr,en}/mines.php`).
+
+**Registre des mines — PR 4a, lecture (09/10/2026)** : `App\Services\MineRegistryReader` sert les **faits**
+(relevés en vigueur et remplacés, déchiffrés, **sans le texte brut** ; estampilles ; `today` de Paris).
+Deux règles y vivent (fil `registre-mines`, R4) : mi-mandat / fin de mandat = `in_office_from` **du
+lecteur** + 30 / + 60 jours civils de Paris (`MandateAuthority::mineReaderMandate()`) ; **prédécesseur** =
+relevés en vigueur d'**autres** personnages dans les 30 jours avant ce début, groupés par auteur et poste
+(`first`, `last`, `count`) — des estampilles écrites, jamais « qui occupait le poste ». Les analyses (état
+du parc, niveaux, bilans) se calculent côté site avec le parseur qui a produit le relevé.
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 
