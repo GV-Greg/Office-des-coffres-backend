@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [AAAA-MM-JJ — date de merge, à remplir au merge] — PR #62 (journal de la politique : page « Vos données »)
+## [2026-10-11] — PR #62 (journal de la politique : page « Vos données »)
 
 ### Added
 - Entrée `2026-10-11-vos-donnees` du journal de la politique (`resources/policy/changelog.php`),
