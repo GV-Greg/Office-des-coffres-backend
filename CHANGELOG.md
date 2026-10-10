@@ -7,6 +7,13 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [AAAA-MM-JJ — date de merge, à remplir au merge] — PR #62 (journal de la politique : page « Vos données »)
+
+### Added
+- Entrée `2026-10-11-vos-donnees` du journal de la politique (`resources/policy/changelog.php`),
+  substantielle, résumé FR/EN validé par Greg (fil pages-donnees-joueur, 10 et 12). À merger **après**
+  la mise en ligne de front #90, puis `php artisan policy:notify 2026-10-11-vos-donnees` en SSH.
+
 ## [2026-10-11] — PR #61 (Registre : la date d'un relevé vient de ses données)
 
 Retour de Greg (10/10/2026) : plusieurs anciens collages inscrits en prod ont tous pris la date du jour,
