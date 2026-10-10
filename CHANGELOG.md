@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [AAAA-MM-JJ — date de merge, à remplir au merge] — PR #61 (Registre : la date d'un relevé vient de ses données)
+## [2026-10-10] — PR #61 (Registre : la date d'un relevé vient de ses données)
 
 Retour de Greg (10/10/2026) : plusieurs anciens collages inscrits en prod ont tous pris la date du jour,
 se sont remplacés entre eux, et l'historique des niveaux s'est lu à l'envers.
