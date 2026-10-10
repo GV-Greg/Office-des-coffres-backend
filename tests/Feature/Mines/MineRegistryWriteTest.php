@@ -42,11 +42,11 @@ function postReport($test, $character, array $report, array $extra = [])
 
 $twoDays = ['2026-05-08' => ['heures' => 53, 'production' => 139.97], '2026-05-09' => ['heures' => 58, 'production' => 272.39]];
 
-test('un commissaire aux mines enregistre un relevé dans la province de son POSTE, daté du jour (Paris), estampillé', function () use ($twoDays) {
+test('un commissaire aux mines enregistre un relevé dans la province de son POSTE, daté du DERNIER JOUR de ses données, estampillé', function () use ($twoDays) {
     postReport($this, $this->commissaire, mineDay($twoDays))
         ->assertCreated()
         ->assertJsonPath('report.province_id', $this->map['provinceA']->id)
-        ->assertJsonPath('report.reported_at', '2026-05-10')
+        ->assertJsonPath('report.reported_at', '2026-05-09')
         ->assertJsonPath('report.office_key', 'commissaire_mines')
         ->assertJsonPath('replaced', null);
 
@@ -102,7 +102,7 @@ test('R3 bis — un relevé IDENTIQUE est refusé, même si le texte collé diff
 test('R3 bis — un relevé qui en dit STRICTEMENT MOINS est refusé', function () use ($twoDays) {
     postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated();
 
-    postReport($this, $this->commissaire, mineDay(['2026-05-08' => $twoDays['2026-05-08']]), ['confirm_replace' => true])
+    postReport($this, $this->commissaire, mineDay(['2026-05-09' => $twoDays['2026-05-09']]), ['confirm_replace' => true])
         ->assertUnprocessable()
         ->assertJsonPath('codes.report', 'mine_report_less');
 
@@ -111,7 +111,8 @@ test('R3 bis — un relevé qui en dit STRICTEMENT MOINS est refusé', function 
 
 test('R3 — un jour de plus demande une confirmation, qui nomme l\'auteur à remplacer ; rien n\'est écrit sans elle', function () use ($twoDays) {
     postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated();
-    $more = $twoDays + ['2026-05-10' => ['heures' => 113]];
+    // Même dernier jour (09/05) avec un jour plus ancien en plus : même date, donc remplacement à confirmer.
+    $more = $twoDays + ['2026-05-07' => ['heures' => 40]];
 
     postReport($this, $this->commissaire, mineDay($more))
         ->assertStatus(409)
@@ -130,7 +131,7 @@ test('R3 bis — un autre titulaire remplace avec un jour de plus : l\'ancien re
     $bailli = mandatePlayer($this->map['cityA']);
     approvedCouncil($bailli, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'bailli');
     Passport::actingAs($bailli->user);
-    $more = $twoDays + ['2026-05-10' => ['heures' => 113]];
+    $more = $twoDays + ['2026-05-07' => ['heures' => 40]];
 
     postReport($this, $bailli, mineDay($more), ['confirm_replace' => true])
         ->assertCreated()
@@ -167,12 +168,26 @@ test('la comparaison ignore le libellé de langue et l\'ordre des mines, et clav
     expect(MineRegistry::facts($en))->toBe(MineRegistry::facts($fr));
 });
 
-test('le lendemain, un nouveau relevé s\'ajoute sans rien remplacer', function () use ($twoDays) {
-    postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated();
-    atGameTime('2026-05-11 09:00');
+// Greg, 10/10/2026 : un collage porte les 7 derniers jours du jeu ; sa date est le DERNIER jour de ses
+// données. Un ancien collage rattrape un jour manquant sans remplacer le relevé du jour.
+test('un ancien collage se date de ses données : il rattrape un jour, sans remplacer le relevé du jour', function () use ($twoDays) {
+    postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated()->assertJsonPath('report.reported_at', '2026-05-09');
 
-    postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated()->assertJsonPath('replaced', null);
+    $old = ['2026-05-01' => ['heures' => 30, 'production' => 90], '2026-05-02' => ['heures' => 31]];
+    postReport($this, $this->commissaire, mineDay($old))
+        ->assertCreated()
+        ->assertJsonPath('report.reported_at', '2026-05-02')
+        ->assertJsonPath('replaced', null);
+
     expect(MineReport::where('active', true)->count())->toBe(2);
+});
+
+test('un relevé daté dans le futur est refusé ; sans aucune date, il prend le jour de Paris', function () {
+    postReport($this, $this->commissaire, mineDay(['2026-05-12' => ['heures' => 3]]))
+        ->assertUnprocessable()
+        ->assertJsonPath('codes.report', 'mine_report_future');
+
+    postReport($this, $this->commissaire, mineDay([]))->assertCreated()->assertJsonPath('report.reported_at', '2026-05-10');
 });
 
 test('la forme est validée : pas de mines, pas de texte collé → 422 bilingue', function () {
@@ -210,7 +225,7 @@ test('l\'accès d\'un personnage d\'un autre compte : 404', function () {
 test('l\'auteur remplacé porte le libellé de son poste en FR et EN (l\'écran le nomme)', function () use ($twoDays) {
     postReport($this, $this->commissaire, mineDay($twoDays))->assertCreated()->assertJsonPath('report.province_name', 'Artois');
 
-    postReport($this, $this->commissaire, mineDay($twoDays + ['2026-05-10' => ['heures' => 1]]))
+    postReport($this, $this->commissaire, mineDay($twoDays + ['2026-05-07' => ['heures' => 1]]))
         ->assertStatus(409)
         ->assertJsonPath('existing.office_label.fr', 'Commissaire aux mines')
         ->assertJsonPath('existing.office_label.en', 'Mines Superintendent');

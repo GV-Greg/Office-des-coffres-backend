@@ -43,7 +43,13 @@ class MineRegistry
         }
 
         $officeKey = $this->authority->holdsCouncilOffice($character, 'commissaire_mines') ? 'commissaire_mines' : 'bailli';
-        $today = Carbon::now('Europe/Paris')->toDateString();
+        // Date du relevé = dernier jour présent dans ses données (Greg, 10/10/2026) : un collage porte
+        // toujours les 7 derniers jours du jeu, dont les heures datées du jour même du collage. Un collage
+        // d'hier se date d'hier, et rattrape un jour manquant sans remplacer celui d'aujourd'hui.
+        $today = self::reportDate($data['report']);
+        if ($today > Carbon::now('Europe/Paris')->toDateString()) {
+            throw MandateRefusal::make('report', 'mines.api.mine_report_future');
+        }
 
         return DB::transaction(function () use ($character, $data, $confirmReplace, $province, $officeKey, $today) {
             $existing = MineReport::query()
@@ -78,6 +84,25 @@ class MineRegistry
 
             return ['report' => $report, 'replaced' => $existing];
         });
+    }
+
+    /**
+     * Date d'un relevé analysé : le jour le plus récent de ses données (`mines.*.days`), au format
+     * AAAA-MM-JJ ; à défaut (aucune date lisible), le jour de Paris. Utilisée à l'écriture ET par
+     * `mines:redate`, qui redate les relevés inscrits avant le 10/10/2026 (tous datés du jour du collage).
+     */
+    public static function reportDate(array $report): string
+    {
+        $days = [];
+        foreach ($report['mines'] ?? [] as $mine) {
+            foreach (array_keys($mine['days'] ?? []) as $day) {
+                if (is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+                    $days[] = $day;
+                }
+            }
+        }
+
+        return $days ? max($days) : Carbon::now('Europe/Paris')->toDateString();
     }
 
     /** R3 bis : identique → refus ; strictement moins → refus ; tout le reste → remplaçable. */

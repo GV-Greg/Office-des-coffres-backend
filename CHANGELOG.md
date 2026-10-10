@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-11] — PR #61 (Registre : la date d'un relevé vient de ses données)
+
+Retour de Greg (10/10/2026) : plusieurs anciens collages inscrits en prod ont tous pris la date du jour,
+se sont remplacés entre eux, et l'historique des niveaux s'est lu à l'envers.
+
+### Fixed
+- Date d'un relevé = **dernier jour présent dans ses données** (`MineRegistry::reportDate()`) : un collage
+  porte les 7 derniers jours du jeu ; un ancien collage rattrape un jour manquant sans remplacer le relevé
+  du jour. Date future refusée (`mine_report_future`) ; aucune date = jour de Paris.
+
+### Added
+- `php artisan mines:redate` (simulation par défaut, `--force`) : redate les relevés déjà inscrits d'après
+  leurs données et remet en vigueur, par province et date, le plus récemment inscrit. Idempotente.
+- ⚠️ **Prod, après le déploiement** : `php artisan mines:redate` (lire), puis `--force`.
+
 ## [2026-10-10] — PR #60 (Registre des mines, PR 4a : lecture)
 
 Brief `admin/content/brief-registre-mines.md` §7 ; fil `admin/echanges/registre-mines` (R4).

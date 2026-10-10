@@ -423,13 +423,17 @@ base — « pseudonymisé », jamais « anonymisé ». Postes : `MineReport::OFF
 **Registre des mines — PR 1b, écriture (08/10/2026)** : `POST characters/{character}/mine-reports`
 (`Api\MineReportController`, forme seulement) → **`App\Services\MineRegistry`, seul écrivain**.
 Autorisation `canManageMines()` (le dirigeant consulte mais n'écrit pas) ; province du **poste** ; date
-= jour du collage **à Paris, calculée par le serveur** ; poste estampillé à l'écriture. Même province et
+= **dernier jour présent dans les données** du relevé (`MineRegistry::reportDate()`, depuis le 10/10/2026 :
+un collage porte les 7 derniers jours du jeu, un ancien collage rattrape donc un jour sans remplacer celui du
+jour ; date future refusée, aucune date = jour de Paris) ; poste estampillé à l'écriture. Même province et
 même jour : **409** tant que `confirm_replace` n'est pas envoyé (la réponse nomme l'auteur remplacé),
 puis remplacement — l'ancien passe `active` NULL avec `replaced_by_id`. 🔴 **R3 bis** : refus (422) si le
 relevé **analysé** est identique, ou s'il en dit strictement moins — comparaison par
 `MineRegistry::facts()`, faits « chemin → valeur » clavetés sur le nœud, sans libellé de langue, nombres
 normalisés ; jamais sur le texte collé. Erreurs au contrat de `MandateApiErrors` (clés `mines.api.*`,
-`lang/{fr,en}/mines.php`).
+`lang/{fr,en}/mines.php`). **`php artisan mines:redate`** (simulation par défaut, `--force` pour écrire) redate
+les relevés inscrits avant le 10/10/2026, tous datés du jour du collage, d'après leurs données, puis met en
+vigueur, par province et date, le plus récemment inscrit ; idempotente.
 
 **Registre des mines — PR 4a, lecture (09/10/2026)** : `App\Services\MineRegistryReader` sert les **faits**
 (relevés en vigueur et remplacés, déchiffrés, **sans le texte brut** ; estampilles ; `today` de Paris).
