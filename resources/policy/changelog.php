@@ -44,4 +44,16 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Page « Vos données, outil par outil » (front #90, en ligne le 11/10/2026) — une entrée propre à
+    // cette modification (Greg, 07/10 : une par PR de politique). Résumé validé par Greg tel quel
+    // (fil admin/echanges/pages-donnees-joueur, 10 et 12).
+    '2026-10-11-vos-donnees' => [
+        'date' => '2026-10-11',
+        'summary' => [
+            'fr' => "Nouvelle page « Vos données, outil par outil » : pour chaque outil de l'Office, elle explique à quoi il sert, qui peut l'utiliser (sans compte, avec un compte, ou avec un poste validé) et ce que vous y mettez. La politique de confidentialité y renvoie désormais, outil par outil ; ses règles ne changent pas.",
+            'en' => 'New page "Your data, tool by tool": for each Office tool, it explains what it is for, who can use it (no account, an account, or a validated office) and what you put into it. The privacy policy now links to it, tool by tool; its rules do not change.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
