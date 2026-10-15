@@ -457,9 +457,10 @@ de Greg des 14 et 15/10) : table `province_mine_prices`, **catégorie C** (donn�
 un jeu de prix reste en vigueur jusqu'au suivant (pas de `effective_to`), et le frontend recalcule les bilans
 JOUR PAR JOUR avec `GET mine-prices`. Autorisation dans `MandateAuthority` : `PRICE_OFFICES` (commissaire au
 commerce, commissaire aux mines, bailli — **tous égaux**, le dirigeant lit seulement), `canManagePrices`,
-`canReadPrices`, `canEditPriceOn` / `canEditPrice` : poste **tenu à la date d'effet** (recouvrement du jour de
-Paris par une période de poste d'un mandat **approuvé** — un mandat révoqué ne donne plus rien), et fin du poste
-datant de moins de `mandates.price_edit_grace_days` (7). Un prix daté du futur, ou antidaté hors de la période de
+`canReadPrices`, `canEditPriceOn` / `canEditPrice` : mandat **approuvé** qui a connu l'un de ces postes et dont la fenêtre (entrée en fonction → fin effective) **recouvre le jour
+de Paris** de la date d'effet — la fenêtre du **mandat** et non la période de poste, qui ne naît qu'à la validation du poste dans
+l'Office (constaté en prod le 16/10) ; un mandat révoqué ne donne plus rien —, et fin du mandat
+datant de moins de `mandates.price_edit_grace_days` (7). Bornes du jour ramenées en UTC (la base stocke en UTC). Un prix daté du futur, ou antidaté hors de la période de
 l'auteur, est refusé : sans cela le verrou se contournerait en écrivant dans le passé d'un autre. Un relevé du
 Registre fige dans son `payload` les prix en vigueur à sa date (le joueur ne les saisit plus) ; sans table, il
 garde ceux que le client envoie. **Résumé quotidien** `mines:prices-digest` à 15:00 Paris
