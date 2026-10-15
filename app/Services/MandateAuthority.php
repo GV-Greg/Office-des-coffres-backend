@@ -6,8 +6,10 @@ use App\Models\Character;
 use App\Models\CouncilMandate;
 use App\Models\MayorMandate;
 use App\Models\Province;
+use App\Models\ProvinceMinePrice;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * SEUL point d'entrée des modules pour savoir qui a le droit d'écrire au titre d'un poste
@@ -97,6 +99,96 @@ class MandateAuthority
     public function mineReaderMandate(Character $character): ?CouncilMandate
     {
         return $this->councilMandateHoldingOffice($character, self::MINE_READER_OFFICES)->with('province')->first();
+    }
+
+    /**
+     * Postes qui gèrent les PRIX des mines d'une province (brief admin/content/brief-prix-registre.md ;
+     * Greg, 14/10/2026) : le commissaire au commerce, le commissaire aux mines et le bailli, TOUS ÉGAUX
+     * — ni hiérarchie, ni repli. Le dirigeant lit, il n'écrit pas.
+     */
+    public const PRICE_OFFICES = ['commissaire_commerce', 'commissaire_mines', 'bailli'];
+
+    /** Qui CONSULTE les prix : les trois postes plus le dirigeant (même principe que le registre). */
+    public const PRICE_READER_OFFICES = [...self::PRICE_OFFICES, 'leader'];
+
+    /** Province dont le personnage peut gérer les prix MAINTENANT (province du POSTE), ou null. */
+    public function canManagePrices(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::PRICE_OFFICES)->with('province')->first()?->province;
+    }
+
+    /** Province dont le personnage peut consulter les prix maintenant, ou null. */
+    public function canReadPrices(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::PRICE_READER_OFFICES)->with('province')->first()?->province;
+    }
+
+    /**
+     * Le personnage peut-il écrire un jeu de prix daté de `$date` dans cette province ? Deux conditions :
+     * 1. il TENAIT l'un des trois postes dans la province ce jour-là (recouvrement du jour de Paris par
+     *    une période de poste d'un mandat APPROUVÉ — un mandat révoqué ne donne plus rien, Greg,
+     *    15/10/2026) ;
+     * 2. cette période n'est pas terminée depuis plus de `price_edit_grace_days` : passé ce délai, les
+     *    prix de la période sont verrouillés.
+     */
+    public function canEditPriceOn(Character $character, Province $province, string $date): bool
+    {
+        $timezone = config('mandates.timezone');
+        $dayStart = Carbon::parse($date, $timezone)->startOfDay();
+        $dayEnd = $dayStart->copy()->addDay();
+        $limit = Carbon::now()->subDays((int) config('mandates.price_edit_grace_days'));
+
+        return CouncilMandate::query()
+            ->where('status', CouncilMandate::APPROVED)
+            ->where('character_id', $character->id)
+            ->where('province_id', $province->id)
+            ->whereHas('officePeriods', fn ($periods) => $periods
+                ->where('started_at', '<', $dayEnd)
+                ->where('ended_at', '>', $dayStart)
+                ->where('ended_at', '>=', $limit)
+                ->whereHas('office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES)))
+            ->exists();
+    }
+
+    /** Le personnage a-t-il, un jour, tenu l'un des trois postes dans cette province (mandat approuvé) ? */
+    public function everHeldPriceOffice(Character $character, Province $province): bool
+    {
+        return CouncilMandate::query()
+            ->where('status', CouncilMandate::APPROVED)
+            ->where('character_id', $character->id)
+            ->where('province_id', $province->id)
+            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES))
+            ->exists();
+    }
+
+    public function canEditPrice(Character $character, ProvinceMinePrice $price): bool
+    {
+        return $this->canEditPriceOn($character, $price->province, $price->effective_from->toDateString());
+    }
+
+    /**
+     * Personnages qui occupent MAINTENANT l'un de ces postes dans la province (destinataires du résumé
+     * des prix). Aucune conclusion sur un siège vacant : seuls les mandats déclarés sont connus.
+     *
+     * @param  array<int, string>  $officeKeys
+     * @return Collection<int, Character>
+     */
+    public function currentHolders(Province $province, array $officeKeys): Collection
+    {
+        $now = Carbon::now();
+
+        return CouncilMandate::query()->inOfficeNow()
+            ->where('province_id', $province->id)
+            ->whereHas('officePeriods', fn ($periods) => $periods
+                ->where('started_at', '<=', $now)
+                ->where('ended_at', '>', $now)
+                ->whereHas('office', fn ($office) => $office->whereIn('key', $officeKeys)))
+            ->with('character.user')
+            ->get()
+            ->map(fn (CouncilMandate $mandate) => $mandate->character)
+            ->filter()
+            ->unique('id')
+            ->values();
     }
 
     /**

@@ -49,6 +49,16 @@ return [
     // Une demande en attente n'est JAMAIS purgée : c'est une tâche de l'administrateur.
     'rejected_retention_months' => 3,
 
+    // ─── Registre des mines, lot 2 : prix par période (brief admin/content/brief-prix-registre.md) ─
+
+    // Un jeu de prix reste modifiable par celui qui tenait le poste à sa date d'effet jusqu'à ce
+    // nombre de jours APRÈS la fin effective de ce poste ; passé ce délai, il est verrouillé.
+    'price_edit_grace_days' => 7,
+
+    // Résumé quotidien des changements de prix aux occupants des trois postes (fuseau du jeu). Heure
+    // distincte de schedule_at : Greg, 15/10/2026. N'envoie rien s'il n'y a eu aucun changement.
+    'price_digest_at' => '15:00',
+
     // Au-delà de ce nombre d'heures sans passage RÉUSSI d'une tâche, le tableau de bord alerte.
     // Granularité quotidienne : 24 h + marge (fil mandats-lot3, Q6).
     'heartbeat_alert_hours' => 36,

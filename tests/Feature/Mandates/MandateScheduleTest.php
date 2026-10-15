@@ -274,13 +274,13 @@ test('la purge supprime un refus de plus de 3 mois, jamais une demande en attent
 
 // ─── Planificateur et alerte ───────────────────────────────────────────────────────────────
 
-test('les trois tâches sont inscrites au planificateur, chaque jour à 09:00 heure de Paris', function () {
+test('les tâches sont inscrites au planificateur, chaque jour à 09:00 heure de Paris (le résumé des prix, à 15:00)', function () {
     $events = collect(app(Schedule::class)->events());
 
-    foreach (MandateHeartbeat::TASKS as $command) {
+    foreach (MandateHeartbeat::TASKS as $task => $command) {
         $event = $events->first(fn ($event) => str_contains($event->command ?? '', $command));
         expect($event)->not->toBeNull()
-            ->and($event->expression)->toBe('0 9 * * *')
+            ->and($event->expression)->toBe($task === 'prices' ? '0 15 * * *' : '0 9 * * *')
             ->and($event->timezone)->toBe('Europe/Paris');
     }
 });

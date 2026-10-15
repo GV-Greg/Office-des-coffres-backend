@@ -7,6 +7,29 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #63 (Registre des mines : prix par période et résumé quotidien)
+
+Brief `admin/content/brief-prix-registre.md`, décisions de Greg des 14 et 15/10/2026.
+
+### Added
+- Table `province_mine_prices` (catégorie C) : prix des cinq ressources et taux horaire d'une province **à partir d'une
+  date d'effet** (`effective_from` unique par province, pas de `effective_to`, `decimal(10,2)`) ; l'auteur est un
+  **personnage** (`nullOnDelete`). Exclue de l'export art. 20 (donnée communautaire de la province).
+- `MinePrices` (seul écrivain) ; `MandateAuthority` : `canManagePrices` (commissaire au commerce, commissaire aux
+  mines, bailli — égaux), `canReadPrices` (+ dirigeant), `canEditPrice` (poste tenu à la date d'effet, grâce de 7 jours,
+  mandats révoqués exclus).
+- API : `GET provinces/{id}/mine-prices` (+ `/current`), `POST` et `PUT` (throttle 10/min), **pas de `DELETE`** ;
+  `GET characters/{id}/mine-registry` renvoie aussi `prices: {write, read}`.
+- Un relevé inscrit **fige** dans son `payload` les prix en vigueur à sa date.
+- `php artisan mines:prices-digest` : résumé quotidien à 15:00 Paris (email bilingue, seulement s'il y a eu des
+  changements, jamais pour ses propres changements) ; heartbeat `prices`.
+
+### Prod — à faire dans l'ordre, juste après le déploiement
+- ⚠️ `php artisan migrate` : le déploiement ne la lance pas, et l'enregistrement d'un relevé interroge la nouvelle table.
+- ⚠️ `php artisan route:cache` (routes ajoutées) et `php artisan config:cache` (`config/mandates.php` modifié).
+- Sonde : `GET /api/v1/provinces/1/mine-prices` doit répondre **401** sans jeton, jamais 404 ;
+  `php artisan mandates:status` doit lister la tâche `prices`.
+
 ## [2026-10-15] — PR #64 (le commissaire au commerce consulte le Registre des mines)
 
 ### Changed

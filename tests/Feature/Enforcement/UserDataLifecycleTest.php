@@ -47,6 +47,12 @@ $declaredTables = [
     // un nom. Tenu par Mines/MineReportSchemaTest.
     'mine_reports' => 'C',
 
+    // C — prix des mines par période (15/10/2026, Registre lot 2) : donnée COMMUNAUTAIRE de la province,
+    // elle sert tous les bilans. `created_by_character_id` / `updated_by_character_id` passent à NULL
+    // par la base (nullOnDelete) : le prix reste, son auteur n'est plus nommé. Absente de l'export
+    // art. 20 (pas rattachée au compte). Tenu par Mines/MinePriceTest.
+    'province_mine_prices' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

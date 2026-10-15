@@ -98,6 +98,7 @@ return [
             'purge' => 'Purge des refus',
             'logs' => 'Purge des journaux (rétention promise par la politique)',
             'accounts' => 'Purge des comptes inactifs et non confirmés',
+            'prices' => 'Résumé quotidien des changements de prix des mines',
         ],
     ],
 
