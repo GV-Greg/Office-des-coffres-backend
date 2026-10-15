@@ -262,3 +262,17 @@ corrigée (mêmes règles qu'une création). **Limite levée le 16/10/2026** : u
 fonction → fin effective) d'un mandat qui a connu l'un des trois postes ; le verrou de 7 jours et l'exclusion des mandats
 révoqués sont inchangés. Contrepartie assumée : un conseiller qui reçoit le poste en cours de mandat peut dater un prix du
 début de son mandat (l'Office ne sait pas depuis quand le poste est tenu).
+
+## Début d'un poste : l'entrée en fonction, pas la validation (16/10/2026)
+
+**Contexte** — En prod, le commissaire aux mines de Franche-Comté, en fonction depuis le 29/09 et validé le 08/10, apparaissait
+« du 08/10 » dans son profil et ne pouvait pas dater un prix du 29/09 : la période de poste (`council_office_periods`) naissait à
+l'instant de la validation du mandat.
+
+**Décision** (Greg) — « La validation, c'est ma validation : elle ne doit pas rentrer en compte sur le poste occupé par le
+personnage. » Un titre inscrit avec un mandat en fonction est tenu depuis l'**entrée en fonction du mandat** ; une nomination
+après coup commence à sa date. Garde-fou : l'exclusivité du poste dans la province (jamais deux titulaires à la fois).
+
+**Conséquences** — `MandateWorkflow::grantOffice` reçoit un début facultatif (`OfficeStart::isFree`) ; les données déjà inscrites se
+recalent par `mandates:realign-office-starts`. `council_mandates` et `council_office_periods` ne sont pas des doublons (un mandat,
+zéro à plusieurs postes dans le temps), mais le début du premier poste n'est plus un second fait : c'est l'entrée en fonction.
