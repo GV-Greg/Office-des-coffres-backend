@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-15] — PR #64 (le commissaire au commerce consulte le Registre des mines)
+
+### Changed
+- `MandateAuthority::MINE_READER_OFFICES` inclut `commissaire_commerce` : il **consulte** le Registre
+  (lecture seule, comme le dirigeant) ; `canManageMines` est inchangé, l'écriture reste au commissaire aux
+  mines et au bailli. Messages de refus de lecture mis à jour (FR/EN). Décision de Greg, 15/10/2026.
+- ⚠️ Déployé **après** front #92 (le texte de la politique d'abord). Ensuite : entrée de journal
+  substantielle (`resources/policy/changelog.php`) puis `php artisan policy:notify <id>` par Greg.
+  Aucune route, config ni migration.
+
 ## [2026-10-11] — PR #62 (journal de la politique : page « Vos données »)
 
 ### Added
