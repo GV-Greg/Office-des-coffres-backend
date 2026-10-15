@@ -6,7 +6,7 @@ return [
         'mine_not_authorized' => "Only the province's Mines Superintendent and Sheriff can save a report, and the Office does not know this office for this character. An office is declared from the Profile page, then validated.",
         'mine_report_identical' => 'This report is already recorded for that date in the province of :province: nothing to replace.',
         'mine_report_less' => 'The report recorded for that date in the province of :province says more than this one: it is not replaced, so that nothing is lost.',
-        'mine_not_reader' => "Only the province's Mines Superintendent, Sheriff and leader read its registry, and the Office does not know such an office for this character.",
+        'mine_not_reader' => "Only the province's Mines Superintendent, Sheriff, Trade Minister and leader read its registry, and the Office does not know such an office for this character.",
         'mine_report_future' => 'This report carries a future date: it cannot be recorded.',
         'price_not_authorized' => "Only the province's Trade Minister, Mines Superintendent and Sheriff manage its prices, and the Office does not know this office for this character.",
         'price_not_reader' => "Only the province's Trade Minister, Mines Superintendent, Sheriff and leader read its prices, and the Office does not know such an office for this character.",

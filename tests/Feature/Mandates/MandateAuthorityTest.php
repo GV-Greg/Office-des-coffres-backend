@@ -194,6 +194,16 @@ test('canReadMines : le dirigeant consulte sans pouvoir écrire, les teneurs du 
         ->and($this->authority->canReadMines($bailli)?->id)->toBe($this->map['provinceA']->id);
 });
 
+// Greg, 15/10/2026 : le commissaire au commerce CONSULTE le registre sans pouvoir y écrire.
+test('canReadMines : le commissaire au commerce consulte sans pouvoir écrire', function () {
+    atGameTime('2026-05-10 12:00');
+    $commerce = mandatePlayer($this->map['cityA']);
+    approvedCouncil($commerce, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_commerce');
+
+    expect($this->authority->canReadMines($commerce)?->id)->toBe($this->map['provinceA']->id)
+        ->and($this->authority->canManageMines($commerce))->toBeNull();
+});
+
 test('canReadMines vérifie le TITRE : un autre poste ou un conseiller sans poste ne consultent pas', function () {
     atGameTime('2026-05-10 12:00');
     $judge = mandatePlayer($this->map['cityA']);
