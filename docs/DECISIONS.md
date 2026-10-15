@@ -236,3 +236,25 @@ et dans la PR). L'exclusivité d'un poste dans une province ne s'exprime pas en 
 partiel) : le test `officeOverlaps()` est le seul garde-fou. Les gestes qui recalculent une date
 (annulation de révocation, correction de `started_at`) refusent plutôt que d'écraser un fait
 constaté par un autre geste (Q23 à Q28).
+
+## Registre des mines : prix par période, gérés à part (14-15/10/2026)
+
+**Contexte** — Les prix et le taux horaire étaient embarqués dans chaque relevé, à la saisie : un prix faux
+faussait tous les bilans qui en dépendent, sans correction possible (brief `admin/content/brief-prix-registre.md`).
+
+**Décision** (Greg) —
+- **Approche 1** : une table `province_mine_prices` gérée à part, `effective_from` seul (pas de `effective_to`),
+  les bilans se recalculent **jour par jour** avec le jeu en vigueur ce jour-là ; les 5 ressources et le taux.
+- **Trois postes égaux** écrivent (commissaire au commerce, commissaire aux mines, bailli), le dirigeant lit.
+- Un prix se corrige tant que son auteur tient, ou a tenu depuis moins de 7 jours, le poste qui couvre sa date
+  d'effet ; **mandats révoqués exclus** ; pas de suppression.
+- Notification : **résumé quotidien par email à 15:00**, seulement s'il y a eu des changements (pas un email par
+  modification, pas de notification interne : aucun système n'existe).
+- Le joueur ne saisit plus les prix au collage d'un relevé : le Registre y fige ceux de la table.
+
+**Écarts avec le brief** — l'auteur est un **personnage** (`*_character_id`), pas un compte : il n'y a pas de pseudo
+côté `users`, et c'est le schéma de `mine_reports` ; `created_by` du brief n'était pas nullable alors que
+`nullOnDelete` l'exige ; le commissaire au commerce lit les prix (le brief renvoyait à `canReadMines`, qu'il
+n'a pas) ; création refusée pour une date future ou hors de la période de l'auteur ; la date d'un jeu peut être
+corrigée (mêmes règles qu'une création). **Limite connue** : un poste ne couvre une date qu'à partir de sa
+**validation** dans l'Office (`council_office_periods.started_at`), pas de son début réel en jeu.

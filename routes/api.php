@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
+use App\Http\Controllers\Api\MinePriceController;
 use App\Http\Controllers\Api\MineReportController;
 use App\Http\Controllers\Api\ProvinceHistoryController;
 use Illuminate\Support\Facades\Route;
@@ -15,9 +16,9 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])
             ->middleware('throttle:register');
-        Route::post('login',    [AuthController::class, 'login'])
+        Route::post('login', [AuthController::class, 'login'])
             ->middleware('throttle:login');
-        Route::post('refresh',  [AuthController::class, 'refresh'])
+        Route::post('refresh', [AuthController::class, 'refresh'])
             ->middleware('throttle:refresh');
 
         Route::post('resend-verification', [AuthController::class, 'resendVerification'])
@@ -29,7 +30,7 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('auth:api')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
-            Route::get('me',      [AuthController::class, 'me']);
+            Route::get('me', [AuthController::class, 'me']);
             // Suppression self-service (art. 17 RGPD) : toujours le compte du porteur du jeton,
             // jamais un id passé en paramètre.
             Route::delete('account', [AuthController::class, 'destroyAccount']);
@@ -40,7 +41,7 @@ Route::prefix('v1')->group(function () {
     Route::get('council-offices', [MandateController::class, 'offices']);
 
     Route::middleware('auth:api')->group(function () {
-        Route::get('characters',  [CharacterController::class, 'index']);
+        Route::get('characters', [CharacterController::class, 'index']);
         Route::post('characters', [CharacterController::class, 'store']);
         Route::patch('characters/{character}', [CharacterController::class, 'update']);
 
@@ -56,6 +57,18 @@ Route::prefix('v1')->group(function () {
         // Registre des mines : lecture (PR 4) — commissaire aux mines, bailli, dirigeant.
         Route::get('characters/{character}/mine-registry/reports', [MineReportController::class, 'reports'])
             ->where('character', '[0-9]+');
+        // Registre des mines, lot 2 — prix par période (brief admin/content/brief-prix-registre.md).
+        // Pas de DELETE : un prix faux se corrige. ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('provinces/{province}/mine-prices', [MinePriceController::class, 'index'])
+            ->where('province', '[0-9]+');
+        Route::get('provinces/{province}/mine-prices/current', [MinePriceController::class, 'current'])
+            ->where('province', '[0-9]+');
+        Route::middleware('throttle:10,1')->group(function () {
+            Route::post('provinces/{province}/mine-prices', [MinePriceController::class, 'store'])
+                ->where('province', '[0-9]+');
+            Route::put('provinces/{province}/mine-prices/{price}', [MinePriceController::class, 'update'])
+                ->where(['province' => '[0-9]+', 'price' => '[0-9]+']);
+        });
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/mandates', [MandateController::class, 'store']);
             // Registre des mines — écriture (PR 1b) : toutes les règles dans App\Services\MineRegistry.

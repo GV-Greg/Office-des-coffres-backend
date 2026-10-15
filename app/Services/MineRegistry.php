@@ -26,7 +26,10 @@ use Illuminate\Support\Facades\DB;
  */
 class MineRegistry
 {
-    public function __construct(private readonly MandateAuthority $authority) {}
+    public function __construct(
+        private readonly MandateAuthority $authority,
+        private readonly MinePrices $minePrices,
+    ) {}
 
     /**
      * @param  array{raw: string, report: array, prices?: array|null, rate?: float|int|null}  $data
@@ -51,7 +54,9 @@ class MineRegistry
             throw MandateRefusal::make('report', 'mines.api.mine_report_future');
         }
 
-        return DB::transaction(function () use ($character, $data, $confirmReplace, $province, $officeKey, $today) {
+        $stamped = $this->minePrices->payloadFor($province->id, $today);
+
+        return DB::transaction(function () use ($character, $data, $confirmReplace, $province, $officeKey, $today, $stamped) {
             $existing = MineReport::query()
                 ->where('province_id', $province->id)
                 ->whereDate('reported_at', $today)
@@ -75,8 +80,10 @@ class MineRegistry
                 'payload' => [
                     'raw' => $data['raw'],
                     'report' => $data['report'],
-                    'prices' => $data['prices'] ?? null,
-                    'rate' => $data['rate'] ?? null,
+                    // Prix et taux : ceux de la table des prix en vigueur à la date du relevé (Greg, 15/10/2026 :
+                    // le joueur ne les saisit plus) ; à défaut, ceux que le client envoie (anciens clients).
+                    'prices' => $stamped['prices'] ?? $data['prices'] ?? null,
+                    'rate' => $stamped['rate'] ?? $data['rate'] ?? null,
                 ],
             ]);
 

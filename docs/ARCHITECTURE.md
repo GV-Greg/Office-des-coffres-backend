@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 04/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 15/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -30,6 +30,7 @@ admin n'ont pas de `Character`.
 | `CouncilMandate` | `council_mandates` | idem + `pending_office_id`, `office_requested_at` | `belongsTo(Character)`, `belongsTo(Province)`, `hasMany(CouncilOfficePeriod)` |
 | `CouncilOfficePeriod` | `council_office_periods` | `started_at`, `ended_at`, `end_reason` | `belongsTo(CouncilMandate)`, `belongsTo(CouncilOffice)` |
 | `MineReport` | `mine_reports` | axes en clair (`province_id`, `reported_at`, `character_id` **nullable**, `office_key`), `payload` **chiffré** (`EncryptedModuleData`), `active` (1 / NULL), `replaced_by_id`, `replaced_at` | `belongsTo(Province)`, `belongsTo(Character)`, `replacedBy()` — Registre des mines, voir plus bas |
+| `ProvinceMinePrice` | `province_mine_prices` | `province_id`, `effective_from` (date, unique par province), 5 prix + `hourly_rate` en `decimal(10,2)`, `created_by_character_id` / `updated_by_character_id` (**personnages**, `nullOnDelete`) | `belongsTo(Province)`, `belongsTo(Character)` ×2 — prix des mines par période, voir plus bas |
 | `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
 
 **Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
@@ -118,6 +119,13 @@ l'ADR de bascule.
 | GET | `characters/{character}/mine-registry/reports` | `Api\MineReportController@reports` | `auth:api` — Registre des mines, **lecture** (commissaire, bailli, dirigeant) : relevés déchiffrés sans le texte brut, mandat du lecteur, prédécesseur ; 403 sinon |
 | GET | `characters/{character}/mine-registry` | `Api\MineReportController@access` | `auth:api` — Registre des mines : `{write, read}` = province (id, nom) où le personnage peut écrire / lire, ou `null` |
 | POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
+
+| GET | `provinces/{province}/mine-prices` | `Api\MinePriceController@index` | `auth:api` — tous les jeux de prix, `effective_from` décroissant, avec `editable` par jeu ; trois postes + dirigeant, 403 sinon |
+| GET | `provinces/{province}/mine-prices/current` | `Api\MinePriceController@current` | `auth:api` — le jeu en vigueur aujourd'hui, ou `null` |
+| POST | `provinces/{province}/mine-prices` | `Api\MinePriceController@store` | `auth:api`, `throttle:10,1` — trois postes seulement |
+| PUT | `provinces/{province}/mine-prices/{price}` | `Api\MinePriceController@update` | `auth:api`, `throttle:10,1` — poste tenu à la date d'effet, grâce de 7 jours ; **pas de DELETE** |
+
+`GET characters/{character}/mine-registry` renvoie aussi `prices: {write, read}` (province ou `null`).
 
 ### `routes/web.php` (admin Blade)
 
@@ -442,6 +450,23 @@ lecteur** + 30 / + 60 jours civils de Paris (`MandateAuthority::mineReaderMandat
 relevés en vigueur d'**autres** personnages dans les 30 jours avant ce début, groupés par auteur et poste
 (`first`, `last`, `count`) — des estampilles écrites, jamais « qui occupait le poste ». Les analyses (état
 du parc, niveaux, bilans) se calculent côté site avec le parseur qui a produit le relevé.
+
+**Prix des mines par période — lot 2 (15/10/2026)** (brief `admin/content/brief-prix-registre.md`, décisions
+de Greg des 14 et 15/10) : table `province_mine_prices`, **catégorie C** (donnée communautaire de la province).
+`App\Services\MinePrices` est le seul écrivain (`getPriceForDate`, `getCurrentPrice`, `create`, `update`) ;
+un jeu de prix reste en vigueur jusqu'au suivant (pas de `effective_to`), et le frontend recalcule les bilans
+JOUR PAR JOUR avec `GET mine-prices`. Autorisation dans `MandateAuthority` : `PRICE_OFFICES` (commissaire au
+commerce, commissaire aux mines, bailli — **tous égaux**, le dirigeant lit seulement), `canManagePrices`,
+`canReadPrices`, `canEditPriceOn` / `canEditPrice` : poste **tenu à la date d'effet** (recouvrement du jour de
+Paris par une période de poste d'un mandat **approuvé** — un mandat révoqué ne donne plus rien), et fin du poste
+datant de moins de `mandates.price_edit_grace_days` (7). Un prix daté du futur, ou antidaté hors de la période de
+l'auteur, est refusé : sans cela le verrou se contournerait en écrivant dans le passé d'un autre. Un relevé du
+Registre fige dans son `payload` les prix en vigueur à sa date (le joueur ne les saisit plus) ; sans table, il
+garde ceux que le client envoie. **Résumé quotidien** `mines:prices-digest` à 15:00 Paris
+(`mandates.price_digest_at`, heartbeat `prices`) : un email bilingue par occupant des trois postes, jamais pour
+ses propres changements, rien s'il n'y a pas de changement ; fenêtre = depuis le dernier passage réussi (24 h à
+défaut, 14 jours au plus). ⚠️ **Prod** : routes ajoutées → `route:cache` ; `config/mandates.php` modifié →
+`config:cache`.
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 

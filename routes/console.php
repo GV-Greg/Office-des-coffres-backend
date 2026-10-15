@@ -49,3 +49,10 @@ Schedule::command('logs:prune')
 */
 Schedule::command('accounts:purge')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+
+/*
+| Registre des mines, lot 2 — résumé quotidien des changements de prix aux occupants des trois postes
+| qui les gèrent (Greg, 15/10/2026) : à 15:00, seulement s'il y a eu des changements.
+*/
+Schedule::command('mines:prices-digest')
+    ->dailyAt(config('mandates.price_digest_at'))->timezone(config('mandates.timezone'));

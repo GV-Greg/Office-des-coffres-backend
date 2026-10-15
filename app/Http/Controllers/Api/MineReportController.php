@@ -43,6 +43,11 @@ class MineReportController extends Controller
             'success' => true,
             'write' => $province($this->authority->canManageMines($character)),
             'read' => $province($this->authority->canReadMines($character)),
+            // Prix par période (lot 2) : les trois postes écrivent, le dirigeant lit aussi.
+            'prices' => [
+                'write' => $province($this->authority->canManagePrices($character)),
+                'read' => $province($this->authority->canReadPrices($character)),
+            ],
         ]);
     }
 
