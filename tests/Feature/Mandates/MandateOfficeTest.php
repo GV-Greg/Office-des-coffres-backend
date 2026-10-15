@@ -274,7 +274,10 @@ test('la passation vide le poste d\'un mandat qui continue, et le lui signale', 
 test('un vidage ne ferme pas une nomination postérieure à l\'élection du dirigeant', function () {
     // Dirigeant élu le 10/05 ; Greg n'enregistre le vidage que le 11/05, après une nomination du 10/05 à 12:00.
     $judge = mandatePlayer($this->map['cityA']);
-    approvedCouncil($judge, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'juge');
+    // Une nomination après coup (setOffice) prend effet « maintenant » ; un titre inscrit AVEC le mandat, lui, remonte à
+    // l'entrée en fonction (OfficeStart) — d'où l'attribution séparée ici.
+    $mandate = approvedCouncil($judge, $this->map['provinceA'], '2026-05-01', '2026-05-03', null);
+    mandateWorkflow()->setOffice($mandate, 'juge');
     atGameTime('2026-05-11 09:00');
 
     expect(mandateWorkflow()->clearOffices($this->map['provinceA'], '2026-05-10'))->toBe(0)
@@ -282,8 +285,31 @@ test('un vidage ne ferme pas une nomination postérieure à l\'élection du diri
 });
 
 test('une révocation antidatée avant le début d\'un poste est refusée et nomme le poste', function () {
-    $mandate = approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-05-01', '2026-05-03', 'juge');
+    // Poste attribué après coup, le 10/05 : avant cette date, il n'existait pas pour ce mandat.
+    $mandate = approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-05-01', '2026-05-03', null);
+    mandateWorkflow()->setOffice($mandate, 'juge');
 
     expect(fn () => mandateWorkflow()->revoke($mandate, 'revolte', '2026-05-05', null, null))
         ->toThrow(ValidationException::class, 'Juge');
+});
+
+// Greg, 16/10/2026 : « la validation au 08/10, c'est ma validation, elle ne doit pas rentrer en compte sur le poste
+// occupé par le personnage ». Un titre inscrit AVEC un mandat déjà en fonction est tenu depuis l'entrée en fonction.
+test('un titre inscrit avec le mandat est tenu depuis l\'entrée en fonction, pas depuis la validation', function () {
+    $mandate = approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+
+    $period = $mandate->officePeriods()->sole();
+    expect($period->started_at->toIso8601String())->toBe($mandate->in_office_from->toIso8601String())
+        ->and($period->started_at->lessThan(Carbon::now()))->toBeTrue();
+    expect(officeOverlaps())->toBe([]);
+});
+
+test('...sauf si un autre mandat a tenu ce poste dans l\'intervalle : alors le début reste la validation (exclusivité)', function () {
+    $first = approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+    $second = approvedCouncil(mandatePlayer($this->map['cityA2'] ?? $this->map['cityA']), $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_mines');
+
+    $period = $second->officePeriods()->sole();
+    expect($period->started_at->toIso8601String())->toBe(Carbon::now()->toIso8601String()) // pas d'antidatage
+        ->and($first->officePeriods()->sole()->end_reason)->toBe('reattribue');
+    expect(officeOverlaps())->toBe([]);
 });

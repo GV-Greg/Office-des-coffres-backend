@@ -364,6 +364,12 @@ Règles qui tiennent l'ensemble :
   (`end_reason = fin_du_mandat`), n'est jamais rouverte ni réécrite. **Exclusivité** dans une
   province : impossible à exprimer en MySQL, gardée par le test `officeOverlaps()` de
   `MandateOfficeTest` — seul garde-fou.
+- **Début d'une période de poste** (Greg, 16/10/2026) : la **validation du poste ou du mandat** ne compte jamais dans la date à
+  laquelle le personnage occupe le poste. Un titre inscrit AVEC un mandat déjà en fonction est tenu depuis l'**entrée en
+  fonction du mandat** (`App\Support\OfficeStart`) ; une nomination faite après coup (`setOffice`, déclaration validée)
+  commence à sa date. Seule réserve : l'exclusivité du poste — si un autre mandat l'a tenu dans l'intervalle, le début reste la
+  date de la validation. `php artisan mandates:realign-office-starts` (simulation par défaut, `--force`) recale les postes déjà
+  inscrits (premières périodes nées à la validation du mandat) ; idempotente.
 - Un poste ne se pose que sur un mandat **en fonction**. Le gagner le retire à son détenteur, à la
   même seconde. **Tous les postes sont vidés à l'élection d'un dirigeant** (passation ou démission
   du comte) : une province sans aucune autorité de poste est un **état légitime**.

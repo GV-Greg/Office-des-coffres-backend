@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #66 (mandats : un poste inscrit avec le mandat est tenu depuis l'entrée en fonction)
+
+Retour de Greg : en fonction depuis le 29/09 et validé le 08/10, le commissaire aux mines apparaissait « du 08/10 ».
+La validation du poste/mandat ne compte pas dans la date à laquelle le personnage occupe le poste.
+
+### Fixed
+- Un titre inscrit avec un mandat déjà en fonction commence à l'**entrée en fonction du mandat** (`App\Support\OfficeStart`),
+  plus à la date de la validation du mandat. Une nomination faite après coup commence à sa date. Réserve : si un autre mandat a
+  tenu ce poste dans l'intervalle (exclusivité), le début reste la date de la validation.
+
+### Added
+- `php artisan mandates:realign-office-starts` (simulation par défaut, `--force`, idempotente) : recale les postes déjà
+  inscrits. ⚠️ **Prod, après le déploiement** : la lancer en simulation (le tableau ne doit montrer que les postes attendus),
+  puis `--force`. Aucune migration, route ni config.
+
 ## [2026-10-16] — PR #65 (prix : la fenêtre du mandat, pas la période de poste)
 
 Constaté en prod le 16/10/2026 : le commissaire aux mines en fonction le 29/09, poste validé le 08/10, ne pouvait pas

@@ -13,6 +13,7 @@ use App\Models\Province;
 use App\Notifications\MandateDecision;
 use App\Support\MandateCalendar;
 use App\Support\MandateLabels;
+use App\Support\OfficeStart;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -280,7 +281,8 @@ class MandateWorkflow
                     // Inscription en milieu de mandat : le titre est réel, il est validé avec le
                     // mandat, et le transfert s'applique (Q15).
                     if ($mandate->pending_office_id !== null) {
-                        $this->grantOffice($mandate, $mandate->pending_office_id, notify: false);
+                        // Début = l'entrée en fonction du mandat, pas la date de validation (Greg, 16/10/2026 ; App\Support\OfficeStart).
+                        $this->grantOffice($mandate, $mandate->pending_office_id, notify: false, startedAt: $mandate->in_office_from);
                     }
                 } else {
                     // Q15-C : un titre déclaré avant l'entrée en fonction est PROBABLEMENT FAUX
@@ -757,7 +759,7 @@ class MandateWorkflow
      * pour lui, l'événement est notifié au gagnant. Le transfert ne touche que des mandats EN
      * FONCTION (corollaire du tour 06) : un sortant face à un entrant élu garde son poste.
      */
-    private function grantOffice(CouncilMandate $mandate, int $officeId, bool $notify): void
+    private function grantOffice(CouncilMandate $mandate, int $officeId, bool $notify, ?CarbonInterface $startedAt = null): void
     {
         $now = Carbon::now();
 
@@ -791,10 +793,18 @@ class MandateWorkflow
 
         // La période naît FERMÉE à la fin du mandat (Q19-C), avec end_reason = fin_du_mandat posé dès
         // la naissance : c'est la cause la plus courante, l'historique ne doit jamais la laisser vide.
+        // Début : celui qu'on nous donne (entrée en fonction du mandat) tant qu'il est passé et que personne d'autre n'a
+        // tenu ce poste dans l'intervalle ; sinon maintenant (exclusivité du poste).
+        $start = $now;
+        if ($startedAt !== null && $startedAt->lessThan($now)
+            && OfficeStart::isFree($officeId, (int) $mandate->province_id, $mandate->id, Carbon::instance($startedAt), $now)) {
+            $start = Carbon::instance($startedAt);
+        }
+
         CouncilOfficePeriod::create([
             'council_mandate_id' => $mandate->id,
             'council_office_id' => $officeId,
-            'started_at' => $now,
+            'started_at' => $start,
             'ended_at' => $mandate->holds_until,
             'end_reason' => 'fin_du_mandat',
         ]);

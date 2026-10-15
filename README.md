@@ -222,8 +222,8 @@ docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL/MariaDB) — passer `'city_id' => null` explicitement dans les factories de test.
 
-471 tests verts au 16/10/2026 (`Feature/Mines/{MinePriceTest,MineReportSchemaTest,MineRegistryWriteTest,MineRegistryReadTest,MineRedateTest}`, `Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
-`Feature/Mandates/{MandateAdminTest,MandateApiErrorsTest,MandateApiTest,ProvinceHistoryApiTest,MandateAuthorityTest,MandateLanguageTest,MandateOfficeTest,MandateScheduleTest}`,
+477 tests verts au 16/10/2026 (`Feature/Mines/{MinePriceTest,MineReportSchemaTest,MineRegistryWriteTest,MineRegistryReadTest,MineRedateTest}`, `Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
+`Feature/Mandates/{RealignOfficeStartsTest,MandateAdminTest,MandateApiErrorsTest,MandateApiTest,ProvinceHistoryApiTest,MandateAuthorityTest,MandateLanguageTest,MandateOfficeTest,MandateScheduleTest}`,
 `Feature/Policy/{AccountPurgeTest,PolicyNotifyTest,PruneLogsTest}`, `Feature/Mail/EmailLayoutTest`, `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`,
 `Feature/Enforcement/{LoggingRetentionTest,UserDataLifecycleTest}`, `Feature/ModuleDataEncryptionTest`,
 `Unit/Enforcement/{AdminIconsTest,AdminRobotsTest,CookieUsageTest,DeployExcludeTest,HtaccessCanonicalOriginTest}`) —
