@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #65 (prix : la fenêtre du mandat, pas la période de poste)
+
+Constaté en prod le 16/10/2026 : le commissaire aux mines en fonction le 29/09, poste validé le 08/10, ne pouvait pas
+dater un prix du 29/09.
+
+### Fixed
+- `MandateAuthority::canEditPriceOn` regarde la **fenêtre du mandat** (entrée en fonction → fin effective) d'un mandat
+  approuvé qui a connu l'un des trois postes, et non la période de poste (qui naît à la validation). Verrou de 7 jours et
+  exclusion des mandats révoqués inchangés. Contrepartie assumée : voir `docs/DECISIONS.md`.
+- Bornes du jour de Paris ramenées en UTC (la base stocke en UTC) : la comparaison glissait de 1 à 2 heures.
+
+Aucune migration, route ni config.
+
 ## [2026-10-16] — PR #63 (Registre des mines : prix par période et résumé quotidien)
 
 Brief `admin/content/brief-prix-registre.md`, décisions de Greg des 14 et 15/10/2026.

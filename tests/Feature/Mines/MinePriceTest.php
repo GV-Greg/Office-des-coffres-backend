@@ -154,6 +154,32 @@ test('un prix daté du futur est refusé', function () {
         ->assertStatus(422)->assertJsonPath('codes.effective_from', 'price_future');
 });
 
+test('un poste validé APRÈS l\'entrée en fonction couvre quand même le début du mandat (cas de prod du 16/10)', function () {
+    // Le mandat court depuis le 03/05, mais l'Office ne connaît le poste que depuis le 08/05 (validation) : le
+    // commissaire doit pouvoir dater un prix du 04/05, pas seulement à partir de sa validation.
+    atGameTime('2026-05-03 12:00');
+    $late = mandatePlayer($this->map['cityB'], ['pseudo' => 'Tardif']);
+    $mandate = approvedCouncil($late, $this->map['provinceB'], '2026-05-01', '2026-05-03', null);
+    atGameTime('2026-05-08 12:00');
+    mandateWorkflow()->setOffice($mandate, 'bailli');
+    atGameTime('2026-05-10 12:00');
+    Passport::actingAs($late->user);
+    $url = "/api/v1/provinces/{$this->map['provinceB']->id}/mine-prices";
+
+    $this->postJson($url, priceBody(['effective_from' => '2026-05-04']))->assertCreated();
+    // Le jour même de l'entrée en fonction compte aussi ; la veille, non.
+    $this->postJson($url, priceBody(['effective_from' => '2026-05-03']))->assertCreated();
+    $this->postJson($url, priceBody(['effective_from' => '2026-05-02']))
+        ->assertStatus(422)->assertJsonPath('codes.effective_from', 'price_outside_office');
+});
+
+test('la frontière des jours se joue en heure de Paris, pas en UTC', function () {
+    // in_office_from = 03/05 00:00 Paris = 02/05 22:00 UTC : un prix du 02/05 (Paris) reste refusé, celui du 03/05 passe.
+    Passport::actingAs($this->mines->user);
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-02']))->assertStatus(422);
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-03']))->assertCreated();
+});
+
 test('un prix antidaté AVANT l\'entrée en fonction de l\'auteur est refusé : le verrou ne se contourne pas', function () {
     Passport::actingAs($this->mines->user);
     $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-04-20']))
