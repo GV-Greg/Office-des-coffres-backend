@@ -125,28 +125,37 @@ class MandateAuthority
 
     /**
      * Le personnage peut-il écrire un jeu de prix daté de `$date` dans cette province ? Deux conditions :
-     * 1. il TENAIT l'un des trois postes dans la province ce jour-là (recouvrement du jour de Paris par
-     *    une période de poste d'un mandat APPROUVÉ — un mandat révoqué ne donne plus rien, Greg,
-     *    15/10/2026) ;
-     * 2. cette période n'est pas terminée depuis plus de `price_edit_grace_days` : passé ce délai, les
-     *    prix de la période sont verrouillés.
+     * 1. il TENAIT l'un des trois postes dans cette province : son mandat de conseil APPROUVÉ (un mandat révoqué
+     *    ne donne plus rien, Greg, 15/10/2026) couvre ce jour de Paris — de l'entrée en fonction à la fin effective —
+     *    et l'Office lui a connu l'un de ces postes (une période de poste, quelle que soit sa date) ;
+     * 2. ce mandat n'est pas terminé depuis plus de `price_edit_grace_days` : passé ce délai, les prix de la
+     *    période sont verrouillés.
+     *
+     * ⚠️ Pourquoi le MANDAT et non la période de poste (constaté en prod le 16/10/2026) : une période naît à la
+     * VALIDATION du poste dans l'Office (council_office_periods.started_at), parfois des jours après son début réel
+     * en jeu — le commissaire aux mines de Franche-Comté, en fonction le 29/09, ne pouvait pas dater un prix du 29/09
+     * parce que son poste était connu depuis le 08/10. L'Office ne sait pas depuis quand le poste est tenu (limite 2
+     * ci-dessus) : la fenêtre du mandat est la meilleure approximation, et le verrou de 7 jours reste.
      */
     public function canEditPriceOn(Character $character, Province $province, string $date): bool
     {
         $timezone = config('mandates.timezone');
-        $dayStart = Carbon::parse($date, $timezone)->startOfDay();
-        $dayEnd = $dayStart->copy()->addDay();
+        // Les bornes du jour de Paris sont ramenées en UTC : la base stocke en UTC et le query builder formate un Carbon
+        // tel quel, sans conversion — sans cela, la comparaison glisse de 1 à 2 heures (constaté le 16/10/2026).
+        $paris = Carbon::parse($date, $timezone)->startOfDay();
+        $dayStart = $paris->copy()->utc();
+        $dayEnd = $paris->copy()->addDay()->utc();
         $limit = Carbon::now()->subDays((int) config('mandates.price_edit_grace_days'));
 
         return CouncilMandate::query()
             ->where('status', CouncilMandate::APPROVED)
             ->where('character_id', $character->id)
             ->where('province_id', $province->id)
-            ->whereHas('officePeriods', fn ($periods) => $periods
-                ->where('started_at', '<', $dayEnd)
-                ->where('ended_at', '>', $dayStart)
-                ->where('ended_at', '>=', $limit)
-                ->whereHas('office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES)))
+            ->whereNotNull('in_office_from')
+            ->where('in_office_from', '<', $dayEnd)
+            ->where('holds_until', '>', $dayStart)
+            ->where('holds_until', '>=', $limit)
+            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES))
             ->exists();
     }
 

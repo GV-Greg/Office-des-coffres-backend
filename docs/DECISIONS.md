@@ -256,5 +256,9 @@ faussait tous les bilans qui en dépendent, sans correction possible (brief `adm
 côté `users`, et c'est le schéma de `mine_reports` ; `created_by` du brief n'était pas nullable alors que
 `nullOnDelete` l'exige ; le commissaire au commerce lit les prix (le brief renvoyait à `canReadMines`, qu'il
 n'a pas) ; création refusée pour une date future ou hors de la période de l'auteur ; la date d'un jeu peut être
-corrigée (mêmes règles qu'une création). **Limite connue** : un poste ne couvre une date qu'à partir de sa
-**validation** dans l'Office (`council_office_periods.started_at`), pas de son début réel en jeu.
+corrigée (mêmes règles qu'une création). **Limite levée le 16/10/2026** : un poste ne couvrait une date qu'à partir de sa
+**validation** dans l'Office (`council_office_periods.started_at`) — le commissaire aux mines de Franche-Comté, en fonction le
+29/09 et validé le 08/10, ne pouvait pas dater un prix du 29/09. La règle regarde désormais la **fenêtre du mandat** (entrée en
+fonction → fin effective) d'un mandat qui a connu l'un des trois postes ; le verrou de 7 jours et l'exclusion des mandats
+révoqués sont inchangés. Contrepartie assumée : un conseiller qui reçoit le poste en cours de mandat peut dater un prix du
+début de son mandat (l'Office ne sait pas depuis quand le poste est tenu).
