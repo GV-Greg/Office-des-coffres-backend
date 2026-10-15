@@ -78,7 +78,7 @@ class MandateAuthority
      * voir tout ce qui concerne sa province ». Lecture seule : l'écriture reste à MINE_OFFICES.
      * Remplace le « le comte n'y accède pas » du brief Registre §4. Les autres conseillers, jamais.
      */
-    public const MINE_READER_OFFICES = [...self::MINE_OFFICES, 'leader'];
+    public const MINE_READER_OFFICES = [...self::MINE_OFFICES, 'commissaire_commerce', 'leader'];
 
     /**
      * Province dont le personnage peut CONSULTER le Registre des mines maintenant, ou null. Même règle

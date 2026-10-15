@@ -115,7 +115,7 @@ l'ADR de bascule.
 | POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
 | POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
 | DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
-| GET | `characters/{character}/mine-registry/reports` | `Api\MineReportController@reports` | `auth:api` — Registre des mines, **lecture** (commissaire, bailli, dirigeant) : relevés déchiffrés sans le texte brut, mandat du lecteur, prédécesseur ; 403 sinon |
+| GET | `characters/{character}/mine-registry/reports` | `Api\MineReportController@reports` | `auth:api` — Registre des mines, **lecture** (commissaire aux mines, bailli, commissaire au commerce, dirigeant) : relevés déchiffrés sans le texte brut, mandat du lecteur, prédécesseur ; 403 sinon |
 | GET | `characters/{character}/mine-registry` | `Api\MineReportController@access` | `auth:api` — Registre des mines : `{write, read}` = province (id, nom) où le personnage peut écrire / lire, ou `null` |
 | POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
 
@@ -338,7 +338,7 @@ Qui a le droit d'écrire au titre d'un poste, pour les modules futurs. Spécific
 
 | Pièce | Rôle |
 |---|---|
-| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1), `canReadMines(Character): ?Province` (les mêmes **plus le dirigeant**, en lecture seule — Greg, 08/10/2026) — « maintenant » seulement, aucun paramètre de date |
+| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1), `canReadMines(Character): ?Province` (les mêmes **plus le commissaire au commerce et le dirigeant**, en lecture seule — Greg, 08/10 et 15/10/2026) — « maintenant » seulement, aucun paramètre de date |
 | `App\Services\MandateWorkflow` | **tous** les gestes (joueur et admin) ; seul écrivain de `holds_until` |
 | `App\Support\MandateCalendar` | jours civils `Europe/Paris` (`addDays`, jamais `addMonth`), stockés en UTC |
 | `App\Support\MandateLabels` | libellés FR/EN ; un motif sans libellé s'affiche par son **code**, jamais par la clé brute |

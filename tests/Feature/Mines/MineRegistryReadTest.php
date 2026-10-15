@@ -87,6 +87,18 @@ test('prédécesseur : relevés d\'AUTRES personnages dans les 30 jours avant l\
         ->assertJsonPath('predecessor.0.count', 2);
 });
 
+test('le commissaire au commerce lit aussi, sans pouvoir écrire', function () {
+    $commerce = mandatePlayer($this->map['cityA']);
+    approvedCouncil($commerce, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'commissaire_commerce');
+    Passport::actingAs($commerce->user);
+
+    readRegistry($this, $commerce)->assertOk()->assertJsonPath('province.name', 'Artois');
+    $this->getJson("/api/v1/characters/{$commerce->id}/mine-registry")->assertOk()
+        ->assertJsonPath('read.name', 'Artois')->assertJsonPath('write', null);
+    $this->postJson("/api/v1/characters/{$commerce->id}/mine-reports", ['raw' => 'x', 'report' => ['mines' => [['number' => 1, 'days' => []]]]])
+        ->assertStatus(422)->assertJsonPath('codes.character', 'mine_not_authorized');
+});
+
 test('le dirigeant lit ; un autre poste, non — refus bilingue ; un autre compte : 404', function () {
     $leader = mandatePlayer($this->map['cityA']);
     approvedCouncil($leader, $this->map['provinceA'], '2026-05-01', '2026-05-03', 'leader');
