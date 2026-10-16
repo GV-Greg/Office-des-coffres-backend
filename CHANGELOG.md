@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [2026-10-16] — PR #NN (policy:notify : un seul email par jour)
+## [2026-10-16] — PR #70 (policy:notify : un seul email par jour)
 
 ### Changed
 - `policy:notify` regroupe par défaut les entrées substantielles non envoyées du jour en **un seul email** (`--day`, ids en argument),
