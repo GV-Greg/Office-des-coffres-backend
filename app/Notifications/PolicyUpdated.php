@@ -16,8 +16,11 @@ use Illuminate\Notifications\Notification;
  */
 class PolicyUpdated extends Notification
 {
-    /** @param array{date: string, summary: array{fr: string, en: string}} $entry */
-    public function __construct(public readonly array $entry) {}
+    /**
+     * @param  array{date: string, summary: array{fr: string, en: string}}  $entry
+     * @param  array<int, array>  $alsoCovered  autres entrées du MÊME jour, dites dans le même email (un seul par jour)
+     */
+    public function __construct(public readonly array $entry, public readonly array $alsoCovered = []) {}
 
     /** @return array<int, string> */
     public function via(object $notifiable): array
@@ -49,7 +52,9 @@ class PolicyUpdated extends Notification
             }
             $lines[] = __('policy.email.greeting', [], $locale);
             $lines[] = __('policy.email.intro', ['date' => $date], $locale);
-            $lines[] = $this->entry['summary'][$locale];
+            foreach ([$this->entry, ...$this->alsoCovered] as $entry) {
+                $lines[] = $entry['summary'][$locale];
+            }
             $lines[] = __('policy.email.why', [], $locale);
         }
 

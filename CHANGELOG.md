@@ -7,6 +7,13 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #NN (policy:notify : un seul email par jour)
+
+### Changed
+- `policy:notify` regroupe par défaut les entrées substantielles non envoyées du jour en **un seul email** (`--day`, ids en argument),
+  une ligne notée par entrée ; un second envoi le même jour est refusé sans `--again`. Le résumé de `2026-10-16-prix-des-mines`
+  retrouve son texte d'origine (les deux entrées du 16/10 partent ensemble). ⚠️ Mode d'emploi du §10 changé : voir `docs/ARCHITECTURE.md`.
+
 ## [2026-10-16] — PR #69 (journal de la politique : un seul email pour les deux modifications du jour)
 
 ### Changed
