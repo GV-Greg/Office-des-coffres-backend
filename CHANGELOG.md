@@ -7,6 +7,12 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #NN (journal de la politique : un seul email pour les deux modifications du jour)
+
+### Changed
+- Le résumé de `2026-10-16-prix-des-mines` reprend la phrase du commissaire au commerce (lecture du Registre) : Greg n'envoie qu'un
+  email (`policy:notify 2026-10-16-prix-des-mines`) ; `2026-10-16-commerce-lit-registre` reste au journal, **sans envoi propre**.
+
 ## [2026-10-16] — PR #68 (journal de la politique : les prix des mines de la province)
 
 ### Added
