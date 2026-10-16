@@ -7,6 +7,13 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-17] — PR #71 (objets des emails sans « Office des coffres — »)
+
+### Changed
+- Les objets de tous les emails des joueurs et de l'admin (confirmation d'adresse, mandats, rappels, politique, comptes inactifs ou non
+  confirmés, vérifications) ne commencent plus par « Office des coffres — » (Greg, 17/10/2026) : l'expéditeur le dit déjà. Seuls les
+  fichiers de langue changent, aucun texte de corps.
+
 ## [2026-10-16] — PR #70 (policy:notify : un seul email par jour)
 
 ### Changed

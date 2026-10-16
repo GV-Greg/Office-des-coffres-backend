@@ -53,7 +53,7 @@ return [
     ],
 
     'email' => [
-        'subject' => 'Office des coffres — le poste de :character',
+        'subject' => 'Le poste de :character',
         'greeting' => 'Bonjour,',
         'post_line' => ':character — :post',
         'approved' => "Votre demande est validée. Le mandat de votre personnage :character court jusqu'au :date (:date_jeu).",
@@ -68,7 +68,7 @@ return [
         'office_rejected' => "La déclaration de poste de votre personnage :character n'a pas été validée. Motif : :reason Il siège sans poste.",
         'reason_corrected' => 'Le motif de notre décision du :date a été corrigé : « :old » devient « :new ».',
         'reason_corrected_reapply' => 'Vous pouvez refaire une demande depuis votre profil.',
-        'reminder_subject' => 'Office des coffres — mandat de :character à renouveler',
+        'reminder_subject' => 'Mandat de :character à renouveler',
         'reminder' => "Le mandat de votre personnage :character, :post, s'est terminé le :date (:date_jeu). Réélu ? Renouvelez-le depuis votre profil.",
         'comment_fr' => "Commentaire de l'administrateur (rédigé en français) :",
         'comment_en' => "Commentaire de l'administrateur (rédigé en anglais) :",
@@ -78,7 +78,7 @@ return [
 
     // Récapitulatif quotidien de la file de vérification, pour les administrateurs (français seul).
     'digest' => [
-        'subject' => 'Office des coffres — :count mandat(s) terminé(s) à vérifier',
+        'subject' => ':count mandat(s) terminé(s) à vérifier',
         'intro' => "Ces mandats sont terminés et n'ont pas été vérifiés au-delà du délai. Vérifiez que leurs titulaires n'exercent plus, puis marquez-les « Vérifié ».",
         'section_mayors' => 'Maires',
         'section_councillors' => 'Conseillers titrés',

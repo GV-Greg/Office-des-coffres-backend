@@ -4,7 +4,7 @@
 // puis en anglais : chaque clé existe aussi dans lang/en/verification.php.
 return [
     'email' => [
-        'subject' => 'Office des coffres — confirmez votre adresse email',
+        'subject' => 'Confirmez votre adresse email',
         'greeting' => 'Bonjour,',
         'thanks' => "Merci de vous être inscrit sur l'Office des coffres. Confirmez votre adresse pour activer votre compte.",
         'expires' => 'Ce lien expire dans :minutes minutes.',

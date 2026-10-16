@@ -49,7 +49,7 @@ return [
     ],
 
     'email' => [
-        'subject' => 'Office des coffres — the office of :character',
+        'subject' => 'The office of :character',
         'greeting' => 'Hello,',
         'post_line' => ':character — :post',
         'approved' => 'Your request has been approved. The term of your character :character runs until :date (:date_jeu).',
@@ -64,7 +64,7 @@ return [
         'office_rejected' => 'The office declaration of your character :character has not been approved. Reason: :reason They sit without an office.',
         'reason_corrected' => 'The reason for our decision of :date has been corrected: « :old » becomes « :new ».',
         'reason_corrected_reapply' => 'You may submit a new request from your profile.',
-        'reminder_subject' => 'Office des coffres — term of :character to renew',
+        'reminder_subject' => 'Term of :character to renew',
         'reminder' => 'The term of your character :character, :post, ended on :date (:date_jeu). Re-elected? Renew it from your profile.',
         'comment_fr' => "Administrator's comment (written in French):",
         'comment_en' => "Administrator's comment (written in English):",

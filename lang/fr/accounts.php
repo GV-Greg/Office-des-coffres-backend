@@ -7,13 +7,13 @@ return [
         'greeting' => 'Bonjour,',
         'salutation' => "Ludiquement,\nOffice des coffres",
 
-        'inactive_subject' => 'Office des coffres — votre compte sera supprimé faute de connexion',
+        'inactive_subject' => 'Votre compte sera supprimé faute de connexion',
         'inactive_notice' => "Votre compte de l'Office des coffres n'a pas été utilisé depuis le :last_seen. Comme l'annonce la politique de confidentialité, un compte inactif est supprimé après un préavis : sans connexion de votre part, le vôtre le sera à partir du :date, avec ses personnages.",
         'inactive_keep' => 'Pour le garder, il suffit de vous connecter avant le :date.',
         'history_kept' => "L'historique public des postes tenus par vos personnages est conservé, comme l'indique la politique de confidentialité.",
         'inactive_action' => 'Me connecter',
 
-        'unverified_subject' => 'Office des coffres — confirmez votre adresse, ou le compte sera supprimé',
+        'unverified_subject' => 'Confirmez votre adresse, ou le compte sera supprimé',
         'unverified_notice' => "Un compte de l'Office des coffres a été créé avec cette adresse le :created, mais l'adresse n'a jamais été confirmée. Sans confirmation, le compte sera supprimé à partir du :date.",
         'unverified_not_you' => "Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email : le compte disparaîtra de lui-même.",
         'unverified_action' => 'Confirmer mon email',
