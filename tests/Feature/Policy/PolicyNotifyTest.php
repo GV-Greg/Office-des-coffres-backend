@@ -6,6 +6,7 @@ use App\Support\PolicyChangelog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -53,7 +54,7 @@ test('une entrée inconnue est refusée, rien ne part', function () {
     withChangelog([]);
     User::factory()->create();
 
-    $this->artisan('policy:notify', ['entry' => 'absente', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['absente'], '--force' => true])->assertFailed();
 
     Notification::assertNothingSent();
     expect(DB::table('policy_notifications')->count())->toBe(0);
@@ -64,7 +65,7 @@ test('une entrée mal formée est refusée', function (array $overrides) {
     withChangelog(['e' => policyEntry($overrides)]);
     User::factory()->create();
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertFailed();
 
     Notification::assertNothingSent();
 })->with([
@@ -79,7 +80,7 @@ test('une entrée non substantielle est refusée', function () {
     withChangelog(['e' => policyEntry(['substantial' => false])]);
     User::factory()->create();
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertFailed();
 
     Notification::assertNothingSent();
 });
@@ -89,7 +90,7 @@ test('sans aucun compte vérifié, rien ne part et rien n\'est noté', function 
     withChangelog(['e' => policyEntry()]);
     User::factory()->unverified()->create();
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertFailed();
 
     expect(DB::table('policy_notifications')->count())->toBe(0);
 });
@@ -102,14 +103,14 @@ test('envoi aux seuls comptes vérifiés, noté, et jamais deux fois — même a
     [$a, $b] = User::factory()->count(2)->create();
     $unverified = User::factory()->unverified()->create();
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertSuccessful();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertSuccessful();
 
     Notification::assertSentTo([$a, $b], PolicyUpdated::class);
     Notification::assertNotSentTo($unverified, PolicyUpdated::class);
     expect(DB::table('policy_notifications')->where('entry_id', 'e')->first())
         ->recipients->toBe(2)->failures->toBe(0);
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertFailed();
     Notification::assertSentToTimes($a, PolicyUpdated::class, 1);
 });
 
@@ -118,7 +119,7 @@ test('sans --force, la commande affiche le nombre de destinataires et attend la 
     withChangelog(['e' => policyEntry()]);
     User::factory()->count(3)->create();
 
-    $this->artisan('policy:notify', ['entry' => 'e'])
+    $this->artisan('policy:notify', ['entries' => ['e']])
         ->expectsOutputToContain(__('policy.command.recipients', ['count' => 3]))
         ->expectsConfirmation(__('policy.command.confirm'), 'no')
         ->assertFailed();
@@ -126,7 +127,7 @@ test('sans --force, la commande affiche le nombre de destinataires et attend la 
     Notification::assertNothingSent();
     expect(DB::table('policy_notifications')->count())->toBe(0);
 
-    $this->artisan('policy:notify', ['entry' => 'e'])
+    $this->artisan('policy:notify', ['entries' => ['e']])
         ->expectsConfirmation(__('policy.command.confirm'), 'yes')
         ->assertSuccessful();
 
@@ -143,10 +144,86 @@ test('un échec d\'envoi n\'interrompt pas les autres, et l\'entrée est notée 
         }
     });
 
-    $this->artisan('policy:notify', ['entry' => 'e', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['e'], '--force' => true])->assertFailed();
 
     expect(DB::table('policy_notifications')->where('entry_id', 'e')->first())
         ->recipients->toBe(2)->failures->toBe(1);
+});
+
+// --- Un seul email par jour (Greg, 16/10/2026) ---
+
+test('--day regroupe les entrées substantielles du jour en UN email, une ligne notée par entrée', function () {
+    Notification::fake();
+    withChangelog([
+        'a' => policyEntry(['date' => '2026-10-16', 'summary' => ['fr' => 'Premier changement.', 'en' => 'First change.']]),
+        'b' => policyEntry(['date' => '2026-10-16', 'summary' => ['fr' => 'Second changement.', 'en' => 'Second change.']]),
+        'c' => policyEntry(['date' => '2026-10-16', 'substantial' => false]),
+        'autre' => policyEntry(['date' => '2026-10-15']),
+    ]);
+    [$u1, $u2] = User::factory()->count(2)->create();
+
+    $this->artisan('policy:notify', ['--day' => '2026-10-16', '--force' => true])->assertSuccessful();
+
+    Notification::assertSentToTimes($u1, PolicyUpdated::class, 1);
+    Notification::assertSentToTimes($u2, PolicyUpdated::class, 1);
+    expect(DB::table('policy_notifications')->pluck('entry_id')->sort()->values()->all())->toBe(['a', 'b']);
+
+    $html = (new PolicyUpdated(policyEntry(['summary' => ['fr' => 'Premier changement.', 'en' => 'First change.']]), [
+        policyEntry(['summary' => ['fr' => 'Second changement.', 'en' => 'Second change.']]),
+    ]))->toMail($u1)->render()->toHtml();
+    expect(strpos($html, 'Premier changement.'))->toBeLessThan(strpos($html, 'Second changement.'))
+        ->and(strpos($html, 'Second changement.'))->toBeLessThan(strpos($html, 'First change.'))
+        ->and(strpos($html, 'First change.'))->toBeLessThan(strpos($html, 'Second change.'));
+});
+
+test('sans argument, la commande prend le jour d\'aujourd\'hui à Paris', function () {
+    Notification::fake();
+    $this->travelTo(Carbon::parse('2026-10-16 12:00', 'Europe/Paris'));
+    withChangelog(['a' => policyEntry(['date' => '2026-10-16']), 'vieille' => policyEntry(['date' => '2026-10-04'])]);
+    User::factory()->create();
+
+    $this->artisan('policy:notify', ['--force' => true])->assertSuccessful();
+
+    expect(DB::table('policy_notifications')->pluck('entry_id')->all())->toBe(['a']);
+});
+
+test('un second envoi le même jour est refusé, sauf --again', function () {
+    Notification::fake();
+    withChangelog(['a' => policyEntry(['date' => '2026-10-16']), 'b' => policyEntry(['date' => '2026-10-17'])]);
+    User::factory()->create();
+
+    $this->artisan('policy:notify', ['entries' => ['a'], '--force' => true])->assertSuccessful();
+    $this->artisan('policy:notify', ['entries' => ['b'], '--force' => true])->assertFailed();
+    expect(DB::table('policy_notifications')->count())->toBe(1);
+
+    $this->artisan('policy:notify', ['entries' => ['b'], '--force' => true, '--again' => true])->assertSuccessful();
+    expect(DB::table('policy_notifications')->count())->toBe(2);
+});
+
+test('jour sans entrée, jour illisible, ids et --day mêlés, jours différents : refusés, rien ne part', function () {
+    Notification::fake();
+    withChangelog(['a' => policyEntry(['date' => '2026-10-16']), 'b' => policyEntry(['date' => '2026-10-17'])]);
+    User::factory()->create();
+
+    $this->artisan('policy:notify', ['--day' => '2026-01-01', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['--day' => 'hier', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['a'], '--day' => '2026-10-16', '--force' => true])->assertFailed();
+    $this->artisan('policy:notify', ['entries' => ['a', 'b'], '--force' => true])->assertFailed();
+
+    Notification::assertNothingSent();
+    expect(DB::table('policy_notifications')->count())->toBe(0);
+});
+
+test('--day ignore sans bruit une entrée déjà envoyée, mais ne renvoie rien si tout est parti', function () {
+    Notification::fake();
+    withChangelog(['a' => policyEntry(['date' => '2026-10-16']), 'b' => policyEntry(['date' => '2026-10-16'])]);
+    User::factory()->create();
+    DB::table('policy_notifications')->insert(['entry_id' => 'a', 'recipients' => 1, 'failures' => 0, 'sent_at' => '2026-10-10 10:00:00']);
+
+    $this->artisan('policy:notify', ['--day' => '2026-10-16', '--force' => true])->assertSuccessful();
+    expect(DB::table('policy_notifications')->pluck('entry_id')->sort()->values()->all())->toBe(['a', 'b']);
+
+    $this->artisan('policy:notify', ['--day' => '2026-10-16', '--force' => true, '--again' => true])->assertFailed();
 });
 
 // --- L'email ---

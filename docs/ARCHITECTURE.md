@@ -212,12 +212,17 @@ panneau Blade.
 |---|---|
 | `resources/policy/changelog.php` | **source unique** du journal (aucune copie dans `admin/`) : date, résumé FR/EN, `substantial`, `decided_by` |
 | `App\Support\PolicyChangelog` | lecture + contrôle de forme d'une entrée |
-| `php artisan policy:notify <id>` | lancée **à la main** par Greg, jamais planifiée ; refuse une entrée inconnue, mal formée, non substantielle ou déjà envoyée ; comptes **vérifiés** seulement ; affiche le nombre de destinataires et demande confirmation (`--force` pour s'en passer) |
+| `php artisan policy:notify [id…] [--day=AAAA-MM-JJ]` | lancée **à la main** par Greg, jamais planifiée ; refuse une entrée inconnue, mal formée, non substantielle ou déjà envoyée ; comptes **vérifiés** seulement ; affiche le nombre de destinataires et demande confirmation (`--force` pour s'en passer) |
 | `App\Notifications\PolicyUpdated` | email bilingue FR puis EN, lien vers `/legal/privacy`, **aucun lien de désinscription** (information légale) |
 | `policy_notifications` | une ligne par entrée envoyée (anti double envoi). **Hors taxinomie** des données utilisateur tant qu'elle ne porte aucun lien vers un compte — une colonne par destinataire rouvrirait la question |
 
 ⚠️ N'ajouter une entrée substantielle au journal qu'une fois le texte **en ligne** : l'email renvoie
 à la page. « Substantielle » est une décision humaine, jamais déduite d'un diff.
+
+🔴 **Un seul email par jour** (Greg, 16/10/2026) : sans argument, `policy:notify` regroupe **toutes** les entrées substantielles
+non envoyées du jour (Paris) en un email unique (un paragraphe FR puis EN par entrée) et note une ligne par entrée dans
+`policy_notifications`. `--day=AAAA-MM-JJ` choisit un autre jour ; des ids désignent des entrées précises (même jour exigé). Un
+second envoi le même jour est refusé sans `--again`.
 
 ## Purge des comptes (`accounts:purge`, 04/10/2026)
 
