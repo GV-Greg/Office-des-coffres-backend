@@ -56,4 +56,16 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Le commissaire au commerce consulte le Registre des mines (front #91, en ligne le 16/10/2026, back #64 en ligne le
+    // 15/10) — une entrée propre à cette modification (Greg, 07/10 : une par PR de politique). « Substantielle » :
+    // décision de Greg, 16/10/2026 (elle ajoute un destinataire à la liste de ceux qui lisent le registre, §6).
+    '2026-10-16-commerce-lit-registre' => [
+        'date' => '2026-10-16',
+        'summary' => [
+            'fr' => "Le commissaire au commerce d'une province peut désormais consulter le Registre des mines de cette province, en lecture seule, comme son dirigeant : il rejoint la liste de ceux qui y ont accès (article 6 de la politique de confidentialité). L'écriture reste réservée au commissaire aux mines et au bailli. Rien d'autre ne change.",
+            'en' => "A province's Trade Minister may now read that province's Mine Registry, read-only, like its leader: they join the list of people who have access to it (section 6 of the privacy policy). Writing stays reserved for the Mines Superintendent and the Sheriff. Nothing else changes.",
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];

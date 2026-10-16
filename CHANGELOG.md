@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #67 (journal de la politique : le commissaire au commerce consulte le Registre des mines)
+
+### Added
+- Entrée `2026-10-16-commerce-lit-registre` du journal de la politique (`resources/policy/changelog.php`), **substantielle**
+  (décision de Greg, 16/10/2026), résumé FR/EN : le commissaire au commerce rejoint la liste de ceux qui consultent le
+  Registre des mines (§6). Le texte est en ligne depuis front #91, la règle depuis back #64.
+- ⚠️ **Prod, après le déploiement** : `php artisan policy:notify 2026-10-16-commerce-lit-registre` en SSH (lancée à la main
+  par Greg, jamais planifiée ; elle affiche le nombre de destinataires et demande confirmation). Aucune migration, route ni config.
+
 ## [2026-10-16] — PR #66 (mandats : un poste inscrit avec le mandat est tenu depuis l'entrée en fonction)
 
 Retour de Greg : en fonction depuis le 29/09 et validé le 08/10, le commissaire aux mines apparaissait « du 08/10 ».
