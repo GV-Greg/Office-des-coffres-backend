@@ -68,4 +68,17 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Prix des mines de la province (front #94, en ligne le 16/10/2026 ; les prix eux-mêmes, back #63, en ligne le 15/10) — une
+    // entrée propre à cette modification (Greg, 07/10 : une par PR de politique). « Substantielle » : décision de Greg, 16/10/2026
+    // (donnée nouvelle liée à un compte, destinataire nouveau — l'email quotidien —, durée sans limite). Texte :
+    // admin/content/policy-prix-registre-draft.md.
+    '2026-10-16-prix-des-mines' => [
+        'date' => '2026-10-16',
+        'summary' => [
+            'fr' => "Les prix des mines d'une province sont désormais tenus par le commissaire au commerce, le commissaire aux mines et le bailli : l'Office conserve ces prix sans limite de durée, avec le personnage qui les a saisis ou corrigés. Les autres titulaires de ces postes reçoivent un résumé quotidien des changements. Si votre compte est supprimé, les prix restent, sans lien avec vous.",
+            'en' => 'A province\'s mine prices are now kept by the Trade Minister, the Mines Superintendent and the Sheriff: the Office keeps these prices with no time limit, along with the character who recorded or corrected them. The other holders of these offices receive a daily summary of changes. If your account is deleted, the prices stay, with no link to you.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];

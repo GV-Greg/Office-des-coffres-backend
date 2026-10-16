@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-16] — PR #68 (journal de la politique : les prix des mines de la province)
+
+### Added
+- Entrée `2026-10-16-prix-des-mines` du journal de la politique (`resources/policy/changelog.php`), **substantielle** (décision de
+  Greg, 16/10/2026), résumé FR/EN : prix conservés sans limite de durée avec le personnage qui les a saisis ou corrigés, email
+  quotidien aux autres titulaires, lien coupé à la suppression du compte. Texte en ligne depuis front #94.
+  ⚠️ Le « 7 jours » de la politique (§5) est `mandates.price_edit_grace_days` : le texte change avant lui.
+- Après déploiement : `php artisan policy:notify 2026-10-16-prix-des-mines` en SSH (Greg).
+
 ## [2026-10-16] — PR #67 (journal de la politique : le commissaire au commerce consulte le Registre des mines)
 
 ### Added
