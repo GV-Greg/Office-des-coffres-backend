@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [2026-10-17] — PR #NN (objets des emails sans « Office des coffres — »)
+## [2026-10-17] — PR #71 (objets des emails sans « Office des coffres — »)
 
 ### Changed
 - Les objets de tous les emails des joueurs et de l'admin (confirmation d'adresse, mandats, rappels, politique, comptes inactifs ou non
