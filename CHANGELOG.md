@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [2026-10-16] — PR #NN (journal de la politique : les prix des mines de la province)
+## [2026-10-16] — PR #68 (journal de la politique : les prix des mines de la province)
 
 ### Added
 - Entrée `2026-10-16-prix-des-mines` du journal de la politique (`resources/policy/changelog.php`), **substantielle** (décision de
