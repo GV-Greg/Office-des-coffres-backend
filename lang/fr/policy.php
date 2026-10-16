@@ -5,7 +5,7 @@
 // `command` est la sortie de `policy:notify`, en français seulement.
 return [
     'email' => [
-        'subject' => 'Office des coffres — modification de la politique de confidentialité',
+        'subject' => 'Modification de la politique de confidentialité',
         'greeting' => 'Bonjour,',
         'intro' => "La politique de confidentialité de l'Office des coffres a été modifiée le :date. Ce qui change :",
         'why' => "Vous recevez cet email parce qu'un compte de l'Office est enregistré à cette adresse. C'est une information légale, pas une lettre d'information : chaque modification substantielle de la politique est notifiée à tous les comptes.",
