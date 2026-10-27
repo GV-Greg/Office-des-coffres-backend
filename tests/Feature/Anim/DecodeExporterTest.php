@@ -16,7 +16,7 @@ beforeEach(function () {
     $this->orga = mandatePlayer($map['cityA']);
     $this->workflow = app(DecodeWorkflow::class);
     $this->activity = $this->workflow->create($this->orga, AnimActivityType::where('key', 'decode')->first(), [
-        'name' => 'Coffre des Marches', 'province_id' => $map['provinceA']->id,
+        'name' => 'Coffre des Marches', 'slug' => 'coffre-des-marches', 'province_id' => $map['provinceA']->id,
     ]);
     $this->secret = $this->workflow->generateSecret($this->orga, $this->activity);
     $this->exporter = app(DecodeExporter::class);
@@ -29,7 +29,7 @@ test('les règles : corps RP, puis [hrp] avec le lien vers la page publique', fu
         ->toContain('Organisateur : '.$this->orga->pseudo)
         ->toContain('Lieu : Artois')
         ->toContain('combinaison secrète de cinq chiffres')
-        ->toEndWith('[hrp][url=https://site.example/app/anim/decode/Coffre%20des%20Marches]Coffre n°1 à percer[/url][/hrp]')
+        ->toEndWith('[hrp][url=https://site.example/public/activite/decode/coffre-des-marches]Coffre n°1 à percer[/url][/hrp]')
         // Le texte des règles passe avant le bloc hors-RP, et la description n'y figure pas.
         ->and(strpos($bb, 'combinaison'))->toBeLessThan(strpos($bb, '[hrp]'));
 });
@@ -44,7 +44,7 @@ test('les résultats d\'un code en cours : tentatives seulement', function () {
         ->not->toContain('Coffres ouverts')
         ->not->toContain('Classement cumulé')
         ->not->toContain($this->secret->code === '00000' ? 'impossible' : $this->secret->code)
-        ->toContain('[hrp][url=https://site.example/app/anim/decode/Coffre%20des%20Marches]Résultats complets[/url][/hrp]');
+        ->toContain('[hrp][url=https://site.example/public/activite/decode/coffre-des-marches]Résultats complets[/url][/hrp]');
 });
 
 test('les résultats d\'un code trouvé : combinaison révélée, découvreur, coffres ouverts, classement cumulé', function () {

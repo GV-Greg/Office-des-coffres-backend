@@ -53,11 +53,12 @@ $declaredTables = [
     // art. 20 (pas rattachée au compte). Tenu par Mines/MinePriceTest.
     'province_mine_prices' => 'C',
 
-    // C — Les Coffres Scellés (27/10/2026) : l'activité et ce que les autres joueurs y ont inscrit
-    // RESTENT ; `character_id` (l'organisateur) passe à NULL par la base (nullOnDelete). Une cascade
-    // effacerait la participation d'autrui. Les propositions (`player` en texte libre) et les
-    // secrets ne portent aucun lien vers un compte. Tenu par Anim/DecodeWorkflowTest.
-    'anim_decode_activities' => 'C',
+    // A — Décode le code (27/10/2026, REVU le 28/10/2026 : D21, Greg) : une activité PRIVÉE disparaît
+    // avec le personnage ou le compte de son organisateur (cascade), avec ses coffres, ses propositions
+    // (`character_name` en texte libre, sans lien vers un compte) et sa page publique. Le lot 1 l'avait en C
+    // (« une cascade effacerait la participation d'autrui ») : Greg a tranché l'inverse. Une activité SANS
+    // COMPTE a `character_id` nul et n'est pas concernée. Tenu par Anim/DecodeWorkflowTest.
+    'anim_decode_activities' => 'A',
 
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.

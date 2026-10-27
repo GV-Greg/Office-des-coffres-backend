@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Anim\DecodeActivityController;
+use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\MandateController;
@@ -41,9 +42,34 @@ Route::prefix('v1')->group(function () {
     // Référentiel des postes titrés d'un conseil comtal : public, aucune donnée de compte.
     Route::get('council-offices', [MandateController::class, 'offices']);
 
-    // Animation — lecture publique (types ouverts, page d'une activité par son nom).
+    // Animation — lecture publique (types ouverts, page d'une activité par son SLUG, les deux modes).
+    // 🔴 Aucun mot réservé (D14) : aucune route fixe ne voisine `{slug}` au même niveau. Tout ce qui n'est pas un slug vit
+    // sous un préfixe à part (`decode-manage/{slug}/…`, `decode-slug`, `decode-email-confirm/…`).
+    // ⚠️ Routes ajoutées : route:cache en prod.
     Route::get('anim/activity-types', [DecodeActivityController::class, 'types']);
-    Route::get('anim/decode-activities/{name}', [DecodeActivityController::class, 'show']);
+    Route::get('anim/decode-activities/{slug}', [DecodeActivityController::class, 'show'])
+        ->where('slug', '[a-z-]{1,60}');
+
+    // Animation — mode SANS COMPTE (aucun jeton : le slug public + le mot de passe, dans le corps, prouvent l'auteur).
+    Route::get('anim/decode-slug', [DecodeAnonymousController::class, 'slug'])->middleware('throttle:anim-slug');
+    Route::post('anim/decode-manage', [DecodeAnonymousController::class, 'create'])->middleware('throttle:anim-create');
+    Route::prefix('anim/decode-manage/{slug}')->where(['slug' => '[a-z-]{1,60}', 'secret' => '[0-9]+'])->group(function () {
+        Route::middleware('throttle:anim-access')->group(function () {
+            Route::post('open', [DecodeAnonymousController::class, 'open']);
+            Route::post('secrets', [DecodeAnonymousController::class, 'generateSecret']);
+            Route::post('secrets/{secret}/proposals', [DecodeAnonymousController::class, 'propose']);
+            Route::post('close', [DecodeAnonymousController::class, 'close']);
+            Route::post('export/rules', [DecodeAnonymousController::class, 'exportRules']);
+            Route::post('export/results', [DecodeAnonymousController::class, 'exportResults']);
+            Route::post('reset-complete', [DecodeAnonymousController::class, 'resetComplete']);
+        });
+        Route::post('reset-request', [DecodeAnonymousController::class, 'resetRequest'])->middleware('throttle:anim-reset');
+    });
+    // Lien signé de confirmation de l'adresse (D29), rappelé en JSON par la page /app/anim/decode/confirmer-email du site.
+    Route::get('anim/decode-email-confirm/{slug}/{hash}', [DecodeAnonymousController::class, 'confirmEmail'])
+        ->where(['slug' => '[a-z-]{1,60}', 'hash' => '[a-f0-9]{40}'])
+        ->middleware('signed')
+        ->name('anim.decode.email-confirm');
 
     Route::middleware('auth:api')->group(function () {
         Route::get('characters', [CharacterController::class, 'index']);
@@ -74,7 +100,7 @@ Route::prefix('v1')->group(function () {
             Route::put('provinces/{province}/mine-prices/{price}', [MinePriceController::class, 'update'])
                 ->where(['province' => '[0-9]+', 'price' => '[0-9]+']);
         });
-        // Animation — Les Coffres Scellés (brief admin/modules/animation/brief-coffres-scelles.md).
+        // Animation — Décode le code (brief admin/modules/animation/brief-coffres-scelles.md).
         // Autorisation par PROPRIÉTÉ (DecodeWorkflow), jamais par poste. ⚠️ Routes ajoutées : route:cache en prod.
         Route::get('characters/{character}/decode-activities', [DecodeActivityController::class, 'index'])
             ->where('character', '[0-9]+');

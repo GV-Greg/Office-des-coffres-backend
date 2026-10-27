@@ -64,11 +64,18 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         });
     });
 
-    // Animation (admin/modules/animation/brief-coffres-scelles.md) : types d'activité et surveillance
-    // des activités récentes. Aucune gestion des activités des joueurs ici.
+    // Animation (admin/modules/animation/brief-coffres-scelles.md ; tour 12 du fil) : types d'activité, surveillance des
+    // activités récentes et recours de l'administration pour les activités SANS COMPTE seulement (clore, retirer avec
+    // confirmation, lien de réinitialisation). Aucune gestion des activités privées des joueurs ici.
     Route::prefix('anim')->name('anim.')->controller(AnimAdminController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::patch('types/{type}/toggle', 'toggleType')->name('types.toggle');
+        Route::prefix('activities/{activity}')->name('activities.')->group(function () {
+            Route::post('close', 'close')->name('close');
+            Route::get('delete', 'confirmDelete')->name('delete');
+            Route::delete('/', 'destroy')->name('destroy');
+            Route::post('reset-link', 'resetLink')->name('reset-link');
+        });
     });
 });
 

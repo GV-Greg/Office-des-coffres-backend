@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Anim;
 
+use App\Exceptions\MandateRefusal;
 use App\Http\Controllers\Controller;
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
@@ -13,12 +14,12 @@ use App\Services\DecodeWorkflow;
 use App\Support\AnimApiErrors;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
- * Les Coffres Scellés — API. Ne valide que la FORME : toute règle (propriété, exclusion province/ville,
- * une activité active par type, suppression d'une activité close seulement…) vit dans
- * App\Services\DecodeWorkflow et DecodeProposals. Erreurs au contrat d'AnimApiErrors.
+ * Décode le code — API du mode PRIVÉ (lié à un personnage, `auth:api`) et lecture publique des deux modes. Ne valide que
+ * la FORME : toute règle (propriété, un seul niveau de lieu, slug valable et libre, une activité active par type, suppression
+ * d'une activité close seulement…) vit dans App\Services\DecodeWorkflow et DecodeProposals. Erreurs au contrat d'AnimApiErrors.
+ * Le mode sans compte a son propre contrôleur (DecodeAnonymousController).
  */
 class DecodeActivityController extends Controller
 {
@@ -38,10 +39,10 @@ class DecodeActivityController extends Controller
         ]);
     }
 
-    /** Page publique, lecture seule : jamais le code d'un coffre encore scellé. */
-    public function show(string $name): JsonResponse
+    /** Page publique par SLUG (D8), lecture seule : jamais le code d'un coffre encore scellé. Les deux modes. */
+    public function show(string $slug): JsonResponse
     {
-        $activity = AnimDecodeActivity::where('name', $name)->first();
+        $activity = AnimDecodeActivity::where('slug', $slug)->first();
         if (! $activity) {
             return AnimApiErrors::error(404, 'anim.api.activity_not_found');
         }
@@ -49,7 +50,7 @@ class DecodeActivityController extends Controller
         return response()->json(['success' => true, 'activity' => $this->reader->read($activity)]);
     }
 
-    /** Les activités de ce personnage, avec le code du coffre en cours (organisateur seul). */
+    /** Les activités PRIVÉES de ce personnage, avec le code du coffre en cours (organisateur seul). */
     public function index(Request $request, int $character): JsonResponse
     {
         $character = $request->user()->characters()->find($character);
@@ -71,11 +72,16 @@ class DecodeActivityController extends Controller
         }
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'min:3', 'max:190', Rule::unique('anim_decode_activities', 'name')],
-            'description' => ['nullable', 'string', 'max:2000'],
+            'slug' => ['required', 'string', 'max:60'],
+            'name' => ['required', 'string', 'min:3', 'max:190'],
+            'kingdom_id' => ['nullable', 'integer', 'exists:rk_kingdoms,id'],
             'province_id' => ['nullable', 'integer', 'exists:rk_provinces,id'],
             'city_id' => ['nullable', 'integer', 'exists:rk_cities,id'],
         ]);
+
+        if (empty($data['kingdom_id']) && empty($data['province_id']) && empty($data['city_id'])) {
+            throw MandateRefusal::make('place', 'anim.api.place_required');
+        }
 
         $type = AnimActivityType::where('key', 'decode')->firstOrFail();
         $activity = $this->workflow->create($character, $type, $data);
@@ -94,7 +100,7 @@ class DecodeActivityController extends Controller
     {
         $data = $request->validate([
             'combination' => ['required', 'string', 'regex:/^\d{5}$/'],
-            'player' => ['required', 'string', 'min:1', 'max:30'],
+            'character_name' => ['required', 'string', 'min:1', 'max:30'],
         ]);
 
         $activityModel = AnimDecodeActivity::find($activity);
@@ -107,13 +113,13 @@ class DecodeActivityController extends Controller
             return AnimApiErrors::error(404, 'anim.api.secret_not_open');
         }
 
-        $result = $this->proposals->submit($owner, $activityModel, $secretModel, $data['combination'], $data['player']);
+        $result = $this->proposals->submit($owner, $activityModel, $secretModel, $data['combination'], $data['character_name']);
 
         return response()->json([
             'success' => true,
             'score' => $result['score'],
             'found' => $result['found'],
-            'proposal' => ['combination' => $result['proposal']->combination, 'player' => $result['proposal']->player, 'points' => $result['proposal']->points],
+            'proposal' => ['combination' => $result['proposal']->combination, 'character_name' => $result['proposal']->character_name, 'points' => $result['proposal']->points],
             'activity' => $this->reader->read($activityModel->refresh(), forOwner: true),
         ], 201);
     }

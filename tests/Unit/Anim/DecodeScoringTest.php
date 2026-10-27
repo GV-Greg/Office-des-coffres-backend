@@ -2,7 +2,7 @@
 
 use App\Services\DecodeScoring;
 
-// Les Coffres Scellés — l'algorithme tient seul, avant tout le reste (brief, lot 1).
+// Décode le code — l'algorithme tient seul, avant tout le reste (brief, lot 1).
 
 it('donne 10 à la combinaison trouvée, enregistrée 20', function () {
     $score = DecodeScoring::score([1, 2, 3, 4, 5], [1, 2, 3, 4, 5]);

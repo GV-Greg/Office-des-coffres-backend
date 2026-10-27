@@ -9,15 +9,16 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
 /**
- * Ferme les activités des Coffres Scellés restées 30 jours sans action (brief : « auto après 30 jours
- * sans action »). Dernière action = DecodeWorkflow::lastActionAt (dernière proposition, lancement,
- * création ou réouverture) ; une activité `new` jamais lancée se mesure depuis sa création.
+ * Ferme les activités de « Décode le code » restées 30 jours sans action (brief : « auto après 30 jours sans action »).
+ * Dernière action = DecodeWorkflow::lastActionAt (dernière proposition, lancement, création ou réouverture) ; une activité
+ * `new` jamais lancée se mesure depuis sa création. La fermeture d'une activité SANS COMPTE est la clôture définitive de
+ * DecodeClosing : photo figée, effacement des données personnelles, compte rendu à l'adresse confirmée (D16, D30, D31).
  */
 class CloseInactiveDecodeActivities extends Command
 {
     protected $signature = 'anim:close-inactive';
 
-    protected $description = 'Ferme les activités des Coffres Scellés sans action depuis 30 jours.';
+    protected $description = 'Ferme les activités de « Décode le code » sans action depuis 30 jours.';
 
     public function handle(DecodeWorkflow $workflow): int
     {

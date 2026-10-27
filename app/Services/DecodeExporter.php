@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Models\AnimDecodeActivity;
+use App\Support\DecodeLinks;
 
 /**
- * Export BBCode des Coffres Scellés, pour le forum du jeu. **Français fixe**, comme le BBCode du Guet
- * (contenu de forum francophone, indépendant de la langue de l'interface). Corps RP d'abord, puis le
- * lien dans un bloc `[hrp]` en fin (brief, « Export BBCode »).
+ * Export BBCode de « Décode le code », pour le forum du jeu. **Français fixe**, comme le BBCode du Guet (contenu de forum
+ * francophone, indépendant de la langue de l'interface). Corps RP d'abord, puis le lien dans un bloc `[hrp]` en fin (brief,
+ * « Export BBCode »). Le lien est celui de la page publique, par SLUG (D8) : jamais le domaine d'administration.
  */
 class DecodeExporter
 {
@@ -51,16 +52,16 @@ class DecodeExporter
         if ($data['opened']) {
             $last = end($data['opened']);
             $lines[] = '';
-            $lines[] = __('anim.bbcode.found', ['number' => $last['number'], 'code' => $last['code'], 'player' => $last['discoverer'] ?? '?'], 'fr');
+            $lines[] = __('anim.bbcode.found', ['number' => $last['number'], 'code' => $last['code'], 'character' => $last['discoverer'] ?? '?'], 'fr');
             $lines[] = '';
             $lines[] = __('anim.bbcode.opened_title', [], 'fr');
             foreach ($data['opened'] as $chest) {
-                $lines[] = __('anim.bbcode.opened_line', ['number' => $chest['number'], 'code' => $chest['code'], 'player' => $chest['discoverer'] ?? '?'], 'fr');
+                $lines[] = __('anim.bbcode.opened_line', ['number' => $chest['number'], 'code' => $chest['code'], 'character' => $chest['discoverer'] ?? '?'], 'fr');
             }
             $lines[] = '';
             $lines[] = __('anim.bbcode.ranking_title', [], 'fr');
             foreach ($data['ranking'] as $rank => $row) {
-                $lines[] = __('anim.bbcode.ranking_line', ['rank' => $rank + 1, 'player' => $row['player'], 'points' => $row['points']], 'fr');
+                $lines[] = __('anim.bbcode.ranking_line', ['rank' => $rank + 1, 'character' => $row['character_name'], 'points' => $row['points']], 'fr');
             }
         }
 
@@ -70,25 +71,25 @@ class DecodeExporter
         return implode("\n", $lines);
     }
 
-    /** @param  list<array{combination: string, player: string, points: int}>  $proposals */
+    /** @param  list<array{combination: string, character_name: string, points: int}>  $proposals */
     private function attempts(array $proposals): array
     {
         $recent = array_slice($proposals, -self::LAST_ATTEMPTS);
 
         return array_map(
-            fn ($p) => __('anim.bbcode.attempt_line', ['combination' => $p['combination'], 'player' => $p['player'], 'points' => $p['points']], 'fr'),
+            fn ($p) => __('anim.bbcode.attempt_line', ['combination' => $p['combination'], 'character' => $p['character_name'], 'points' => $p['points']], 'fr'),
             $recent,
         ) ?: [__('anim.bbcode.no_attempt', [], 'fr')];
     }
 
     private function link(array $data, string $label): string
     {
-        return '[url='.self::publicUrl($data['name']).']'.$label.'[/url]';
+        return '[url='.self::publicUrl($data['slug']).']'.$label.'[/url]';
     }
 
-    /** Page publique de l'activité, sur le site des joueurs (jamais le domaine d'administration). */
-    public static function publicUrl(string $name): string
+    /** Page publique de l'activité, sur le site des joueurs (jamais le domaine d'administration), par slug. */
+    public static function publicUrl(string $slug): string
     {
-        return rtrim((string) config('app.frontend_url'), '/').'/app/anim/decode/'.rawurlencode($name);
+        return DecodeLinks::page($slug);
     }
 }

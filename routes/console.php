@@ -58,8 +58,10 @@ Schedule::command('mines:prices-digest')
     ->dailyAt(config('mandates.price_digest_at'))->timezone(config('mandates.timezone'));
 
 /*
-| Animation — Les Coffres Scellés : fermeture des activités restées 30 jours sans action (brief
+| Animation — Décode le code : fermeture des activités restées 30 jours sans action (brief
 | admin/modules/animation/brief-coffres-scelles.md). Une fois par jour, heartbeat `decode`.
 */
 Schedule::command('anim:close-inactive')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+Schedule::command('anim:purge-closed')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));

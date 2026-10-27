@@ -4,14 +4,15 @@ use App\Exceptions\MandateRefusal;
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeProposal;
+use App\Models\AnimDecodeSecret;
 use App\Services\DecodeProposals;
 use App\Services\DecodeWorkflow;
+use App\Support\DecodeSlug;
 use Illuminate\Support\Carbon;
 
 /*
-| Les Coffres Scellés — gestes de l'organisateur (brief admin/modules/animation/brief-coffres-scelles.md ;
-| décisions de Greg du tour 03 : suppression d'une activité CLOSE seulement, réouverture refusée si une
-| autre activité du type est active). Autorisation par PROPRIÉTÉ.
+| Décode le code — gestes de l'organisateur PRIVÉ (brief admin/modules/animation/brief-coffres-scelles.md ; tour 12 du
+| fil : slug pour tous, un seul niveau de lieu, suppression avec le personnage). Autorisation par PROPRIÉTÉ.
 */
 
 beforeEach(function () {
@@ -27,7 +28,7 @@ afterEach(fn () => Carbon::setTestNow());
 
 function decodeActivity($test, string $name = 'Coffre des Marches', array $extra = []): AnimDecodeActivity
 {
-    return $test->workflow->create($test->orga, $test->type, ['name' => $name] + $extra);
+    return $test->workflow->create($test->orga, $test->type, ['name' => $name, 'slug' => DecodeSlug::propose($name)] + $extra);
 }
 
 function refusal(callable $call): MandateRefusal
@@ -40,19 +41,45 @@ function refusal(callable $call): MandateRefusal
     throw new RuntimeException('Un refus était attendu.');
 }
 
-test('une activité se crée neuve, rattachée à son organisateur, sans coffre', function () {
-    $activity = decodeActivity($this, extra: ['description' => 'Pour la fête', 'province_id' => $this->map['provinceA']->id]);
+test('une activité se crée neuve, rattachée à son organisateur, avec son slug, sans coffre', function () {
+    $activity = decodeActivity($this, extra: ['province_id' => $this->map['provinceA']->id]);
 
     expect($activity->status)->toBe('new')
+        ->and($activity->slug)->toBe('coffre-des-marches')
+        ->and($activity->is_anonymous)->toBeFalse()
         ->and($activity->character_id)->toBe($this->orga->id)
         ->and($activity->launched_at)->toBeNull()
         ->and($activity->secrets()->count())->toBe(0);
 });
 
-test('province et ville s\'excluent', function () {
-    $e = refusal(fn () => decodeActivity($this, extra: ['province_id' => $this->map['provinceA']->id, 'city_id' => $this->map['cityA']->id]));
+test('un seul niveau de lieu : royaume, province OU ville', function () {
+    $kingdom = $this->map['provinceA']->kingdom_id;
+    $combos = [
+        ['kingdom_id' => $kingdom, 'province_id' => $this->map['provinceA']->id],
+        ['province_id' => $this->map['provinceA']->id, 'city_id' => $this->map['cityA']->id],
+        ['kingdom_id' => $kingdom, 'city_id' => $this->map['cityA']->id],
+    ];
 
-    expect($e->codes)->toBe(['city_id' => 'place_exclusive']);
+    foreach ($combos as $extra) {
+        expect(refusal(fn () => decodeActivity($this, extra: $extra))->codes)->toBe(['place' => 'place_exclusive']);
+    }
+});
+
+test('le royaume est un niveau de lieu à part entière', function () {
+    $activity = decodeActivity($this, extra: ['kingdom_id' => $this->map['provinceA']->kingdom_id]);
+
+    expect($activity->kingdom_id)->toBe($this->map['provinceA']->kingdom_id)->and($activity->province_id)->toBeNull();
+});
+
+test('le slug doit être valable et libre (D14, D27) — jamais de suffixe automatique', function () {
+    foreach (['abc1', 'ab', 'Abc', 'a--b', str_repeat('a', 21)] as $bad) {
+        expect(refusal(fn () => $this->workflow->create($this->orga, $this->type, ['name' => 'Coffre', 'slug' => $bad]))->codes)->toBe(['slug' => 'slug_invalid']);
+    }
+
+    decodeActivity($this);
+    // Même slug demandé par un autre personnage : refusé tel quel, jamais « -2 ».
+    $e = refusal(fn () => $this->workflow->create($this->other, $this->type, ['name' => 'Coffre des Marches', 'slug' => 'coffre-des-marches']));
+    expect($e->codes)->toBe(['slug' => 'slug_taken'])->and(AnimDecodeActivity::count())->toBe(1);
 });
 
 test('un type désactivé ne reçoit plus d\'activité', function () {
@@ -67,8 +94,8 @@ test('une seule activité non close du même type par personnage, mais pas de li
     expect(refusal(fn () => decodeActivity($this, 'Second'))->codes)->toBe(['name' => 'activity_already_active']);
 
     // Un autre personnage a les siennes ; une fois la première close, le premier peut en créer une autre.
-    $this->workflow->create($this->other, $this->type, ['name' => 'Celui de l\'autre']);
-    $this->workflow->close($this->orga, AnimDecodeActivity::where('name', 'Coffre des Marches')->first());
+    $this->workflow->create($this->other, $this->type, ['name' => 'Celui de l\'autre', 'slug' => 'celui-de-lautre']);
+    $this->workflow->close($this->orga, AnimDecodeActivity::where('slug', 'coffre-des-marches')->first());
     expect(decodeActivity($this, 'Second')->status)->toBe('new');
 });
 
@@ -81,7 +108,7 @@ test('le premier coffre passe l\'activité en cours et pose launched_at une fois
     expect($secret->code)->toMatch('/^\d{5}$/')
         ->and($secret->status)->toBeFalse()
         ->and($activity->refresh()->status)->toBe('launched')
-        ->and($activity->launched_at->toDateTimeString())->not->toBeNull();
+        ->and($activity->launched_at)->not->toBeNull();
     // Le code est CHIFFRÉ en base (MODULE_DATA_KEY), jamais en clair.
     expect(DB::table('anim_decode_secrets')->value('code'))->not->toBe($secret->code);
 });
@@ -122,6 +149,7 @@ test('une proposition est notée ; un code trouvé vaut 20, perce le coffre et e
     expect($hit['found'])->toBeTrue()
         ->and($hit['score'])->toBe(10)
         ->and($hit['proposal']->points)->toBe(20)
+        ->and($hit['proposal']->character_name)->toBe('Brunehaut')
         ->and($secret->refresh()->status)->toBeTrue()
         ->and($hit['next'])->not->toBeNull()
         ->and($hit['next']->status)->toBeFalse()
@@ -139,7 +167,7 @@ test('une proposition mal formée, ou sur un coffre déjà percé, est refusée'
     expect(refusal(fn () => $this->proposals->submit($this->orga, $activity, $secret->refresh(), '11111', 'X'))->codes)->toBe(['secret' => 'secret_not_open']);
 });
 
-test('on ne supprime qu\'une activité CLOSE ; les propositions suivent', function () {
+test('on ne supprime qu\'une activité PRIVÉE close ; les propositions suivent', function () {
     $activity = decodeActivity($this);
     $secret = $this->workflow->generateSecret($this->orga, $activity);
     $this->proposals->submit($this->orga, $activity, $secret, '00000', 'Aldric');
@@ -152,7 +180,20 @@ test('on ne supprime qu\'une activité CLOSE ; les propositions suivent', functi
     expect(AnimDecodeActivity::count())->toBe(0)->and(AnimDecodeProposal::count())->toBe(0);
 });
 
-test('on rouvre une activité close ; refusé si une autre du même type est active', function () {
+test('la clôture d\'une activité privée garde TOUT : coffre, propositions, rien n\'est figé ni effacé (D20)', function () {
+    $activity = decodeActivity($this);
+    $secret = $this->workflow->generateSecret($this->orga, $activity);
+    $this->proposals->submit($this->orga, $activity, $secret, '00000', 'Aldric');
+
+    $closed = $this->workflow->close($this->orga, $activity);
+
+    expect($closed->status)->toBe('closed')
+        ->and($closed->closing_snapshot)->toBeNull()
+        ->and($activity->secrets()->count())->toBe(1)
+        ->and(AnimDecodeProposal::count())->toBe(1);
+});
+
+test('on rouvre une activité privée close ; refusé si une autre du même type est active', function () {
     $activity = decodeActivity($this);
     $this->workflow->generateSecret($this->orga, $activity);
     $this->workflow->close($this->orga, $activity);
@@ -163,7 +204,7 @@ test('on rouvre une activité close ; refusé si une autre du même type est act
     decodeActivity($this, 'Deuxième');
     expect(refusal(fn () => $this->workflow->reopen($this->orga, $activity))->codes)->toBe(['activity' => 'reopen_blocked']);
 
-    $this->workflow->close($this->orga, AnimDecodeActivity::where('name', 'Deuxième')->first());
+    $this->workflow->close($this->orga, AnimDecodeActivity::where('slug', 'deuxieme')->first());
     $reopened = $this->workflow->reopen($this->orga, $activity);
     expect($reopened->status)->toBe('launched')->and($reopened->closed_at)->toBeNull();
 });
@@ -177,13 +218,35 @@ test('rouvrir une activité close avant tout coffre en scelle un', function () {
     expect($this->workflow->pendingSecret($activity))->not->toBeNull()->and($activity->refresh()->launched_at)->not->toBeNull();
 });
 
-test('si l\'organisateur supprime son compte, l\'activité et les propositions restent (catégorie C)', function () {
+/*
+| D21 (Greg, 28/10/2026) : une activité PRIVÉE disparaît avec le personnage ou le compte de son organisateur. Le lot 1 la
+| laissait survivre (catégorie C) ; la décision est inverse.
+*/
+test('supprimer le PERSONNAGE emporte l\'activité privée, ses coffres et ses propositions', function () {
     $activity = decodeActivity($this);
     $secret = $this->workflow->generateSecret($this->orga, $activity);
     $this->proposals->submit($this->orga, $activity, $secret, '00000', 'Aldric');
 
     $this->orga->delete();
 
-    expect($activity->refresh()->character_id)->toBeNull()
-        ->and(AnimDecodeProposal::count())->toBe(1);
+    expect(AnimDecodeActivity::count())->toBe(0)->and(AnimDecodeSecret::count())->toBe(0)->and(AnimDecodeProposal::count())->toBe(0);
+});
+
+test('supprimer le COMPTE emporte aussi les activités de tous ses personnages', function () {
+    decodeActivity($this);
+    $second = mandatePlayer($this->map['cityA'], ['user_id' => $this->orga->user_id]);
+    $this->workflow->create($second, $this->type, ['name' => 'Autre', 'slug' => 'autre-activite']);
+
+    $this->orga->user->delete();
+
+    expect(AnimDecodeActivity::count())->toBe(0);
+});
+
+test('l\'activité d\'un AUTRE personnage reste quand on en supprime un', function () {
+    decodeActivity($this);
+    $this->workflow->create($this->other, $this->type, ['name' => 'Autre', 'slug' => 'autre-activite']);
+
+    $this->orga->delete();
+
+    expect(AnimDecodeActivity::pluck('slug')->all())->toBe(['autre-activite']);
 });

@@ -1,23 +1,37 @@
 <?php
 
-// Module Animation — Les Coffres Scellés (brief admin/modules/animation/brief-coffres-scelles.md ;
-// fil admin/echanges/animation-coffres-scelles). Messages de l'API envoyés en FR et EN par
+// Module Animation — Décode le code (brief admin/modules/animation/brief-coffres-scelles.md ;
+// fil admin/echanges/animation-coffres-scelles, synthèse du tour 12). Messages de l'API envoyés en FR et EN par
 // MandateApiErrors : le frontend affiche `messages[sa langue]`, il n'a aucune table code → texte.
+// Vocabulaire (D34) : « personnage » pour un pseudo ou un nom inscrit, « joueur » pour la personne (email, connexion).
 return [
     'api' => [
         'not_owner' => "Seul l'organisateur de cette activité peut la gérer.",
+        'access_denied' => "Accès refusé : l'adresse ou le mot de passe ne correspond à aucune activité que vous puissiez gérer.",
         'activity_not_found' => "Cette activité n'existe pas.",
         'character_not_found' => "Ce personnage n'existe pas sur ce compte.",
         'type_inactive' => "Ce type d'activité n'est pas ouvert pour le moment.",
-        'place_exclusive' => 'Choisissez une province OU une ville, pas les deux.',
+        'slug_invalid' => "L'adresse doit compter de :min à :max lettres minuscules, sans chiffre, avec éventuellement des tirets au milieu.",
+        'slug_taken' => 'Cette adresse est déjà prise : choisissez-en une autre.',
+        'place_required' => 'Choisissez le lieu de l\'activité : un royaume, une province OU une ville.',
+        'place_exclusive' => 'Choisissez un royaume, une province OU une ville, pas plusieurs.',
+        'organizer_required' => 'Indiquez le pseudo de votre personnage : il sert à vous joindre, et il est affiché comme organisateur.',
+        'password_too_short' => 'Le mot de passe doit compter au moins :min caractères.',
+        'password_too_guessable' => "Le mot de passe ne peut pas être l'adresse de l'activité ni votre pseudo.",
+        'ip_limit' => 'Une activité sans compte est déjà ouverte depuis votre connexion : clôturez-la (avec son mot de passe) ou demandez à l\'administration avant d\'en créer une autre.',
         'activity_already_active' => 'Vous avez déjà une activité de ce type en cours : clôturez-la avant d\'en créer une autre.',
         'reopen_blocked' => 'Vous avez une autre activité de ce type en cours : clôturez-la avant de rouvrir celle-ci.',
+        'reopen_anonymous' => 'Une activité sans compte ne se rouvre pas : sa clôture est définitive.',
         'activity_closed' => 'Cette activité est close.',
         'activity_not_closed' => "Cette activité n'est pas close.",
         'delete_requires_closed' => 'Une activité ne se supprime qu\'une fois close : clôturez-la d\'abord.',
+        'delete_anonymous' => "Une activité sans compte ne se supprime pas : son résumé reste en ligne cinq ans. L'administration peut la retirer.",
         'secret_pending' => 'Un coffre est déjà scellé et attend d\'être percé.',
         'secret_not_open' => "Ce coffre n'est plus à percer, ou n'appartient pas à cette activité.",
         'combination_invalid' => 'Une combinaison compte exactement cinq chiffres.',
+        'reset_invalid' => "Ce lien n'est plus valable : demandez-en un nouveau.",
+        'reset_unavailable' => 'Aucun lien ne peut être émis pour cette activité (privée ou close).',
+        'email_confirm_invalid' => "Cette adresse ne peut pas être confirmée : le lien est périmé ou l'activité n'existe plus.",
     ],
 
     'status' => [
@@ -29,12 +43,40 @@ return [
 
     'types' => [
         'decode' => [
-            'name' => 'Les Coffres Scellés',
+            'name' => 'Décode le code',
             'public_link_label' => 'Coffre n°:number à percer',
             // ⚠️ BROUILLON de Claude Code (27/10/2026) : Greg a différé la rédaction définitive (tour 03,
             // Q4) ; à retravailler par Cowork avant la mise en ligne.
-            'rules' => "Un coffre est scellé par une combinaison secrète de cinq chiffres. Envoyez vos propositions à l'organisateur ; chacune reçoit une note : 2 points par chiffre bien placé, 1 point par chiffre juste mais mal placé. Le premier à trouver la combinaison entière ouvre le coffre, son nom est inscrit au registre, et un nouveau coffre est aussitôt scellé.",
+            'rules' => "Un coffre est scellé par une combinaison secrète de cinq chiffres. Envoyez vos propositions à l'organisateur ; chacune reçoit une note : 2 points par chiffre bien placé, 1 point par chiffre juste mais mal placé. Le premier personnage à trouver la combinaison entière ouvre le coffre, son nom est inscrit au registre, et un nouveau coffre est aussitôt scellé.",
         ],
+    ],
+
+    // Emails (toujours bilingues, FR puis EN — D23, D29, D31, D35, D37). Aucun ne contient de mot de passe.
+    'email' => [
+        'greeting' => 'Bonjour,',
+        'confirm_subject' => 'Confirmez votre adresse — activité « :name »',
+        'confirm_intro' => "Vous avez indiqué cette adresse pour l'activité « :name » de « Décode le code » (adresse :slug).",
+        'confirm_use' => "Une fois confirmée, elle servira à vous envoyer un lien si vous oubliez votre mot de passe, à vous prévenir si ce mot de passe est modifié, et à vous envoyer le compte rendu quand l'activité sera close. Elle sera effacée à la clôture.",
+        'confirm_action' => 'Confirmer mon adresse',
+        'confirm_ignore' => "Si ce n'est pas vous, ignorez ce message : l'adresse ne sera pas utilisée.",
+        'reset_subject' => 'Nouveau mot de passe — activité « :name »',
+        'reset_intro' => "Un changement du mot de passe de l'activité « :name » a été demandé.",
+        'reset_valid' => "Le lien ci-dessous est valable 24 heures et ne s'emploie qu'une seule fois. Vous y choisirez vous-même votre nouveau mot de passe.",
+        'reset_action' => 'Choisir un nouveau mot de passe',
+        'reset_ignore' => "Si ce n'est pas vous, ignorez ce message : votre mot de passe actuel reste valable.",
+        'changed_subject' => 'Mot de passe modifié — activité « :name »',
+        'changed_notice' => "Le mot de passe de l'activité « :name » vient d'être modifié.",
+        'changed_alert' => "Si ce n'est pas vous, prévenez l'administration de l'Office sans attendre.",
+        'report_subject' => 'Compte rendu — activité « :name »',
+        'report_intro' => "L'activité « :name » est close. Voici son compte rendu complet : le site n'en garde que le résumé, les propositions sont effacées.",
+        'report_chest_opened' => 'Coffre n°:number — ouvert : :code (trouvé par :character)',
+        'report_chest_sealed' => 'Coffre n°:number — non percé : :code',
+        'report_attempt' => '— :combination — :character : :points pt(s)',
+        'report_no_attempt' => '— aucune tentative',
+        'report_ranking' => 'Classement final',
+        'report_ranking_line' => ':rank. :character — :points pt(s)',
+        'report_page' => 'Le résumé reste en ligne :years ans :',
+        'report_action' => 'Voir la page de résumé',
     ],
 
     // Administration Blade (français seul, comme les autres pages d'administration).
@@ -44,7 +86,7 @@ return [
         'types_title' => "Types d'activité",
         'types_help' => "Un type désactivé n'apparaît plus dans le module des joueurs ; les activités déjà créées restent lisibles.",
         'recent_title' => 'Activités récentes',
-        'recent_help' => "Surveillance seulement : vérifiez sur le forum la légitimité d'une activité. Les activités appartiennent à leur organisateur, elles ne se gèrent pas d'ici.",
+        'recent_help' => "Surveillance, et recours pour les activités SANS COMPTE (clore, retirer, émettre un lien de réinitialisation). Les activités privées appartiennent à leur organisateur : elles ne se gèrent pas d'ici.",
         'recent_empty' => 'Aucune activité pour le moment.',
         'type' => 'Type',
         'key' => 'Clé',
@@ -59,20 +101,43 @@ return [
         'organizer_deleted' => 'compte supprimé',
         'place' => 'Lieu',
         'created' => 'Créée le',
+        'mode' => 'Mode',
+        'mode_private' => 'Privée',
+        'mode_anonymous' => 'Sans compte',
+        'email' => 'Email du joueur',
+        'email_unconfirmed' => 'non confirmé',
+        'email_none' => '—',
+        'last_reset' => 'Mot de passe changé',
+        'reset_requested' => 'Lien demandé le :date',
+        'reset_via_email' => 'par le lien envoyé au joueur',
+        'reset_via_admin' => 'par le lien remis via le jeu',
+        'actions' => 'Actions',
+        'close' => 'Clore',
+        'closed_flash' => 'Activité « :name » close : résumé figé, données personnelles effacées. Cette clôture est définitive.',
+        'delete' => 'Supprimer',
+        'delete_title' => "Supprimer l'activité « :name »",
+        'delete_warning' => "Cette activité et sa page de résumé disparaissent définitivement. L'adresse « :slug » redevient libre et les liens postés sur le forum donneront une erreur. Les données personnelles qui pourraient rester sont effacées avec elle.",
+        'delete_confirm' => 'Oui, supprimer définitivement',
+        'delete_cancel' => 'Annuler',
+        'deleted_flash' => 'Activité « :name » supprimée.',
+        'reset_link' => 'Lien de réinitialisation',
+        'reset_link_flash' => "Lien émis pour « :name » (usage unique, valable jusqu'au :until). Il n'est affiché qu'ici, UNE SEULE FOIS. Envoyez ce message au personnage « :pseudo » dans le jeu :",
+        'reset_message' => "Bonjour :pseudo, voici le lien pour choisir un nouveau mot de passe pour l'activité « :name » de « Décode le code » (valable 24 heures, à usage unique) : :url",
+        'not_anonymous' => 'Cette action ne concerne que les activités sans compte.',
     ],
 
     'bbcode' => [
         'organizer' => 'Organisateur : :name',
         'place' => 'Lieu : :name',
         'attempts_title' => '[b]Coffre n°:number — tentatives[/b]',
-        'attempt_line' => '[*] :combination — :player : :points pt(s)',
+        'attempt_line' => '[*] :combination — :character : :points pt(s)',
         'no_attempt' => 'Aucune tentative pour le moment.',
         'no_open_chest' => 'Aucun coffre à percer pour le moment.',
-        'found' => '[b]Le coffre n°:number est ouvert ![/b] La combinaison était :code, trouvée par :player.',
+        'found' => '[b]Le coffre n°:number est ouvert ![/b] La combinaison était :code, trouvée par :character.',
         'opened_title' => '[b]Coffres ouverts[/b]',
-        'opened_line' => 'Coffre n°:number : :code — :player',
+        'opened_line' => 'Coffre n°:number : :code — :character',
         'ranking_title' => '[b]Classement cumulé[/b]',
-        'ranking_line' => ':rank. :player — :points pt(s)',
+        'ranking_line' => ':rank. :character — :points pt(s)',
         'full_results' => 'Résultats complets',
     ],
 ];

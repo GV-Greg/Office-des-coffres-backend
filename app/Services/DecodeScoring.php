@@ -3,7 +3,7 @@
 namespace App\Services;
 
 /**
- * Note d'une combinaison des Coffres Scellés (brief admin/modules/animation/brief-coffres-scelles.md) :
+ * Note d'une combinaison de « Décode le code » (brief admin/modules/animation/brief-coffres-scelles.md) :
  * Bulls-and-Cows sur 5 chiffres. Service PUR — aucune dépendance Eloquent.
  *
  *  1. chaque position exacte vaut 2 et consomme le chiffre du secret ;

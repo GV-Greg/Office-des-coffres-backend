@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Une proposition saisie par l'organisateur. `created_at` seul : elle ne se modifie pas.
+ * Une proposition saisie par l'organisateur : le NOM DU PERSONNAGE qui a proposé (texte libre, D34) et sa combinaison.
+ * `created_at` seul : elle ne se modifie pas.
  */
 class AnimDecodeProposal extends Model
 {
