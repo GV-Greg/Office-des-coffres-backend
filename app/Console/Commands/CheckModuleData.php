@@ -27,7 +27,7 @@ class CheckModuleData extends Command
     protected $description = 'Vérifie la clé des données de module (forme, aller-retour, relecture des données existantes).';
 
     /** Tables dont une colonne est chiffrée par EncryptedModuleData : table => colonne. */
-    public const ENCRYPTED_COLUMNS = ['mine_reports' => 'payload'];
+    public const ENCRYPTED_COLUMNS = ['mine_reports' => 'payload', 'anim_decode_secrets' => 'code'];
 
     public function handle(): int
     {

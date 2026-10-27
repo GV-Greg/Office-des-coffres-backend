@@ -32,6 +32,7 @@ class MandateHeartbeat
         'logs' => 'logs:prune',
         'accounts' => 'accounts:purge',
         'prices' => 'mines:prices-digest',
+        'decode' => 'anim:close-inactive',
     ];
 
     public static function record(string $task): void

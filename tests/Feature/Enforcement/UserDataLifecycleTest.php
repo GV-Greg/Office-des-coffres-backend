@@ -53,6 +53,12 @@ $declaredTables = [
     // art. 20 (pas rattachée au compte). Tenu par Mines/MinePriceTest.
     'province_mine_prices' => 'C',
 
+    // C — Les Coffres Scellés (27/10/2026) : l'activité et ce que les autres joueurs y ont inscrit
+    // RESTENT ; `character_id` (l'organisateur) passe à NULL par la base (nullOnDelete). Une cascade
+    // effacerait la participation d'autrui. Les propositions (`player` en texte libre) et les
+    // secrets ne portent aucun lien vers un compte. Tenu par Anim/DecodeWorkflowTest.
+    'anim_decode_activities' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

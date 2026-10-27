@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\MandateController;
@@ -40,6 +41,10 @@ Route::prefix('v1')->group(function () {
     // Référentiel des postes titrés d'un conseil comtal : public, aucune donnée de compte.
     Route::get('council-offices', [MandateController::class, 'offices']);
 
+    // Animation — lecture publique (types ouverts, page d'une activité par son nom).
+    Route::get('anim/activity-types', [DecodeActivityController::class, 'types']);
+    Route::get('anim/decode-activities/{name}', [DecodeActivityController::class, 'show']);
+
     Route::middleware('auth:api')->group(function () {
         Route::get('characters', [CharacterController::class, 'index']);
         Route::post('characters', [CharacterController::class, 'store']);
@@ -68,6 +73,23 @@ Route::prefix('v1')->group(function () {
                 ->where('province', '[0-9]+');
             Route::put('provinces/{province}/mine-prices/{price}', [MinePriceController::class, 'update'])
                 ->where(['province' => '[0-9]+', 'price' => '[0-9]+']);
+        });
+        // Animation — Les Coffres Scellés (brief admin/modules/animation/brief-coffres-scelles.md).
+        // Autorisation par PROPRIÉTÉ (DecodeWorkflow), jamais par poste. ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('characters/{character}/decode-activities', [DecodeActivityController::class, 'index'])
+            ->where('character', '[0-9]+');
+        Route::middleware('throttle:6,1')->group(function () {
+            Route::post('characters/{character}/decode-activities', [DecodeActivityController::class, 'store'])
+                ->where('character', '[0-9]+');
+        });
+        Route::prefix('decode-activities/{activity}')->where(['activity' => '[0-9]+', 'secret' => '[0-9]+'])->group(function () {
+            Route::post('secrets', [DecodeActivityController::class, 'generateSecret']);
+            Route::post('secrets/{secret}/proposals', [DecodeActivityController::class, 'propose']);
+            Route::post('reopen', [DecodeActivityController::class, 'reopen']);
+            Route::post('close', [DecodeActivityController::class, 'close']);
+            Route::delete('', [DecodeActivityController::class, 'destroy']);
+            Route::get('export/rules', [DecodeActivityController::class, 'exportRules']);
+            Route::get('export/results', [DecodeActivityController::class, 'exportResults']);
         });
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/mandates', [MandateController::class, 'store']);

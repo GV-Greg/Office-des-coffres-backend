@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 15/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 27/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -479,6 +479,58 @@ garde ceux que le client envoie. **Résumé quotidien** `mines:prices-digest` à
 ses propres changements, rien s'il n'y a pas de changement ; fenêtre = depuis le dernier passage réussi (24 h à
 défaut, 14 jours au plus). ⚠️ **Prod** : routes ajoutées → `route:cache` ; `config/mandates.php` modifié →
 `config:cache`.
+
+## Animation — Les Coffres Scellés (27/10/2026)
+
+Première activité du module Animation (brief `admin/modules/animation/brief-coffres-scelles.md`, fil
+`admin/echanges/animation-coffres-scelles`). Un organisateur scelle un coffre par une combinaison
+secrète de 5 chiffres, saisit les propositions reçues (forum, gazette, en jeu), chacune est notée ;
+quand quelqu'un trouve, le code est révélé avec son découvreur et un nouveau coffre est scellé.
+
+🔴 **Premier module du projet sans Spatie ni mandat : l'autorisation se fait PAR PROPRIÉTÉ.**
+`activity.character_id === actor.id`, vérifiée en premier dans chaque geste de gestion
+(`DecodeWorkflow::authorize()`), refus **403** (`not_owner`). Les routes `decode-activities/{activity}`
+ne portent pas de personnage : l'acteur est l'organisateur de l'activité, à condition qu'il
+appartienne au compte du jeton (`DecodeWorkflow::ownerOf()`). Aucune permission Spatie, aucun écran
+Blade de gestion joueur ; l'administration se limite aux types d'activité et à la surveillance.
+
+| Pièce | Rôle |
+|---|---|
+| `anim_activity_types` | référentiel (`key` = clé de traduction, `is_active`) ; `decode` semé par une migration qui appelle `AnimActivityTypeSeeder` (idempotent, ne réactive jamais un type désactivé) |
+| `anim_decode_activities` | l'activité ; `character_id` **catégorie C** (`nullOnDelete`) ; `province_id` OU `city_id` (exclusion tenue par le Service, pas de CHECK SQL) |
+| `anim_decode_secrets` | un coffre ; `code` **chiffré par `MODULE_DATA_KEY`** (`EncryptedModuleData`, listé dans `CheckModuleData::ENCRYPTED_COLUMNS`) ; son numéro est son rang, non stocké |
+| `anim_decode_proposals` | proposition ; `player` en **texte libre**, aucune clé vers un compte ; `created_at` seul |
+| `App\Services\DecodeScoring` | Bulls-and-Cows, service pur : position exacte 2, chiffre présent mais mal placé 1 (occurrences respectées), plafond 10 ; un code trouvé (10) s'enregistre à **20** |
+| `App\Services\DecodeWorkflow` | seul écrivain des activités et des secrets |
+| `App\Services\DecodeProposals` | saisie d'une proposition — **propriétaire seul** (le plan du 18/10 l'ouvrait à tout visiteur : erreur de rédaction, le brief fait foi) |
+| `App\Services\DecodeActivityReader` | lecture publique **et** écran de l'organisateur, une seule forme |
+| `App\Services\DecodeExporter` | BBCode en **français fixe** : règles (corps RP puis `[hrp]` + lien) et résultats |
+| `App\Support\AnimApiErrors` | contrat d'erreur au patron de `MandateApiErrors` (qui porte la mécanique), périmètre propre ; clés `anim.api.*` |
+
+Routes (`/api/v1`) : publiques `anim/activity-types`, `anim/decode-activities/{name}` ; `auth:api`
+`characters/{character}/decode-activities` (GET, POST `throttle:6,1`) et `decode-activities/{activity}/…`
+(`secrets`, `secrets/{secret}/proposals`, `reopen`, `close`, DELETE, `export/rules`, `export/results`).
+Administration Blade (`role:admin`) : `anim` (types, surveillance), `anim/types/{type}/toggle`.
+
+Règles tranchées par Greg (fil, tour 03) :
+- **Le code du coffre en cours** n'est renvoyé qu'à l'organisateur (liste de ses activités et réponses de
+  gestion) ; **jamais** par `GET anim/decode-activities/{name}`. « Pour le moment » : à revoir si besoin.
+  Gardé par `DecodeActivityApiTest` dans les deux sens.
+- **Suppression** : uniquement d'une activité **close**, avec ou sans propositions (la page publique d'une
+  activité close reste lisible, un lien posté sur le forum ne casse pas).
+- **Réouverture** refusée si une autre activité du même type n'est pas close pour ce personnage.
+- Une seule activité non close par type et par personnage, vérifiée dans le Service.
+
+**Fermeture automatique** : `anim:close-inactive` (09:00 Paris, heartbeat `decode`) ferme une activité
+après `AnimDecodeActivity::INACTIVITY_DAYS` (30) sans action. Dernière action = la plus récente parmi la
+dernière proposition, `launched_at`, la création et la dernière modification de l'activité (une
+**réouverture relance donc l'horloge** ; une activité jamais lancée se mesure depuis sa création). La durée
+est une constante et non un `config/*.php` : un nouveau fichier de config est absent du cache en prod.
+
+⚠️ **Prod** : routes ajoutées → `php artisan route:cache` en SSH après le déploiement (sinon 404) ; la
+migration sème le type `decode` mais le déploiement ne lance pas les migrations (`php artisan migrate`) ;
+`anim:close-inactive` ne tourne qu'avec la tâche cron `schedule:run` de cPanel. Texte des règles
+(`types.decode.rules`) : **brouillon** de Claude Code, à retravailler par Cowork avant la mise en ligne.
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Web\AnimAdminController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\MandateAdminController;
 use Illuminate\Support\Facades\Route;
@@ -61,6 +62,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
             Route::post('correct-decision', 'correctDecision')->name('correct-decision');
             Route::post('verify', 'verify')->name('verify');
         });
+    });
+
+    // Animation (admin/modules/animation/brief-coffres-scelles.md) : types d'activité et surveillance
+    // des activités récentes. Aucune gestion des activités des joueurs ici.
+    Route::prefix('anim')->name('anim.')->controller(AnimAdminController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::patch('types/{type}/toggle', 'toggleType')->name('types.toggle');
     });
 });
 
