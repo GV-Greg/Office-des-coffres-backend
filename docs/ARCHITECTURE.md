@@ -535,7 +535,7 @@ confirmée** — D32, date et mode du dernier changement de mot de passe) et **r
 
 Règles tranchées par Greg :
 - **Le code du coffre en cours** n'est renvoyé à **personne**, l'organisateur compris (Greg, 28/10/2026 : « on va le masquer » ; le serveur tire la combinaison, l'organisateur ne la connaît pas) : il n'apparaît qu'une fois le coffre percé (`opened`) et, à la clôture d'une activité sans compte avec email confirmé, dans le compte rendu (D31). Les tests le lisent en base (`decodeSecretCode()`).
-- **Texte des règles** (`types.decode.rules`, FR et EN) : rédigé par Cowork le 28/10/2026 (`17-regles-decode.md`), jumeau de `Animation.Types.decode.Rules` côté frontend.
+- **Texte des règles** : DEUX versions rédigées par Cowork (`17-regles-decode.md`, validées par Greg le 28/10/2026) — `types.decode.rules` (FR et EN) = version **export forum** (BBCode, directe aux joueurs) ; la version **site** (qui nomme l'Office) est `Animation.Types.decode.Rules` côté frontend. Les deux ne sont pas jumeaux.
 - **Suppression** : une activité **privée close** par son organisateur ; une activité **sans compte** par l'administrateur du site seulement.
 - **Réouverture** : privée seulement (refusée si une autre activité du type est active) ; **jamais** sans compte.
 - **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.

@@ -45,8 +45,9 @@ return [
         'decode' => [
             'name' => 'Décode le code',
             'public_link_label' => 'Coffre n°:number à percer',
-            // Texte rédigé par Cowork (28/10/2026, 17-regles-decode.md) ; jumeau de Animation.Types.decode.Rules (frontend).
-            'rules' => "Un coffre scellé trône devant vous, verrouillé par une combinaison secrète de cinq chiffres (0 à 9). Pour tenter de l'ouvrir, soumettez votre combinaison à l'organisateur de la salle.\n\nÀ chaque tentative, le mécanisme du coffre vous répond :\n— 2 points par chiffre bien placé (à la bonne position),\n— 1 point par chiffre présent dans la combinaison mais mal placé.\n\nLe score maximum est de 10 points — cinq chiffres, tous bien placés. Si vous l'atteignez, le coffre s'ouvre ! Votre pseudo est inscrit au tableau, la combinaison secrète est révélée à tous, et un nouveau coffre scellé apparaît aussitôt.\n\nLe classement général comptabilise les coffres percés par chaque participant. Bonne chance !",
+            // VERSION EXPORT FORUM (BBCode, directe aux joueurs), rédigée par Cowork (17-regles-decode.md, validée par Greg le 28/10/2026).
+            // La version affichée sur le site (qui nomme l'Office) est Animation.Types.decode.Rules côté frontend : les deux textes ne sont PAS jumeaux.
+            'rules' => "Vous avez devant vous une série de coffres scellés. Chaque coffre est verrouillé par une combinaison secrète de cinq chiffres (0 à 9). Votre but : trouver le plus de combinaisons. Pour tenter d'en percer un, soumettez une proposition de combinaison.\n\nÀ chaque tentative, le mécanisme du coffre vous répond :\n— 2 points par chiffre bien placé (à la bonne position),\n— 1 point par chiffre présent dans la combinaison mais mal placé.\n\nLe score maximum d'une tentative est de 10 points — cinq chiffres, tous bien placés. Si vous l'atteignez, le coffre s'ouvre et on passe au suivant — vous obtenez un bonus de 10 pour avoir ouvert le coffre !\n\nUn classement général comptabilise les points accumulés par vos propositions de combinaison. Bonne chance !",
         ],
     ],
 

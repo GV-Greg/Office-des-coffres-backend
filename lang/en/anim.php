@@ -44,8 +44,9 @@ return [
         'decode' => [
             'name' => 'Crack the Code',
             'public_link_label' => 'Chest #:number to crack',
-            // Texte rédigé par Cowork (28/10/2026, 17-regles-decode.md) ; jumeau de Animation.Types.decode.Rules (frontend).
-            'rules' => "A sealed chest stands before you, locked by a secret combination of five digits (0 to 9). To try to open it, submit your combination to the room's organiser.\n\nFor each attempt, the chest's mechanism responds:\n— 2 points for each digit in the correct position,\n— 1 point for each digit present in the combination but in the wrong position.\n\nThe maximum score is 10 — five digits, all in the right place. If you reach it, the chest opens! Your nickname is recorded on the board, the secret combination is revealed to all, and a new sealed chest appears immediately.\n\nThe overall standings track the chests cracked by each participant. Good luck!",
+            // VERSION EXPORT FORUM (BBCode, directe aux joueurs), rédigée par Cowork (17-regles-decode.md, validée par Greg le 28/10/2026).
+            // La version affichée sur le site (qui nomme l'Office) est Animation.Types.decode.Rules côté frontend : les deux textes ne sont PAS jumeaux.
+            'rules' => "Before you stands a series of sealed chests. Each chest is locked by a secret combination of five digits (0 to 9). Your goal: crack as many as you can. To try to open one, submit a combination.\n\nFor each attempt, the chest's mechanism responds:\n— 2 points for each digit in the correct position,\n— 1 point for each digit present in the combination but in the wrong position.\n\nThe maximum score for an attempt is 10 — five digits, all in the right place. If you reach it, the chest opens and we move to the next — you earn a bonus of 10 for cracking the chest!\n\nThe overall standings track the points accumulated from your combination attempts. Good luck!",
         ],
     ],
 
