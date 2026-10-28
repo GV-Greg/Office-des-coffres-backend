@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 15/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 28/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -479,6 +479,77 @@ garde ceux que le client envoie. **Résumé quotidien** `mines:prices-digest` à
 ses propres changements, rien s'il n'y a pas de changement ; fenêtre = depuis le dernier passage réussi (24 h à
 défaut, 14 jours au plus). ⚠️ **Prod** : routes ajoutées → `route:cache` ; `config/mandates.php` modifié →
 `config:cache`.
+
+## Animation — Décode le code (27/10/2026, refondue le 28/10/2026)
+
+Première activité du module Animation (brief `admin/modules/animation/brief-coffres-scelles.md` ; **spécification à jour :
+`admin/echanges/animation-coffres-scelles/12-synthese-cc.md`**, décisions D1 à D40 — le brief n'avait pas encore été révisé). Un
+organisateur scelle un coffre par une combinaison secrète de 5 chiffres, saisit les propositions reçues (forum, gazette, en jeu),
+chacune est notée ; quand un personnage trouve, le code est révélé avec son nom et un nouveau coffre est scellé.
+
+**Deux modes dans les mêmes tables** (`anim_decode_activities.is_anonymous`) :
+- **Privé** : lié au personnage (`character_id`, **catégorie A, `cascadeOnDelete`** — D21 : la suppression du personnage ou du compte
+  emporte l'activité, ses coffres, ses propositions et sa page). Réouvrable, jamais supprimé automatiquement (D20).
+- **Sans compte** : aucune clé vers un compte. L'auteur se prouve par le **slug** (public) et un **mot de passe** qu'il a choisi (D10),
+  pseudo **obligatoire** (D12), email **facultatif** confirmé par lien (D23, D29). Clôture **définitive** (D19).
+
+🔴 **Autorisation PAR PROPRIÉTÉ, jamais par poste** (premier module du projet sans Spatie ni mandat). Les gestes de
+`DecodeWorkflow` reçoivent un **`DecodeActor`** : un personnage, ou un auteur sans compte qui vient de prouver son mot de passe
+(`DecodeAccess`). La vérification de propriété est la première ligne de chaque geste ; refus **403** (`not_owner`).
+
+| Pièce | Rôle |
+|---|---|
+| `anim_activity_types` | référentiel (`key` = clé de traduction, `is_active`) ; `decode` semé par une migration qui appelle `AnimActivityTypeSeeder` (idempotent, ne réactive jamais un type désactivé) |
+| `anim_decode_activities` | l'activité (**ni description**, retirée le 28/10) ; **lieu obligatoire** (exigé par les deux routes de création : un seul de `kingdom_id`/`province_id`/`city_id`) ; **`slug` unique** (clé de recherche) ; `kingdom_id` OU `province_id` OU `city_id` (exclusion tenue par le Service) ; données du mode sans compte : `organizer_name`, `password_hash`, `creator_ip_hash`, `organizer_email` (chiffré), jeton de réinitialisation haché, `closing_snapshot` |
+| `anim_decode_secrets` | un coffre ; `code` **chiffré par `MODULE_DATA_KEY`** ; son numéro est son rang |
+| `anim_decode_proposals` | proposition ; **`character_name`** (nom du personnage, texte libre, aucune clé vers un compte) |
+| `App\Support\DecodeSlug` | **seule source des règles du slug** (D14) : lettres et tirets, **aucun chiffre**, 3 à 20 caractères, **aucun mot réservé** ; propose depuis un nom (accents retirés, chiffres retirés, coupé à 20) ; jamais de suffixe automatique (D27) |
+| `App\Services\DecodeScoring` | Bulls-and-Cows, service pur : position exacte 2, chiffre présent mais mal placé 1, plafond 10 ; trouvé (10) → enregistré **20** |
+| `App\Services\DecodeWorkflow` | seul écrivain des activités et des secrets (création privée et sans compte, coffres, réouverture privée, clôture, suppressions) |
+| `App\Services\DecodeAccess` | preuve d'auteur sans compte ; **le refus ne distingue pas** slug inconnu / activité privée / activité close / mot de passe faux (faux hachage comparé pour égaliser le temps) |
+| `App\Services\DecodeClosing` | **LA clôture**, quel qu'en soit le déclencheur. Privée : tout est gardé. Sans compte : dans une transaction, **photo figée** (nom, organisateur, lieu, codes trouvés + qui, classement final — D18) et **effacement** du coffre non percé, des propositions, de la description, du mot de passe, de l'empreinte d'IP, de l'email, du jeton ; le compte rendu complet part **après** la transaction (un échec d'envoi ne bloque jamais la clôture) |
+| `App\Services\DecodePasswordReset` | réinitialisation (D35, D36) : lien **à usage unique, 24 h, stocké haché**, l'auteur **choisit** son mot de passe (aucun mot de passe ne circule) ; avec un email confirmé l'auteur le demande lui-même, sinon l'administrateur du site émet le lien et le remet **au pseudo du personnage dans le jeu** |
+| `App\Services\DecodeProposals` | saisie d'une proposition — propriétaire seul |
+| `App\Services\DecodeActivityReader` | lecture publique **et** écran de l'organisateur, une seule forme, deux sources (tables, ou photo figée d'une activité sans compte close) |
+| `App\Services\DecodeExporter` | BBCode en **français fixe**, lien par slug |
+| `App\Services\DecodeMailer` + `App\Notifications\Decode*` | cinq emails **bilingues, français puis anglais**, jamais de mot de passe : confirmation d'adresse, lien de réinitialisation, avis « mot de passe modifié » (D37, après chaque changement), compte rendu de fin (propositions comprises, D31) ; synchrones ; l'adresse n'est jamais journalisée |
+| `App\Support\DecodeIp` | empreinte HMAC-SHA256 de l'IP (clé = `MODULE_DATA_KEY`, aucune variable `.env` de plus) ; **nulle** pour une adresse privée/de bouclage/réservée (sinon « une seule activité par connexion » bloquerait tout le monde derrière un répartiteur mal configuré) |
+| `App\Support\DecodePassword` | règles du mot de passe imposées par le serveur : 10 caractères, différent du slug et du pseudo |
+| `App\Support\DecodeLinks` | liens des emails et de l'export, tous vers le **site des joueurs** (jamais le domaine d'administration) ; la page publique d'une activité est `/public/activite/decode/{slug}` (convention : `/public/` pour ce qui se partage) |
+| `App\Support\AnimApiErrors` | contrat d'erreur au patron de `MandateApiErrors` (qui porte la mécanique), périmètre propre ; clés `anim.api.*` |
+
+Routes (`/api/v1`) — **aucune route fixe ne voisine `{slug}`** (aucun mot réservé, D14) :
+- publiques : `anim/activity-types`, `anim/decode-activities/{slug}` (les deux modes, jamais le code d'un coffre scellé),
+  `anim/decode-slug` (aperçu et disponibilité, `throttle:anim-slug`) ;
+- sans compte (aucun jeton, mot de passe dans le **corps**) : `POST anim/decode-manage` (création, `throttle:anim-create`),
+  `POST anim/decode-manage/{slug}/{open,secrets,secrets/{secret}/proposals,close,export/rules,export/results,reset-complete}`
+  (`throttle:anim-access` : 5 essais/min par slug et par IP, comptés que le slug existe ou non), `…/reset-request`
+  (`throttle:anim-reset`, **même réponse 202** dans tous les cas), `GET anim/decode-email-confirm/{slug}/{hash}` (lien signé) ;
+- privé (`auth:api`) : `characters/{character}/decode-activities` (GET, POST `throttle:6,1`) et `decode-activities/{activity}/…`
+  (`secrets`, `secrets/{secret}/proposals`, `reopen`, `close`, DELETE, `export/rules`, `export/results`).
+
+Administration Blade (`role:admin`, `/anim`) : types, surveillance des activités récentes (mode, organisateur, **adresse seulement si
+confirmée** — D32, date et mode du dernier changement de mot de passe) et **recours pour les activités SANS COMPTE uniquement**
+(D13) : clore (définitif), supprimer (**étape de confirmation**, jamais en un clic), émettre un lien de réinitialisation (montré
+**une seule fois**, message prêt à envoyer au personnage dans le jeu). Aucun geste sur une activité privée.
+
+Règles tranchées par Greg :
+- **Le code du coffre en cours** n'est renvoyé à **personne**, l'organisateur compris (Greg, 28/10/2026 : « on va le masquer » ; le serveur tire la combinaison, l'organisateur ne la connaît pas) : il n'apparaît qu'une fois le coffre percé (`opened`) et, à la clôture d'une activité sans compte avec email confirmé, dans le compte rendu (D31). Les tests le lisent en base (`decodeSecretCode()`).
+- **Texte des règles** : DEUX versions rédigées par Cowork (`17-regles-decode.md`, validées par Greg le 28/10/2026) — `types.decode.rules` (FR et EN) = version **export forum** (BBCode, directe aux joueurs) ; la version **site** (qui nomme l'Office) est `Animation.Types.decode.Rules` côté frontend. Les deux ne sont pas jumeaux.
+- **Suppression** : une activité **privée close** par son organisateur ; une activité **sans compte** par l'administrateur du site seulement.
+- **Réouverture** : privée seulement (refusée si une autre activité du type est active) ; **jamais** sans compte.
+- **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.
+- **Page de résumé d'une activité sans compte** : 5 ans après la clôture (`anim:purge-closed`), puis suppression et **libération du slug**.
+
+**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`) : `anim:close-inactive` (30 jours sans action ; une
+réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de `AnimDecodeActivity`, pas
+un `config/*.php` (un nouveau fichier de config est absent du cache en prod).
+
+⚠️ **Prod** : routes ajoutées → `php artisan route:cache` en SSH après le déploiement (sinon 404) ; le déploiement ne lance pas les
+migrations (`php artisan migrate`, qui sème aussi le type `decode`) ; `anim:*` ne tournent qu'avec la tâche cron `schedule:run` de
+cPanel ; aucun nouveau `config/*.php` ni `.env` ; **mesurer ce que `$request->ip()` voit derrière O2Switch avant d'activer le mode
+sans compte** ; **rien ne se déploie avant le texte légal** (politique, « Vos données », `/legal/cookies`, registre des traitements).
+Texte des règles (`types.decode.rules`) : rédigé par Cowork (28/10/2026).
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 

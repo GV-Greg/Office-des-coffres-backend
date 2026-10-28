@@ -81,4 +81,17 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Décode le code, activité du module Animation (back #72, front #101 — à dater de leur mise en ligne) — une entrée propre à
+    // cette modification. « Substantielle » : décision de Greg, 28/10/2026 (données nouvelles : mot de passe hors compte, email
+    // facultatif, empreinte d'IP en mode public ; l'activité privée disparaît avec le personnage ou le compte). Texte :
+    // admin/content/policy-coffres-scelles.md. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
+    '2026-10-28-decode-le-code' => [
+        'date' => '2026-10-28',
+        'summary' => [
+            'fr' => "Une nouvelle activité, « Décode le code », ouvre dans la Salle des Jeux. Jouée avec votre personnage, elle disparaît avec lui ou avec votre compte. Jouée sans compte, l'Office conserve un pseudo, un mot de passe haché, une adresse email facultative et une empreinte à sens unique de la connexion, effacés à la clôture ; la page de résumé reste visible 5 ans, sans les propositions reçues (articles 3, 5 et 6 de la politique de confidentialité, et article 3 de la politique des cookies).",
+            'en' => 'A new activity, “Crack the Code”, opens in the Games Hall. Played with your character, it disappears with it or with your account. Played without an account, the Office keeps a nickname, a hashed password, an optional email address and a one-way fingerprint of the connection, erased when the activity closes; the summary page stays visible for 5 years, without the proposals received (sections 3, 5 and 6 of the privacy policy, and section 3 of the cookie policy).',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];

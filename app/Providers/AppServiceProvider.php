@@ -61,6 +61,38 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by('refresh:'.$request->ip());
         });
 
+        // Décode le code, mode SANS COMPTE (aucun jeton à compter : tout se compte par adresse et par slug).
+        // Création : une activité ouverte par connexion est déjà la règle (D17) ; ceci borne seulement les rafales.
+        RateLimiter::for('anim-create', function (Request $request) {
+            return Limit::perMinute(3)->by('anim-create:'.$request->ip());
+        });
+
+        // Preuve d'auteur (slug public + mot de passe) : serré par slug ET par IP, comme `login` — le slug étant public,
+        // n'importe qui peut essayer des mots de passe sur l'activité d'un autre. Compté que le slug existe ou non.
+        RateLimiter::for('anim-access', function (Request $request) {
+            $slug = mb_strtolower((string) $request->route('slug'));
+
+            return [
+                Limit::perMinute(5)->by('anim-access:'.$slug.'|'.$request->ip()),
+                Limit::perMinute(30)->by('anim-access-ip:'.$request->ip()),
+            ];
+        });
+
+        // Demande d'un lien de réinitialisation : borne l'envoi d'emails à l'adresse d'un tiers (D35).
+        RateLimiter::for('anim-reset', function (Request $request) {
+            $slug = mb_strtolower((string) $request->route('slug'));
+
+            return [
+                Limit::perMinute(3)->by('anim-reset:'.$slug.'|'.$request->ip()),
+                Limit::perMinute(10)->by('anim-reset-ip:'.$request->ip()),
+            ];
+        });
+
+        // Aperçu et disponibilité du slug : appelé à la frappe, donc plus large.
+        RateLimiter::for('anim-slug', function (Request $request) {
+            return Limit::perMinute(60)->by('anim-slug:'.$request->ip());
+        });
+
         Event::listen(
             Registered::class,
             SendEmailVerificationNotification::class,

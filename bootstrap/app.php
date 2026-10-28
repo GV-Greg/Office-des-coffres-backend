@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RecordLastSeen;
+use App\Support\AnimApiErrors;
 use App\Support\MandateApiErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -39,6 +40,11 @@ return Application::configure(basePath: dirname(__DIR__))
             return MandateApiErrors::covers($request) ? MandateApiErrors::validation($e) : null;
         });
 
+        // Module Animation : même contrat, périmètre à lui (AnimApiErrors).
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            return AnimApiErrors::covers($request) ? AnimApiErrors::validation($e) : null;
+        });
+
         // Le TokenGuard de Passport signale tout jeton Bearer refusé (expiré, révoqué, illisible) :
         // une erreur de ~90 lignes dans laravel.log pour un 401 ordinaire, à chaque expiration
         // d'un jeton de joueur. Seul ce refus (`access_denied`) est tu, les autres erreurs OAuth
@@ -62,6 +68,10 @@ return Application::configure(basePath: dirname(__DIR__))
             // ne le laisse pas passer. Le reste de l'API garde son message français : item à part.
             if (MandateApiErrors::covers($request)) {
                 return MandateApiErrors::error(429, 'mandates.api.throttled', ['seconds' => $seconds], $e->getHeaders());
+            }
+
+            if (AnimApiErrors::covers($request)) {
+                return AnimApiErrors::error(429, 'mandates.api.throttled', ['seconds' => $seconds], $e->getHeaders());
             }
 
             return response()->json([

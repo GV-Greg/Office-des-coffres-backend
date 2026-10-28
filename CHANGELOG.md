@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-28] — PR #72 (Décode le code : première activité du module Animation)
+
+### Added
+- Activité **« Décode le code »** (Mastermind à 5 chiffres) du module Animation, en deux modes : **privé** (lié au personnage, supprimé avec lui ou avec le compte) et **sans compte** (adresse publique + mot de passe haché, pseudo obligatoire, email facultatif confirmé, empreinte HMAC de l'IP). Tables `anim_*`, services `Decode*`, API `anim/*` et `decode-activities/*`, cinq emails bilingues, export BBCode, administration `/anim` (recours pour les activités sans compte uniquement).
+- Le code du coffre en cours n'est renvoyé à personne, organisateur compris ; chiffré par `MODULE_DATA_KEY`.
+- Tâches planifiées `anim:close-inactive` (30 jours sans action, deux modes) et `anim:purge-closed` (page figée sans compte supprimée 5 ans après la clôture).
+- Entrée **substantielle** `2026-10-28-decode-le-code` au journal de la politique (`policy:notify` à lancer à la main une fois le texte en ligne, front #101).
+
+### Prod
+- 🔴 `php artisan migrate` (tables `anim_*`, type `decode`), puis `php artisan route:cache` (sinon 404) ; cron `schedule:run` requis ; aucun nouveau `config/*.php` ni clé `.env`.
+- ⚠️ Mesurer `$request->ip()` derrière O2Switch avant d'activer le mode sans compte (`DecodeIp` renvoie nul pour une adresse privée).
+
 ## [2026-10-17] — PR #71 (objets des emails sans « Office des coffres — »)
 
 ### Changed
