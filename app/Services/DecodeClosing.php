@@ -8,7 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * LA clôture d'une activité, quel que soit son déclencheur : l'organisateur, l'administration, ou les 30 jours sans action
+ * LA clôture d'une activité, quel que soit son déclencheur : l'organisateur, l'administrateur du site, ou les 30 jours sans action
  * (`anim:close-inactive`). Un seul chemin, pour qu'aucune clôture n'oublie d'effacer ce que la décision de Greg promet.
  *
  *  - Activité PRIVÉE : elle passe à `closed` et GARDE tout (réouverture possible, jamais de suppression automatique : D20).

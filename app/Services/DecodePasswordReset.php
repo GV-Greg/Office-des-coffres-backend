@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\Hash;
 /**
  * Réinitialisation du mot de passe d'une activité SANS COMPTE (D5, D11, D35, D36, D37). L'auteur ne change jamais son
  * mot de passe librement : il passe toujours par un LIEN À USAGE UNIQUE (24 h) qui lui laisse CHOISIR le nouveau. Aucun
- * mot de passe ne circule — ni par email, ni par l'administrateur, qui ne le connaît jamais.
+ * mot de passe ne circule — ni par email, ni par l'administrateur du site, qui ne le connaît jamais.
  *
  *  - avec un email CONFIRMÉ : l'auteur déclenche lui-même l'envoi (`requestByAuthor`), le lien part à l'adresse ;
- *  - sans email : l'administrateur émet le lien (`issueForAdmin`) et le remet AU PSEUDO DU PERSONNAGE VIA LE JEU — le site
+ *  - sans email : l'administrateur du site émet le lien (`issueForAdmin`) et le remet AU PSEUDO DU PERSONNAGE VIA LE JEU — le site
  *    n'envoie rien (D36, D38 : l'envoi au personnage est la vérification d'identité).
  *
  * Le jeton est stocké HACHÉ sur l'activité (sha256), jamais en clair ; un nouveau jeton annule le précédent.
@@ -26,7 +26,7 @@ class DecodePasswordReset
 
     /**
      * L'auteur demande le lien. Avec un email CONFIRMÉ, le lien part à l'adresse ; SANS email confirmé, la demande est notée sur l'activité
-     * (`reset_requested_at`) et l'administration la lit dans `/anim` pour faire porter le lien au pseudo du personnage, dans le jeu (D36).
+     * (`reset_requested_at`) et l'administrateur du site la lit dans `/anim` pour faire porter le lien au pseudo du personnage, dans le jeu (D36).
      * Sans effet visible si l'activité n'existe pas ou est close : la réponse est la même dans tous les cas.
      */
     public function requestByAuthor(string $slug): void
@@ -47,7 +47,7 @@ class DecodePasswordReset
     }
 
     /**
-     * L'administrateur émet le lien (auteur sans email). Retourne l'adresse du lien et son échéance : à montrer UNE SEULE FOIS.
+     * L'administrateur du site émet le lien (auteur sans email). Retourne l'adresse du lien et son échéance : à montrer UNE SEULE FOIS.
      *
      * @return array{url: string, expires_at: Carbon}
      *
@@ -113,7 +113,7 @@ class DecodePasswordReset
             'reset_token_hash' => hash('sha256', $token),
             'reset_token_expires_at' => Carbon::now()->addHours(DecodeLinks::RESET_HOURS),
             'reset_mode' => $mode,
-            'reset_requested_at' => null, // une demande à l'administrateur est traitée dès qu'un lien est émis
+            'reset_requested_at' => null, // une demande à l'administrateur du site est traitée dès qu'un lien est émis
         ])->save();
 
         return $token;

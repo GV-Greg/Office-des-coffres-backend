@@ -307,24 +307,25 @@ test('les essais de mot de passe sont limités par slug (5 par minute) — compt
 
 // ── Gestion : coffres, propositions (D34 : noms de personnages) ──────────────────────────────────────
 
-test('sceller, proposer, percer : le code n\'est visible que de l\'auteur, jamais en public', function () {
+test('sceller, proposer, percer : le code n\'est visible de PERSONNE tant que le coffre n\'est pas percé', function () {
     createAnon($this)->assertCreated();
 
     $first = anonCall($this, 'les-trois-coffres', 'secrets')->assertCreated()->json('activity.current');
-    expect($first['code'])->toMatch('/^\d{5}$/');
+    $code = $foundCode = decodeSecretCode($first['id']);
+    expect($code)->toMatch('/^\d{5}$/')->and($first)->not->toHaveKey('code');
 
     $public = $this->getJson('/api/v1/anim/decode-activities/les-trois-coffres')->assertOk();
     $public->assertJsonPath('activity.current.number', 1)->assertJsonMissingPath('activity.current.code');
-    expect($public->getContent())->not->toContain($first['code'])->not->toContain('password_hash');
+    expect($public->getContent())->not->toContain($code)->not->toContain('password_hash');
 
     anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => '99999', 'character_name' => 'Aldric'])
         ->assertCreated()->assertJsonPath('found', false)->assertJsonPath('proposal.character_name', 'Aldric');
 
-    $hit = anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => $first['code'], 'character_name' => 'Brunehaut'])
+    $hit = anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => decodeSecretCode($first['id']), 'character_name' => 'Brunehaut'])
         ->assertCreated()->assertJsonPath('found', true)->assertJsonPath('proposal.points', 20)->assertJsonPath('activity.status', 'relaunch');
 
     $this->getJson('/api/v1/anim/decode-activities/les-trois-coffres')->assertOk()
-        ->assertJsonPath('activity.opened.0.code', $first['code'])
+        ->assertJsonPath('activity.opened.0.code', $foundCode)
         ->assertJsonPath('activity.opened.0.discoverer', 'Brunehaut')
         ->assertJsonPath('activity.ranking.0.character_name', 'Brunehaut');
     expect($hit->json('activity.current.number'))->toBe(2);
@@ -365,8 +366,9 @@ test('les exports BBCode donnent un lien par SLUG vers le site des joueurs', fun
 test('la clôture fige le résumé et efface tout le reste', function () {
     createAnon($this, ['province_id' => $this->map['provinceA']->id], PUBLIC_IP)->assertCreated();
     $first = anonCall($this, 'les-trois-coffres', 'secrets')->assertCreated()->json('activity.current');
+    $foundCode = decodeSecretCode($first['id']);
     anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => '00000', 'character_name' => 'Aldric'])->assertCreated();
-    anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => $first['code'], 'character_name' => 'Brunehaut'])->assertCreated();
+    anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => decodeSecretCode($first['id']), 'character_name' => 'Brunehaut'])->assertCreated();
 
     anonCall($this, 'les-trois-coffres', 'close')->assertOk()->assertJsonPath('activity.status', 'closed');
 
@@ -386,7 +388,7 @@ test('la clôture fige le résumé et efface tout le reste', function () {
     $page->assertJsonPath('activity.name', 'Les Trois Coffres')
         ->assertJsonPath('activity.organizer', 'Artifice')
         ->assertJsonPath('activity.place.name', $this->map['provinceA']->province_name)
-        ->assertJsonPath('activity.opened.0.code', $first['code'])
+        ->assertJsonPath('activity.opened.0.code', $foundCode)
         ->assertJsonPath('activity.opened.0.discoverer', 'Brunehaut')
         ->assertJsonPath('activity.ranking.0.character_name', 'Brunehaut')
         ->assertJsonPath('activity.ranking.0.points', 20)
@@ -421,6 +423,7 @@ test('avec un email confirmé : le compte rendu COMPLET part à la clôture (pro
     $activity = anonWithVerifiedEmail($this);
     $first = anonCall($this, 'les-trois-coffres', 'secrets')->assertCreated()->json('activity.current');
     anonCall($this, 'les-trois-coffres', "secrets/{$first['id']}/proposals", ['combination' => '00000', 'character_name' => 'Aldric'])->assertCreated();
+    $unfoundCode = decodeSecretCode($first['id']);
 
     anonCall($this, 'les-trois-coffres', 'close')->assertOk();
 
@@ -429,7 +432,7 @@ test('avec un email confirmé : le compte rendu COMPLET part à la clôture (pro
     $text = renderedText($mail);
     expect($text)->toContain('Aldric')       // les propositions : seule copie (D31)
         ->toContain('00000')
-        ->toContain($first['code'])           // le coffre non percé, que l'auteur connaissait
+        ->toContain($unfoundCode)             // le coffre non percé : révélé à la clôture seulement, dans le compte rendu
         ->toContain('Compte rendu')           // français
         ->toContain('Report')                 // puis anglais
         ->not->toContain(ANON_PASSWORD);

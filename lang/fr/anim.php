@@ -45,9 +45,8 @@ return [
         'decode' => [
             'name' => 'Décode le code',
             'public_link_label' => 'Coffre n°:number à percer',
-            // ⚠️ BROUILLON de Claude Code (27/10/2026) : Greg a différé la rédaction définitive (tour 03,
-            // Q4) ; à retravailler par Cowork avant la mise en ligne.
-            'rules' => "Un coffre est scellé par une combinaison secrète de cinq chiffres. Envoyez vos propositions à l'organisateur ; chacune reçoit une note : 2 points par chiffre bien placé, 1 point par chiffre juste mais mal placé. Le premier personnage à trouver la combinaison entière ouvre le coffre, son nom est inscrit au registre, et un nouveau coffre est aussitôt scellé.",
+            // Texte rédigé par Cowork (28/10/2026, 17-regles-decode.md) ; jumeau de Animation.Types.decode.Rules (frontend).
+            'rules' => "Un coffre scellé trône devant vous, verrouillé par une combinaison secrète de cinq chiffres (0 à 9). Pour tenter de l'ouvrir, soumettez votre combinaison à l'organisateur de la salle.\n\nÀ chaque tentative, le mécanisme du coffre vous répond :\n— 2 points par chiffre bien placé (à la bonne position),\n— 1 point par chiffre présent dans la combinaison mais mal placé.\n\nLe score maximum est de 10 points — cinq chiffres, tous bien placés. Si vous l'atteignez, le coffre s'ouvre ! Votre pseudo est inscrit au tableau, la combinaison secrète est révélée à tous, et un nouveau coffre scellé apparaît aussitôt.\n\nLe classement général comptabilise les coffres percés par chaque participant. Bonne chance !",
         ],
     ],
 

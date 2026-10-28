@@ -13,11 +13,11 @@ use Illuminate\View\View;
 
 /**
  * Module Animation — administration (synthèse du tour 12, D13, D32, D36, D37). Les types d'activité (activer / désactiver) et
- * la vue de SURVEILLANCE des activités récentes, plus le RECOURS de l'administration pour les activités SANS COMPTE
+ * la vue de SURVEILLANCE des activités récentes, plus le RECOURS de l'administrateur du site pour les activités SANS COMPTE
  * uniquement : clore, retirer (avec une étape de confirmation), émettre un lien de réinitialisation du mot de passe. Les
  * activités privées appartiennent à leur organisateur : aucun geste d'ici.
  *
- * L'administrateur ne connaît JAMAIS un mot de passe. Le lien de réinitialisation qu'il émet est montré UNE SEULE fois (message
+ * L'administrateur du site ne connaît JAMAIS un mot de passe. Le lien de réinitialisation qu'il émet est montré UNE SEULE fois (message
  * flash) et se remet au personnage dans le jeu ; le site n'envoie rien (D36).
  */
 class AnimAdminController extends Controller

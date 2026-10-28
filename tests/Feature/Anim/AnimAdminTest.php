@@ -175,7 +175,7 @@ test('le lien émis par l\'administrateur permet à l\'auteur de choisir son mot
 
     $this->postJson('/api/v1/anim/decode-manage/sans-compte/open', ['password' => $new])->assertOk();
     $anon->refresh();
-    // D37 : la trace garde la date et le mode, jamais l'identité de l'administrateur.
+    // D37 : la trace garde la date et le mode, jamais l'identité de l'administrateur du site.
     expect($anon->password_reset_at)->not->toBeNull()->and($anon->reset_mode)->toBe('admin');
     $this->actingAs(mandateAdmin())->get('/anim')->assertSee('par le lien remis via le jeu');
 });

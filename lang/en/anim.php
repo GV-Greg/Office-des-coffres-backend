@@ -44,7 +44,8 @@ return [
         'decode' => [
             'name' => 'Crack the Code',
             'public_link_label' => 'Chest #:number to crack',
-            'rules' => 'A chest is sealed with a secret five-digit combination. Send your guesses to the organizer; each one is scored: 2 points per correctly placed digit, 1 point per right digit in the wrong place. The first character to find the whole combination opens the chest, their name goes into the register, and a new chest is sealed at once.',
+            // Texte rédigé par Cowork (28/10/2026, 17-regles-decode.md) ; jumeau de Animation.Types.decode.Rules (frontend).
+            'rules' => "A sealed chest stands before you, locked by a secret combination of five digits (0 to 9). To try to open it, submit your combination to the room's organiser.\n\nFor each attempt, the chest's mechanism responds:\n— 2 points for each digit in the correct position,\n— 1 point for each digit present in the combination but in the wrong position.\n\nThe maximum score is 10 — five digits, all in the right place. If you reach it, the chest opens! Your nickname is recorded on the board, the secret combination is revealed to all, and a new sealed chest appears immediately.\n\nThe overall standings track the chests cracked by each participant. Good luck!",
         ],
     ],
 

@@ -12,8 +12,8 @@ use App\Models\AnimDecodeSecret;
  *  - Activité vivante, privée ou sans compte : les tables (coffres, propositions).
  *  - Activité SANS COMPTE close : la PHOTO FIGÉE (`closing_snapshot`, D7, D18) — le reste a été effacé à la clôture.
  *
- * 🔴 Le code du coffre EN COURS n'en sort que pour l'organisateur (`$forOwner`, tour 03, Q3) : la page publique ne
- * montre un code qu'une fois le coffre percé, avec son découvreur. Gardé par DecodeActivityApiTest dans les deux sens.
+ * 🔴 Le code du coffre EN COURS ne sort JAMAIS, ni en public ni pour l'organisateur (Greg, 28/10/2026 : « on va le masquer ») : un code
+ * n'apparaît qu'une fois le coffre percé, avec son découvreur. Gardé par DecodeActivityApiTest et DecodeAnonymousApiTest.
  * 🔴 Le pseudo d'un organisateur PRIVÉ se lit EN DIRECT sur son personnage : jamais recopié (la suppression du compte
  * emporte l'activité, D21, mais une copie en texte survivrait à toute autre voie).
  * ⚠️ Vocabulaire (D34) : `character_name` est le nom du PERSONNAGE qui a proposé.
@@ -177,8 +177,9 @@ class DecodeActivityReader
             ])->all(),
         ];
 
-        // L'organisateur seul : id (pour saisir une proposition) et code (pour vérifier).
-        return $forOwner ? ['id' => $secret->id, 'code' => $secret->code] + $data : $data;
+        // L'organisateur seul : l'id du coffre (pour saisir une proposition). JAMAIS le code : l'organisateur ne connaît pas la combinaison
+        // secrète, c'est le principe du jeu (Greg, 28/10/2026) ; il n'est révélé qu'une fois le coffre percé (`opened`).
+        return $forOwner ? ['id' => $secret->id] + $data : $data;
     }
 
     private function place(AnimDecodeActivity $activity): ?array

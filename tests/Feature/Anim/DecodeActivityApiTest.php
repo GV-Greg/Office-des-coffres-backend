@@ -88,16 +88,17 @@ test('royaume, province OU ville : jamais deux niveaux à la fois', function () 
         ->assertCreated()->assertJsonPath('activity.place.kind', 'kingdom');
 });
 
-test('le code du coffre EN COURS : visible de l\'organisateur seul, jamais en public', function () {
+test('le code du coffre EN COURS : jamais visible, ni de l\'organisateur ni en public', function () {
     createActivity($this);
     $id = AnimDecodeActivity::sole()->id;
     $secret = $this->postJson("/api/v1/decode-activities/{$id}/secrets")->assertCreated()
-        ->assertJsonPath('activity.current.number', 1);
-    $code = $secret->json('activity.current.code');
-    expect($code)->toMatch('/^\d{5}$/');
+        ->assertJsonPath('activity.current.number', 1)->assertJsonMissingPath('activity.current.code');
+    $code = decodeSecretCode($secret->json('activity.current.id'));
+    expect($code)->toMatch('/^\d{5}$/')->and($secret->getContent())->not->toContain($code);
 
-    // L'organisateur le retrouve dans la liste de ses activités.
-    $this->getJson($this->base)->assertOk()->assertJsonPath('activities.0.current.code', $code);
+    // L'organisateur ne le retrouve pas non plus dans la liste de ses activités.
+    $list = $this->getJson($this->base)->assertOk()->assertJsonMissingPath('activities.0.current.code');
+    expect($list->getContent())->not->toContain($code);
 
     // Le public, par le slug : aucune trace du code, ni dans le corps brut.
     $public = $this->getJson('/api/v1/anim/decode-activities/coffre-des-marches');
@@ -117,7 +118,7 @@ test('un coffre percé se révèle en public avec son découvreur, et le classem
 
     $this->postJson("/api/v1/decode-activities/{$id}/secrets/{$first['id']}/proposals", ['combination' => '99999', 'character_name' => 'Aldric'])
         ->assertCreated()->assertJsonPath('found', false);
-    $hit = $this->postJson("/api/v1/decode-activities/{$id}/secrets/{$first['id']}/proposals", ['combination' => $first['code'], 'character_name' => 'Brunehaut'])
+    $hit = $this->postJson("/api/v1/decode-activities/{$id}/secrets/{$first['id']}/proposals", ['combination' => decodeSecretCode($first['id']), 'character_name' => 'Brunehaut'])
         ->assertCreated()->assertJsonPath('found', true)->assertJsonPath('score', 10)
         ->assertJsonPath('proposal.points', 20)
         ->assertJsonPath('proposal.character_name', 'Brunehaut')
@@ -126,12 +127,12 @@ test('un coffre percé se révèle en public avec son découvreur, et le classem
 
     $public = $this->getJson('/api/v1/anim/decode-activities/coffre-des-marches')->assertOk();
     $public->assertJsonPath('activity.opened.0.number', 1)
-        ->assertJsonPath('activity.opened.0.code', $first['code'])
+        ->assertJsonPath('activity.opened.0.code', decodeSecretCode($first['id']))
         ->assertJsonPath('activity.opened.0.discoverer', 'Brunehaut')
         ->assertJsonPath('activity.ranking.0.character_name', 'Brunehaut')
         ->assertJsonPath('activity.ranking.0.points', 20);
     // Le NOUVEAU coffre, lui, reste scellé.
-    expect($public->getContent())->not->toContain($hit->json('activity.current.code'));
+    expect($public->getContent())->not->toContain(decodeSecretCode($hit->json('activity.current.id')));
 });
 
 test('REFUS 403 bilingue : un autre compte ne touche à rien', function () {
@@ -220,7 +221,7 @@ test('une proposition mal formée est une 422 de forme', function () {
 test('le secret est chiffré en base et relu par module-data:check', function () {
     createActivity($this);
     $id = AnimDecodeActivity::sole()->id;
-    $code = $this->postJson("/api/v1/decode-activities/{$id}/secrets")->json('activity.current.code');
+    $code = decodeSecretCode($this->postJson("/api/v1/decode-activities/{$id}/secrets")->json('activity.current.id'));
 
     expect(DB::table('anim_decode_secrets')->value('code'))->not->toContain($code);
     $this->artisan('module-data:check')->assertSuccessful();

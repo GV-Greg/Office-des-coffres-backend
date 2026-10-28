@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Hash;
  *
  * Règles de Greg : une activité privée ne se supprime que close (D20) ; une réouverture est refusée si une autre
  * activité du même type est active pour le personnage ; une activité SANS COMPTE ne se rouvre jamais (D19) et son auteur
- * ne la supprime pas (l'administration le peut, D13) ; une seule activité sans compte non close par connexion (D17).
+ * ne la supprime pas (l'administrateur du site le peut, D13) ; une seule activité sans compte non close par connexion (D17).
  */
 class DecodeWorkflow
 {
@@ -215,7 +215,7 @@ class DecodeWorkflow
         return $this->closing->close($activity);
     }
 
-    /** Fermeture sans acteur : les 30 jours sans action (anim:close-inactive) ou l'administration (D13). */
+    /** Fermeture sans acteur : les 30 jours sans action (anim:close-inactive) ou l'administrateur du site (D13). */
     public function closeNow(AnimDecodeActivity $activity): AnimDecodeActivity
     {
         return $this->closing->close($activity);
@@ -224,7 +224,7 @@ class DecodeWorkflow
     /**
      * Greg, tour 03 : on ne supprime qu'une activité PRIVÉE CLOSE, avec ou sans propositions (la page publique d'une activité
      * close reste lisible, un lien posté sur le forum ne casse pas tant qu'on ne supprime pas). Une activité SANS COMPTE ne
-     * se supprime pas par son auteur : sa page de résumé vit 5 ans, seule l'administration la retire (D13).
+     * se supprime pas par son auteur : sa page de résumé vit 5 ans, seule l'administrateur du site la retire (D13).
      *
      * @throws MandateRefusal
      */
@@ -241,7 +241,7 @@ class DecodeWorkflow
         $activity->delete();
     }
 
-    /** Suppression par l'administration (D13) : une activité sans compte, close ou non ; la confirmation est dans l'écran. */
+    /** Suppression par l'administrateur du site (D13) : une activité sans compte, close ou non ; la confirmation est dans l'écran. */
     public function deleteByAdmin(AnimDecodeActivity $activity): void
     {
         $activity->delete();

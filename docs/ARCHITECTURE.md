@@ -508,7 +508,7 @@ chacune est notée ; quand un personnage trouve, le code est révélé avec son 
 | `App\Services\DecodeWorkflow` | seul écrivain des activités et des secrets (création privée et sans compte, coffres, réouverture privée, clôture, suppressions) |
 | `App\Services\DecodeAccess` | preuve d'auteur sans compte ; **le refus ne distingue pas** slug inconnu / activité privée / activité close / mot de passe faux (faux hachage comparé pour égaliser le temps) |
 | `App\Services\DecodeClosing` | **LA clôture**, quel qu'en soit le déclencheur. Privée : tout est gardé. Sans compte : dans une transaction, **photo figée** (nom, organisateur, lieu, codes trouvés + qui, classement final — D18) et **effacement** du coffre non percé, des propositions, de la description, du mot de passe, de l'empreinte d'IP, de l'email, du jeton ; le compte rendu complet part **après** la transaction (un échec d'envoi ne bloque jamais la clôture) |
-| `App\Services\DecodePasswordReset` | réinitialisation (D35, D36) : lien **à usage unique, 24 h, stocké haché**, l'auteur **choisit** son mot de passe (aucun mot de passe ne circule) ; avec un email confirmé l'auteur le demande lui-même, sinon l'administrateur émet le lien et le remet **au pseudo du personnage dans le jeu** |
+| `App\Services\DecodePasswordReset` | réinitialisation (D35, D36) : lien **à usage unique, 24 h, stocké haché**, l'auteur **choisit** son mot de passe (aucun mot de passe ne circule) ; avec un email confirmé l'auteur le demande lui-même, sinon l'administrateur du site émet le lien et le remet **au pseudo du personnage dans le jeu** |
 | `App\Services\DecodeProposals` | saisie d'une proposition — propriétaire seul |
 | `App\Services\DecodeActivityReader` | lecture publique **et** écran de l'organisateur, une seule forme, deux sources (tables, ou photo figée d'une activité sans compte close) |
 | `App\Services\DecodeExporter` | BBCode en **français fixe**, lien par slug |
@@ -534,8 +534,9 @@ confirmée** — D32, date et mode du dernier changement de mot de passe) et **r
 **une seule fois**, message prêt à envoyer au personnage dans le jeu). Aucun geste sur une activité privée.
 
 Règles tranchées par Greg :
-- **Le code du coffre en cours** n'est renvoyé qu'à l'organisateur ; **jamais** par la lecture publique.
-- **Suppression** : une activité **privée close** par son organisateur ; une activité **sans compte** par l'administration seulement.
+- **Le code du coffre en cours** n'est renvoyé à **personne**, l'organisateur compris (Greg, 28/10/2026 : « on va le masquer » ; le serveur tire la combinaison, l'organisateur ne la connaît pas) : il n'apparaît qu'une fois le coffre percé (`opened`) et, à la clôture d'une activité sans compte avec email confirmé, dans le compte rendu (D31). Les tests le lisent en base (`decodeSecretCode()`).
+- **Texte des règles** (`types.decode.rules`, FR et EN) : rédigé par Cowork le 28/10/2026 (`17-regles-decode.md`), jumeau de `Animation.Types.decode.Rules` côté frontend.
+- **Suppression** : une activité **privée close** par son organisateur ; une activité **sans compte** par l'administrateur du site seulement.
 - **Réouverture** : privée seulement (refusée si une autre activité du type est active) ; **jamais** sans compte.
 - **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.
 - **Page de résumé d'une activité sans compte** : 5 ans après la clôture (`anim:purge-closed`), puis suppression et **libération du slug**.
@@ -548,7 +549,7 @@ un `config/*.php` (un nouveau fichier de config est absent du cache en prod).
 migrations (`php artisan migrate`, qui sème aussi le type `decode`) ; `anim:*` ne tournent qu'avec la tâche cron `schedule:run` de
 cPanel ; aucun nouveau `config/*.php` ni `.env` ; **mesurer ce que `$request->ip()` voit derrière O2Switch avant d'activer le mode
 sans compte** ; **rien ne se déploie avant le texte légal** (politique, « Vos données », `/legal/cookies`, registre des traitements).
-Texte des règles (`types.decode.rules`) : **brouillon**, à retravailler par Cowork.
+Texte des règles (`types.decode.rules`) : rédigé par Cowork (28/10/2026).
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 
