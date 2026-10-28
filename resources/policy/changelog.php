@@ -89,7 +89,7 @@ return [
         'date' => '2026-10-28',
         'summary' => [
             'fr' => "Une nouvelle activité, « Décode le code », ouvre dans la Salle des Jeux. Jouée avec votre personnage, elle disparaît avec lui ou avec votre compte. Jouée sans compte, l'Office conserve un pseudo, un mot de passe haché, une adresse email facultative et une empreinte à sens unique de la connexion, effacés à la clôture ; la page de résumé reste visible 5 ans, sans les propositions reçues (articles 3, 5 et 6 de la politique de confidentialité, et article 3 de la politique des cookies).",
-            'en' => "A new activity, \"Crack the Code\", opens in the Games Hall. Played with your character, it disappears with it or with your account. Played without an account, the Office keeps a nickname, a hashed password, an optional email address and a one-way fingerprint of the connection, erased when the activity closes; the summary page stays visible for 5 years, without the proposals received (sections 3, 5 and 6 of the privacy policy, and section 3 of the cookie policy).",
+            'en' => 'A new activity, “Crack the Code”, opens in the Games Hall. Played with your character, it disappears with it or with your account. Played without an account, the Office keeps a nickname, a hashed password, an optional email address and a one-way fingerprint of the connection, erased when the activity closes; the summary page stays visible for 5 years, without the proposals received (sections 3, 5 and 6 of the privacy policy, and section 3 of the cookie policy).',
         ],
         'substantial' => true,
         'decided_by' => 'Greg',
