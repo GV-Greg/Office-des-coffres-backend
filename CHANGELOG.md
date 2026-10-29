@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [2026-10-29] — PR #?? (export de données art. 20 RGPD — GET auth/account/export)
+## [2026-10-29] — PR #73 (export de données art. 20 RGPD — GET auth/account/export)
 
 ### Added
 - Route `GET /api/v1/auth/account/export` (`auth:api`, `throttle:6,1`) : export JSON daté des données du compte connecté
