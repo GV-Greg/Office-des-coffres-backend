@@ -95,6 +95,7 @@ et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre varian
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
 | DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
+| GET | `auth/account/export` | `Api\AuthController@exportAccount` | `auth:api`, `throttle:6,1` — export JSON daté (art. 20 RGPD) : compte, personnages + résidence en noms, mandats + statut effectif en noms ; pas de password ni d'identifiants internes (voir `docs/DECISIONS.md`) |
 | GET | `characters` | `Api\CharacterController@index` | `auth:api` |
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
@@ -154,7 +155,9 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   `me`, `destroyAccount` (suppression self-service : exige le mot de passe courant en plus du
   jeton, supprime le `User` — personnages en cascade —, les jetons d'accès Passport et leurs
   refresh tokens, le tout en transaction ; les tables OAuth n'ayant pas de FK vers `users`, elles
-  ne se videraient pas seules). `login`/`me` renvoient `user.characters` (liste, pas un
+  ne se videraient pas seules). `exportAccount` (export art. 20 RGPD : JSON daté via
+  `App\Services\AccountExport`, `Content-Disposition: attachment`, `Cache-Control: no-store` ;
+  un module ajoute sa section dans le service sans toucher au contrôleur). `login`/`me` renvoient `user.characters` (liste, pas un
   pseudo/statut unique).
 - `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
   ville obligatoires), `index` (liste les personnages du compte connecté), `update` (changement de

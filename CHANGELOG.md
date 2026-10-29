@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-10-29] — PR #?? (export de données art. 20 RGPD — GET auth/account/export)
+
+### Added
+- Route `GET /api/v1/auth/account/export` (`auth:api`, `throttle:6,1`) : export JSON daté des données du compte connecté
+  (email, rôles, personnages avec résidence en noms, mandats avec statut effectif et lieu en noms).
+  `Content-Disposition: attachment`, `Cache-Control: no-store`, `JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE`.
+  Exclus volontairement : `password`, `remember_token`, identifiants internes, jetons OAuth, note admin des mandats.
+- `App\Services\AccountExport` : service en 4 sections ; modules futurs ajoutent leur section sans toucher au contrôleur.
+- `AccountExportCoverageTest` (Enforcement) : garde-fou — toute table liée à un compte doit être déclarée exportée ou exclue.
+
+⚠️ **Prod** : aucune migration ni config. Routes mises en cache → `php artisan route:cache` en SSH après déploiement.
+
 ## [2026-10-17] — PR #71 (objets des emails sans « Office des coffres — »)
 
 ### Changed
