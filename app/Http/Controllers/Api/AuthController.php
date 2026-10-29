@@ -6,11 +6,13 @@ use App\Http\Controllers\BaseController;
 use App\Models\User;
 use App\Notifications\VerifyApiEmail;
 use App\Services\AccountDeletion;
+use App\Services\AccountExport;
 use App\Support\LastSeen;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -203,6 +205,30 @@ class AuthController extends BaseController
             'success' => true,
             'user'    => $this->userPayload($request->user()),
         ]);
+    }
+
+    /**
+     * Export de mes données (art. 20 RGPD — portabilité, promesse de /legal/privacy §7).
+     *
+     * Toujours le compte du porteur du jeton : aucun identifiant accepté en paramètre.
+     * Pas de mot de passe redemandé : l'export ne détruit rien, et le jeton donne déjà accès
+     * aux mêmes données via GET auth/me.
+     */
+    public function exportAccount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = app(AccountExport::class)->build($user);
+        $date = Carbon::now()->format('Y-m-d');
+
+        return response()->json(
+            $data,
+            200,
+            [
+                'Content-Disposition' => "attachment; filename=\"office-des-coffres-export-{$date}.json\"",
+                'Cache-Control'       => 'no-store',
+            ],
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
