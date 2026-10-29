@@ -23,14 +23,30 @@ test('authenticated non-admin cannot access the dashboard', function () {
     $this->actingAs($user)->get('/dashboard')->assertForbidden();
 });
 
-test('admin can view the dashboard with the character list', function () {
+test('admin can view the dashboard', function () {
     $admin = actingAsAdmin();
-    $character = Character::factory()->create(['pseudo' => 'Artifice']);
 
-    $response = $this->actingAs($admin)->get('/dashboard');
+    $this->actingAs($admin)->get('/dashboard')->assertOk();
+});
+
+test('admin can view the characters page with the character list', function () {
+    $admin = actingAsAdmin();
+    $character = Character::factory()->create(['pseudo' => 'Artifice', 'city_id' => null]);
+
+    $response = $this->actingAs($admin)->get('/characters');
 
     $response->assertOk();
     $response->assertSee('Artifice');
+});
+
+test('guest is redirected away from the characters page', function () {
+    $this->get('/characters')->assertRedirect('/login');
+});
+
+test('authenticated non-admin cannot access the characters page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/characters')->assertForbidden();
 });
 
 test('admin can validate a character', function () {
@@ -40,7 +56,7 @@ test('admin can validate a character', function () {
     $response = $this->actingAs($admin)
         ->patch(route('characters.validate', $character));
 
-    $response->assertRedirect(route('dashboard'));
+    $response->assertRedirect(route('characters'));
     $response->assertSessionHas('status', 'character-validated');
     expect($character->fresh()->is_validated)->toBeTrue();
 });
@@ -61,7 +77,7 @@ test('admin can invalidate a character', function () {
     $response = $this->actingAs($admin)
         ->patch(route('characters.validate', $character));
 
-    $response->assertRedirect(route('dashboard'));
+    $response->assertRedirect(route('characters'));
     $response->assertSessionHas('status', 'character-invalidated');
     expect($character->fresh()->is_validated)->toBeFalse();
 });
