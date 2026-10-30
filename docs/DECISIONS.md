@@ -276,3 +276,58 @@ après coup commence à sa date. Garde-fou : l'exclusivité du poste dans la pro
 **Conséquences** — `MandateWorkflow::grantOffice` reçoit un début facultatif (`OfficeStart::isFree`) ; les données déjà inscrites se
 recalent par `mandates:realign-office-starts`. `council_mandates` et `council_office_periods` ne sont pas des doublons (un mandat,
 zéro à plusieurs postes dans le temps), mais le début du premier poste n'est plus un second fait : c'est l'entrée en fonction.
+
+## Gestion du compte en self-service : email, mot de passe, pseudo (29/10/2026)
+
+**Contexte** — Back #75 (brief `admin/content/brief-compte-self-service.md`). Un joueur pouvait supprimer son compte (art. 17 RGPD)
+mais pas changer son email ni son mot de passe, et son pseudo était figé depuis l'inscription.
+
+### Mot de passe actuel obligatoire
+
+**Décision** — `PATCH account/email` et `PATCH account/password` exigent tous les deux `current_password`. Sans cette vérification,
+une session ouverte non surveillée (poste partagé, session volée) permettrait de remplacer les credentials et de verrouiller le
+compte d'origine.
+
+### Verify-before-apply pour le changement d'email
+
+**Décision** — Le nouvel email est stocké dans `users.pending_email` sans modifier `users.email`, jusqu'à ce que le joueur clique le
+lien signé envoyé à la nouvelle adresse. Ce n'est qu'à la confirmation que `email` est mis à jour et `pending_email` remis à null.
+
+L'alternative (appliquer immédiatement, envoyer un lien d'annulation à l'ancienne adresse) était écartée : si le joueur saisit une
+adresse invalide ou n'y a plus accès, il perd l'accès à son compte jusqu'à une intervention admin. Avec le schéma retenu, une erreur
+de saisie est corrigeable en relançant la demande.
+
+Le lien signé pointe vers `/verify-email-change` sur le site des joueurs (jamais le domaine admin), qui rappelle l'API en JSON —
+même mécanique que la vérification d'email à l'inscription (`EmailVerificationLink`).
+
+### Notification à l'ancienne adresse
+
+**Décision** — Après confirmation du changement, `EmailChanged` est envoyée à l'**ancienne** adresse (celle que le modèle `User`
+avait avant la mise à jour). Objectif : alerter le joueur si quelqu'un d'autre a initié le changement depuis une session ouverte.
+
+Implémentation : `Notification::route('mail', $oldEmail)->notify(new EmailChanged($newEmail))` — adressage anonyme, sans modifier ni
+rechanger le modèle (qui porte déjà la nouvelle adresse au moment de l'envoi).
+
+### Révocation complète vs partielle des tokens
+
+**Décision** — Les deux opérations révoquent les tokens Passport existants, mais pas de la même façon :
+- **Changement d'email** : révocation **totale** (accès + refresh). L'email est le credential de connexion ; on change de credential,
+  toutes les sessions tombent, le joueur se reconnecte avec la nouvelle adresse.
+- **Changement de mot de passe** : révocation de tous les tokens **sauf le courant**. Le joueur reste connecté sur l'appareil où il
+  a effectué le changement ; les autres sessions (autres appareils, sessions oubliées ouvertes) tombent — logique analogue à
+  « Se déconnecter partout sauf ici ».
+
+### Pseudo non modifiable par le joueur
+
+**Décision** — Le joueur ne peut pas changer son pseudo en self-service. Le pseudo identifie le personnage en jeu et dans les
+données communautaires (historique des postes, Registre des mines) ; une modification libre briserait la cohérence visible entre le
+jeu et l'Office. Seul l'admin peut corriger un pseudo (`PATCH admin/characters/{id}/pseudo`), sur demande du joueur, en cas d'erreur
+à l'inscription.
+
+Cette route admin est exposée **via l'API** (avec `role:admin` côté Passport), non via Blade, parce qu'aucun écran Blade ne gère
+les personnages à ce niveau de détail — l'admin Blade liste et valide, il ne modifie pas les attributs joueurs.
+
+**Conséquences** — Colonne `pending_email` nullable ajoutée à `users` (migration #9). Les tokens Passport n'ont pas de FK vers
+`users` : toute révocation passe par `$user->tokens()->…->each(fn($t) => $t->revoke())` avec suppression des refresh tokens associés
+(`RefreshToken::where('access_token_id', $token->id)->update(['revoked' => true])`). Amélioration future envisagée : notification
+email au changement de mot de passe (mentionnée dans le brief, hors scope back #75).

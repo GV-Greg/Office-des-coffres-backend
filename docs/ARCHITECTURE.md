@@ -19,7 +19,7 @@ admin n'ont pas de `Character`.
 
 | Modèle | Table | Champs notables | Relations |
 |---|---|---|---|
-| `User` | `users` | `email`, `password` (pas de `name`), `last_seen_at`, `deletion_notice_sent_at` (voir « Dernier passage ») | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
+| `User` | `users` | `email`, `pending_email` (nullable, changement en attente de confirmation — back #75), `password` (pas de `name`), `last_seen_at`, `deletion_notice_sent_at` (voir « Dernier passage ») | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
 | `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création), `is_validated` (bool, défaut `false`), `pending_residence_change` (bool — distingue « nouveau personnage » d'un « changement de résidence » à revalider) | `belongsTo(User)`, `belongsTo(City)` |
 | `Kingdom` | `rk_kingdoms` | `kingdom_name` | `hasMany(Province)` |
 | `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
@@ -58,6 +58,9 @@ liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
 8. `mine_reports` (08/10/2026, Registre des mines PR 1a) — **aucune écriture applicative encore** :
    l'API (PR 1b) attend le texte de la politique en ligne et `policy:notify`.
 
+9. `users.pending_email` (29/10/2026, back #75) — colonne `string` nullable, stocke la nouvelle adresse
+   en attente de confirmation avant application (voir « Changement d'email » dans Routes).
+
 Pas de table `sessions`/`cache` (drivers `file`).
 
 **Journaux applicatifs** (04/10/2026) : canal `stack` → `daily`, **180 jours** écrits en dur dans
@@ -95,6 +98,10 @@ et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre varian
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
 | DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
+| PATCH | `auth/account/email` | `Api\AuthController@updateEmail` | `auth:api`, `throttle:6,1` — stocke `pending_email`, envoie `VerifyEmailChange` à la nouvelle adresse |
+| GET | `auth/account/email/verify/{id}/{hash}` | `Api\AuthController@confirmEmailChange` | `signed`, `throttle:6,1` (nommée `account.email.verify`) — applique `pending_email`, notifie l'ancienne adresse, révoque tous les tokens |
+| PATCH | `auth/account/password` | `Api\AuthController@updatePassword` | `auth:api`, `throttle:6,1` — hash + `remember_token`, révoque tous les tokens sauf le courant |
+| PATCH | `admin/characters/{character}/pseudo` | `Api\AdminCharacterController@updatePseudo` | `auth:api`, `role:admin` — correction du pseudo sur demande du joueur |
 | GET | `characters` | `Api\CharacterController@index` | `auth:api` |
 | POST | `characters` | `Api\CharacterController@store` | `auth:api` |
 | PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
@@ -154,8 +161,20 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   `me`, `destroyAccount` (suppression self-service : exige le mot de passe courant en plus du
   jeton, supprime le `User` — personnages en cascade —, les jetons d'accès Passport et leurs
   refresh tokens, le tout en transaction ; les tables OAuth n'ayant pas de FK vers `users`, elles
-  ne se videraient pas seules). `login`/`me` renvoient `user.characters` (liste, pas un
+  ne se videraient pas seules). `exportAccount` (export art. 20 RGPD). `login`/`me` renvoient `user.characters` (liste, pas un
   pseudo/statut unique).
+  **Changement d'email** (back #75, 30/10/2026) : `updateEmail` (vérifie le mot de passe actuel, stocke
+  la nouvelle adresse dans `users.pending_email`, envoie `VerifyEmailChange` — pattern
+  verify-before-apply : l'email actuel ne change qu'après confirmation),
+  `confirmEmailChange` (lien signé `account.email.verify` — vérifie `sha1(pending_email)`, applique le
+  changement, envoie `EmailChanged` via `Notification::route()` à l'**ancienne** adresse, révoque
+  **tous** les tokens OAuth).
+  **Changement de mot de passe** : `updatePassword` (vérifie le mot de passe actuel, met à jour le
+  hash, régénère `remember_token`, révoque tous les tokens **sauf le courant** — le joueur reste
+  connecté dans son navigateur).
+- `Api\AdminCharacterController` — `updatePseudo` (correction du pseudo d'un personnage par un admin,
+  `role:admin`). Pas de formulaire Blade — la route API sert aux corrections ponctuelles sur demande
+  du joueur (erreur à l'inscription).
 - `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
   ville obligatoires), `index` (liste les personnages du compte connecté), `update` (changement de
   ville de résidence : repasse `is_validated` à `false` et lève `pending_residence_change`, le

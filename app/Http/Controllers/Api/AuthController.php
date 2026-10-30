@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseController;
 use App\Models\User;
+use App\Notifications\EmailChanged;
 use App\Notifications\VerifyApiEmail;
+use App\Notifications\VerifyEmailChange;
 use App\Services\AccountDeletion;
 use App\Support\LastSeen;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -239,6 +242,130 @@ class AuthController extends BaseController
         Log::info("Account deleted (id={$userId})");
 
         return response()->noContent();
+    }
+
+    /**
+     * Changement d'email self-service :
+     * - vérifie le mot de passe actuel,
+     * - stocke la nouvelle adresse dans pending_email,
+     * - envoie un lien signé à la nouvelle adresse (account.email.verify).
+     * L'email actuel ne change qu'après confirmation (confirmEmailChange).
+     */
+    public function updateEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'email'            => ['required', 'string', 'email', 'lowercase', 'max:255',
+                                   'unique:users,email,' . $request->user()->id],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return $this->sendError('Mot de passe incorrect.', [], 403);
+        }
+
+        if (strtolower($validated['email']) === strtolower($user->email)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation échouée.',
+                'errors'  => ['email' => ["L'adresse email est identique à l'adresse actuelle."]],
+            ], 422);
+        }
+
+        $user->update(['pending_email' => strtolower($validated['email'])]);
+
+        $user->notify(new VerifyEmailChange($user->pending_email));
+
+        return response()->json([
+            'success' => true,
+            'message' => "Un email de vérification a été envoyé à {$user->pending_email}. Cliquez sur le lien pour confirmer le changement.",
+        ]);
+    }
+
+    /**
+     * Confirmation du changement d'email via le lien signé :
+     * - copie pending_email dans email,
+     * - envoie une notification à l'ancienne adresse,
+     * - révoque tous les tokens OAuth (le joueur se reconnecte avec son nouvel email).
+     * Redirige vers la page de connexion du frontend.
+     */
+    public function confirmEmailChange(Request $request, int $id, string $hash): RedirectResponse|JsonResponse
+    {
+        $user = User::find($id);
+
+        if (! $user || ! $user->pending_email || ! hash_equals(sha1($user->pending_email), $hash)) {
+            return $request->expectsJson()
+                ? $this->sendError('Lien de confirmation invalide ou expiré.', [], 403)
+                : redirect(config('app.frontend_url') . '/verify-email-change?error=invalid');
+        }
+
+        $oldEmail = $user->email;
+        $newEmail = $user->pending_email;
+
+        $user->update([
+            'email'              => $newEmail,
+            'pending_email'      => null,
+            'email_verified_at'  => now(),
+        ]);
+
+        // Notification à l'ancienne adresse : alerte si le changement n'est pas du propriétaire.
+        // On utilise Notification::route() pour cibler directement l'ancienne adresse sans
+        // modifier le modèle, dont l'email est déjà mis à jour en base.
+        Notification::route('mail', $oldEmail)->notify(new EmailChanged($newEmail));
+
+        // Révoquer TOUS les tokens OAuth : toutes les sessions antérieures sont fermées.
+        $user->tokens()->where('revoked', false)->get()->each(function (Token $token) {
+            RefreshToken::where('access_token_id', $token->id)->update(['revoked' => true]);
+            $token->revoke();
+        });
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'message' => 'Adresse email confirmée. Reconnectez-vous avec votre nouvelle adresse.'])
+            : redirect(config('app.frontend_url') . '/login?email_changed=1');
+    }
+
+    /**
+     * Changement de mot de passe self-service :
+     * - vérifie le mot de passe actuel,
+     * - met à jour le hash et régénère le remember_token,
+     * - révoque tous les tokens OAuth sauf le courant (le joueur reste connecté).
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password'      => ['required', 'string'],
+            'password'              => ['required', 'string', 'min:8', 'max:190'],
+            'password_confirmation' => ['required', 'string', 'same:password'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return $this->sendError('Mot de passe incorrect.', [], 403);
+        }
+
+        $currentTokenId = $user->token()?->id;
+
+        $user->update([
+            'password'       => Hash::make($validated['password']),
+            'remember_token' => Str::random(60),
+        ]);
+
+        // Révoquer tous les tokens SAUF le courant : le joueur reste connecté dans ce navigateur.
+        $user->tokens()
+            ->where('revoked', false)
+            ->when($currentTokenId !== null, fn ($q) => $q->where('id', '!=', $currentTokenId))
+            ->get()
+            ->each(function (Token $token) {
+                RefreshToken::where('access_token_id', $token->id)->update(['revoked' => true]);
+                $token->revoke();
+            });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mot de passe modifié.',
+        ]);
     }
 
     /**
