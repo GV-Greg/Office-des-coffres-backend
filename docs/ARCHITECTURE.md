@@ -98,6 +98,7 @@ et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre varian
 | POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
 | GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
 | DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
+| GET | `auth/account/export` | `Api\AuthController@exportAccount` | `auth:api`, `throttle:6,1` — export JSON daté (art. 20 RGPD) : compte, personnages + résidence en noms, mandats + statut effectif en noms ; pas de password ni d'identifiants internes (voir `docs/DECISIONS.md`) |
 | PATCH | `auth/account/email` | `Api\AuthController@updateEmail` | `auth:api`, `throttle:6,1` — stocke `pending_email`, envoie `VerifyEmailChange` à la nouvelle adresse |
 | GET | `auth/account/email/verify/{id}/{hash}` | `Api\AuthController@confirmEmailChange` | `signed`, `throttle:6,1` (nommée `account.email.verify`) — applique `pending_email`, notifie l'ancienne adresse, révoque tous les tokens |
 | PATCH | `auth/account/password` | `Api\AuthController@updatePassword` | `auth:api`, `throttle:6,1` — hash + `remember_token`, révoque tous les tokens sauf le courant |
@@ -161,7 +162,9 @@ vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
   `me`, `destroyAccount` (suppression self-service : exige le mot de passe courant en plus du
   jeton, supprime le `User` — personnages en cascade —, les jetons d'accès Passport et leurs
   refresh tokens, le tout en transaction ; les tables OAuth n'ayant pas de FK vers `users`, elles
-  ne se videraient pas seules). `exportAccount` (export art. 20 RGPD). `login`/`me` renvoient `user.characters` (liste, pas un
+  ne se videraient pas seules). `exportAccount` (export art. 20 RGPD : JSON daté via
+  `App\Services\AccountExport`, `Content-Disposition: attachment`, `Cache-Control: no-store` ;
+  un module ajoute sa section dans le service sans toucher au contrôleur). `login`/`me` renvoient `user.characters` (liste, pas un
   pseudo/statut unique).
   **Changement d'email** (back #75, 30/10/2026) : `updateEmail` (vérifie le mot de passe actuel, stocke
   la nouvelle adresse dans `users.pending_email`, envoie `VerifyEmailChange` — pattern

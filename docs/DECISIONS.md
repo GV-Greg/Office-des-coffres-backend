@@ -4,6 +4,26 @@ ADR minimalistes : titre, contexte, décision, conséquences. Une entrée par d�
 qui aurait pu raisonnablement être prise autrement. But : que la raison derrière un choix
 survive au contributeur qui l'a fait, sans avoir à fouiller `roadmap.md` ou l'historique git.
 
+## Export de données (art. 20 RGPD) : format JSON, sans mot de passe ni identifiants internes
+
+**Contexte** — Le droit à la portabilité (RGPD art. 20) exige un format structuré et lisible par
+machine. Plusieurs choix de contenu auraient été légitimes.
+
+**Décisions**
+- **Pas de mot de passe** : le jeton d'accès suffit à vérifier l'identité, et un fichier
+  téléchargé peut fuiter — un hash ne serait ni utile ni sécurisé dans l'export.
+- **Pas d'identifiants internes** (`id`, `user_id`, `city_id`…) : ils n'ont aucun sens hors du
+  site ; la résidence et le lieu des mandats sont exportés en noms lisibles.
+- **Pas de jetons OAuth ni de note admin** : secrets techniques ou donnée interne, non portables.
+- **Format versionné** (`version: 1`) : incrémenté uniquement si la structure change (renommage,
+  déplacement). Ajouter une section pour un nouveau module ne change pas la version.
+- **Pas de mot de passe redemandé** : l'export ne détruit rien. Le limiteur `throttle:6,1` suffit
+  à éviter l'aspiration en masse.
+
+**Conséquences** — Tout nouveau module qui stocke des données liées à un compte doit déclarer
+une section dans `AccountExport` (ou la raison de l'exclusion dans `AccountExportCoverageTest`).
+Le test de couverture passe au rouge sur toute table liée à un compte non déclarée.
+
 ## Sanctum plutôt que Passport pour l'authentification API
 
 **Contexte** — Laravel propose deux solutions officielles pour l'auth API : Sanctum (tokens

@@ -45,6 +45,9 @@ Route::prefix('v1')->group(function () {
             // Suppression self-service (art. 17 RGPD) : toujours le compte du porteur du jeton,
             // jamais un id passé en paramètre.
             Route::delete('account', [AuthController::class, 'destroyAccount']);
+            // Export art. 20 RGPD (portabilité) : toujours le compte du porteur du jeton.
+            Route::get('account/export', [AuthController::class, 'exportAccount'])
+                ->middleware('throttle:6,1');
             // Changement d'email : stocke le pending_email et envoie un lien de confirmation.
             Route::patch('account/email', [AuthController::class, 'updateEmail'])
                 ->middleware('throttle:6,1');
