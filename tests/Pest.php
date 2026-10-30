@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AnimDecodeSecret;
 use App\Models\Character;
 use App\Models\City;
 use App\Models\CouncilMandate;
@@ -128,4 +129,10 @@ function approvedCouncil(Character $character, Province $province, string $start
 function atGameTime(string $datetime): void
 {
     Carbon::setTestNow(Carbon::parse($datetime, 'Europe/Paris'));
+}
+
+/** Le code d'un coffre de « Décode le code », lu en base : l'API ne le donne à personne tant que le coffre n'est pas percé. */
+function decodeSecretCode(int $secretId): string
+{
+    return AnimDecodeSecret::findOrFail($secretId)->code;
 }

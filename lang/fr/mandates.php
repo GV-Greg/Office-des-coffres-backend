@@ -99,6 +99,8 @@ return [
             'logs' => 'Purge des journaux (rétention promise par la politique)',
             'accounts' => 'Purge des comptes inactifs et non confirmés',
             'prices' => 'Résumé quotidien des changements de prix des mines',
+            'decode' => 'Fermeture des activités de « Décode le code » sans action depuis 30 jours',
+            'decode_purge' => 'Suppression des résumés de « Décode le code » (sans compte) clos depuis 5 ans',
         ],
     ],
 

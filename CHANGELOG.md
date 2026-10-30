@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [2026-10-29] — PR #73 (export de données art. 20 RGPD — GET auth/account/export)
+## [À compléter au merge] — back #73 (export de données art. 20 RGPD — GET auth/account/export)
 
 ### Added
 - Route `GET /api/v1/auth/account/export` (`auth:api`, `throttle:6,1`) : export JSON daté des données du compte connecté
@@ -18,6 +18,50 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 - `AccountExportCoverageTest` (Enforcement) : garde-fou — toute table liée à un compte doit être déclarée exportée ou exclue.
 
 ⚠️ **Prod** : aucune migration ni config. Routes mises en cache → `php artisan route:cache` en SSH après déploiement.
+
+## [2026-10-30] — back #75 (gestion du compte en self-service)
+
+### Added
+- Route `PATCH /api/v1/auth/account/email` (`auth:api`, `throttle:6,1`) : demande de changement d'email —
+  vérifie le mot de passe actuel, stocke la nouvelle adresse dans `users.pending_email`, envoie un lien signé
+  de confirmation (`VerifyEmailChange`) à la nouvelle adresse (pattern verify-before-apply).
+- Route `GET /api/v1/auth/account/email/verify/{id}/{hash}` (lien signé `account.email.verify`) : confirme
+  le changement, applique `pending_email → email`, notifie l'ancienne adresse (`EmailChanged`), révoque tous
+  les tokens OAuth.
+- Route `PATCH /api/v1/auth/account/password` (`auth:api`, `throttle:6,1`) : changement de mot de passe —
+  vérifie le mot de passe actuel, met à jour le hash, révoque tous les tokens **sauf le courant** (le joueur
+  reste connecté).
+- Route `PATCH /api/v1/admin/characters/{character}/pseudo` (`auth:api`, `role:admin`) : correction du pseudo
+  d'un personnage par l'admin, sur demande du joueur (erreur à l'inscription).
+- Notifications `VerifyEmailChange` (nouvelle adresse, lien signé) et `EmailChanged` (ancienne adresse,
+  confirmation après changement) — bilingues FR puis EN.
+- Migration `users.pending_email` (nullable, colonne 9).
+
+⚠️ **Prod** : migration à lancer (`php artisan migrate`) ; routes ajoutées → `php artisan route:cache` en SSH.
+
+## [À compléter au merge] — PR #74 (export de données art. 15 RGPD — GET auth/account/export/pdf)
+
+### Added
+- Route `GET /api/v1/auth/account/export/pdf` (`auth:api`, `throttle:6,1`) : export PDF lisible (art. 15 RGPD)
+  généré par DOMPDF (`barryvdh/laravel-dompdf ^3.1`). Deux pages : page 1 en français, page 2 en anglais.
+  Logo, royaumes traduits en français, statuts traduits FR/EN, sections Compte / Personnages / Postes déclarés /
+  Non inclus, disclaimer « outil non officiel ». `Content-Disposition: attachment`, `Cache-Control: no-store`.
+- Logo PNG ajouté dans `public/images/email/` (servi par le backend Docker, même fichier que `frontend/public/`).
+- `Dockerfile.dev` : extension PHP GD activée (requise par DOMPDF pour afficher les images PNG).
+
+⚠️ **Prod** : aucune migration. Route ajoutée → `php artisan route:cache` en SSH après déploiement.
+
+## [2026-10-28] — PR #72 (Décode le code : première activité du module Animation)
+
+### Added
+- Activité **« Décode le code »** (Mastermind à 5 chiffres) du module Animation, en deux modes : **privé** (lié au personnage, supprimé avec lui ou avec le compte) et **sans compte** (adresse publique + mot de passe haché, pseudo obligatoire, email facultatif confirmé, empreinte HMAC de l'IP). Tables `anim_*`, services `Decode*`, API `anim/*` et `decode-activities/*`, cinq emails bilingues, export BBCode, administration `/anim` (recours pour les activités sans compte uniquement).
+- Le code du coffre en cours n'est renvoyé à personne, organisateur compris ; chiffré par `MODULE_DATA_KEY`.
+- Tâches planifiées `anim:close-inactive` (30 jours sans action, deux modes) et `anim:purge-closed` (page figée sans compte supprimée 5 ans après la clôture).
+- Entrée **substantielle** `2026-10-28-decode-le-code` au journal de la politique (`policy:notify` à lancer à la main une fois le texte en ligne, front #101).
+
+### Prod
+- 🔴 `php artisan migrate` (tables `anim_*`, type `decode`), puis `php artisan route:cache` (sinon 404) ; cron `schedule:run` requis ; aucun nouveau `config/*.php` ni clé `.env`.
+- ⚠️ Mesurer `$request->ip()` derrière O2Switch avant d'activer le mode sans compte (`DecodeIp` renvoie nul pour une adresse privée).
 
 ## [2026-10-17] — PR #71 (objets des emails sans « Office des coffres — »)
 

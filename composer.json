@@ -76,6 +76,9 @@
         "test:mandates": [
             "@php ./vendor/bin/pest tests/Feature/Mandates tests/Feature/Enforcement/UserDataLifecycleTest.php"
         ],
+        "test:anim": [
+            "@php ./vendor/bin/pest tests/Feature/Anim tests/Unit/Anim tests/Feature/Enforcement/UserDataLifecycleTest.php"
+        ],
         "test:web": [
             "@php ./vendor/bin/pest tests/Feature/DashboardTest.php tests/Feature/ProfileTest.php"
         ],

@@ -16,5 +16,10 @@
                 <span aria-hidden="true" class="absolute top-2 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 border border-white text-[10px] font-bold leading-none text-white tabular-nums">{{ $pendingMandates > 9 ? '9+' : $pendingMandates }}</span>
             @endif
         </x-nav-link-sidebar>
+        {{-- Animation : types d'activité et surveillance des activités récentes. --}}
+        <x-nav-link-sidebar :href="route('anim.index')" :active="request()->is('anim*')" title="{{ __('anim.admin.nav') }}">
+            <i class="fa-solid fa-gift"></i>
+            <span class="sr-only">{{ __('anim.admin.nav') }}</span>
+        </x-nav-link-sidebar>
     @endif
 </nav>
