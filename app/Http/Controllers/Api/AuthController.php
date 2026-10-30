@@ -10,6 +10,7 @@ use App\Notifications\VerifyEmailChange;
 use App\Services\AccountDeletion;
 use App\Services\AccountExport;
 use App\Support\LastSeen;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -232,6 +233,57 @@ class AuthController extends BaseController
             ],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
+    }
+
+    /**
+     * Export de mes données au format PDF (art. 15 RGPD — accès, lisible par un humain).
+     *
+     * Même règle que exportAccount : toujours le compte du porteur du jeton, pas de mot de passe
+     * redemandé (l'export ne détruit rien). DOMPDF génère le PDF côté serveur depuis la vue
+     * Blade exports/account-export.
+     */
+    public function exportAccountPdf(Request $request): Response
+    {
+        $user = $request->user();
+        $data = app(AccountExport::class)->build($user);
+        $date = Carbon::now()->setTimezone('Europe/Paris');
+
+        $logo = public_path('images/email/logo-horizontal.png');
+
+        $pdf = Pdf::loadView('exports.account-export', [
+            'logoBase64'      => base64_encode(file_get_contents($logo)),
+            'generatedAt'     => $date->format('d/m/Y'),
+            'generatedAtEn'   => $date->locale('en')->isoFormat('D MMMM YYYY'),
+            'account'         => $data['account'],
+            'characters'      => $data['characters'],
+            'mandates'        => $data['mandates'],
+            'notIncludedFr'   => [
+                'browser_storage' =>
+                    'Vos préférences (thème, langue, consentement) et vos saisies dans les modules ' .
+                    'publics (Bilan des mines, Guet) sont conservées dans votre navigateur uniquement — ' .
+                    "elles ne sont pas transmises à nos serveurs et n'apparaissent donc pas ici.",
+                'credentials' =>
+                    'Votre mot de passe (stocké sous forme hachée, non réversible) et vos jetons de ' .
+                    'connexion sont exclus de cet export pour votre sécurité.',
+            ],
+            'notIncludedEn'   => [
+                'browser_storage' =>
+                    'Your preferences (theme, language, consent) and your entries in the public modules ' .
+                    '(Mine Balance, Watch) are stored in your browser only — they are not sent to our ' .
+                    'servers and therefore do not appear here.',
+                'credentials' =>
+                    'Your password (stored as a hash, non-reversible) and your login tokens are ' .
+                    'excluded from this export for your security.',
+            ],
+        ]);
+
+        $filename = 'office-des-coffres-export-' . $date->format('Y-m-d') . '.pdf';
+
+        return response($pdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control'       => 'no-store',
+        ]);
     }
 
     /**

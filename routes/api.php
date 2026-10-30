@@ -48,6 +48,9 @@ Route::prefix('v1')->group(function () {
             // Export art. 20 RGPD (portabilité) : toujours le compte du porteur du jeton.
             Route::get('account/export', [AuthController::class, 'exportAccount'])
                 ->middleware('throttle:6,1');
+            // Export art. 15 RGPD (accès, lisible par un humain) : format PDF via DOMPDF.
+            Route::get('account/export/pdf', [AuthController::class, 'exportAccountPdf'])
+                ->middleware('throttle:6,1');
             // Changement d'email : stocke le pending_email et envoie un lien de confirmation.
             Route::patch('account/email', [AuthController::class, 'updateEmail'])
                 ->middleware('throttle:6,1');
