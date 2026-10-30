@@ -128,10 +128,10 @@ describe('GET auth/account/export', function () {
         $character = mandatePlayer($map['cityA'], ['user_id' => $user->id]);
 
         // Maire actif (in_office_from = started_at = passé → statut 'active')
-        approvedMayor($character, $map['cityA'], '2026-10-01');
+        approvedMayor($character, $map['cityA'], now()->subDays(7)->format('Y-m-d'));
 
         // Conseiller élu (in_office_from = null → statut 'elected')
-        approvedCouncil($character, $map['provinceA'], '2026-10-01', null, null);
+        approvedCouncil($character, $map['provinceA'], now()->subDays(7)->format('Y-m-d'), null, null);
 
         Passport::actingAs($user);
         $json = $this->getJson('/api/v1/auth/account/export')
