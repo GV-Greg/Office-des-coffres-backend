@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Web\AnimAdminController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\MandateAdminController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +61,20 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
             Route::post('correct-start', 'correctStart')->name('correct-start');
             Route::post('correct-decision', 'correctDecision')->name('correct-decision');
             Route::post('verify', 'verify')->name('verify');
+        });
+    });
+
+    // Animation (admin/modules/animation/brief-coffres-scelles.md ; tour 12 du fil) : types d'activité, surveillance des
+    // activités récentes et recours de l'administration pour les activités SANS COMPTE seulement (clore, retirer avec
+    // confirmation, lien de réinitialisation). Aucune gestion des activités privées des joueurs ici.
+    Route::prefix('anim')->name('anim.')->controller(AnimAdminController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::patch('types/{type}/toggle', 'toggleType')->name('types.toggle');
+        Route::prefix('activities/{activity}')->name('activities.')->group(function () {
+            Route::post('close', 'close')->name('close');
+            Route::get('delete', 'confirmDelete')->name('delete');
+            Route::delete('/', 'destroy')->name('destroy');
+            Route::post('reset-link', 'resetLink')->name('reset-link');
         });
     });
 });

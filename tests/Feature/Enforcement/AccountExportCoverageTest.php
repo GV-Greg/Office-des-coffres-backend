@@ -30,6 +30,12 @@ $exportDecisions = [
     // encore actif (pseudo en texte) : non exportée, le compte rattaché n'existe plus.
     'office_history_archive' => 'excluded',
 
+    // A — activité Décode le code (privé : character_id catégorie A). Non exportée pour l'instant :
+    // les codes de coffre sont chiffrés (MODULE_DATA_KEY) et ne doivent pas partir en export brut ;
+    // les propositions sont des données de participants, non uniquement du créateur. Une section
+    // dédiée sera ajoutée à AccountExport lors du lot export animation.
+    'anim_decode_activities' => 'excluded',
+
     // C — relevé communautaire de la province. character_id -> NULL à la suppression.
     // Non exporté : données communautaires, pas propriété exclusive de l'auteur.
     'mine_reports' => 'excluded',
