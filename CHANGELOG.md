@@ -7,6 +7,38 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [À compléter au merge] — back #75 (gestion du compte en self-service)
+
+### Added
+- Route `PATCH /api/v1/auth/account/email` (`auth:api`, `throttle:6,1`) : demande de changement d'email —
+  vérifie le mot de passe actuel, stocke la nouvelle adresse dans `users.pending_email`, envoie un lien signé
+  de confirmation (`VerifyEmailChange`) à la nouvelle adresse (pattern verify-before-apply).
+- Route `GET /api/v1/auth/account/email/verify/{id}/{hash}` (lien signé `account.email.verify`) : confirme
+  le changement, applique `pending_email → email`, notifie l'ancienne adresse (`EmailChanged`), révoque tous
+  les tokens OAuth.
+- Route `PATCH /api/v1/auth/account/password` (`auth:api`, `throttle:6,1`) : changement de mot de passe —
+  vérifie le mot de passe actuel, met à jour le hash, révoque tous les tokens **sauf le courant** (le joueur
+  reste connecté).
+- Route `PATCH /api/v1/admin/characters/{character}/pseudo` (`auth:api`, `role:admin`) : correction du pseudo
+  d'un personnage par l'admin, sur demande du joueur (erreur à l'inscription).
+- Notifications `VerifyEmailChange` (nouvelle adresse, lien signé) et `EmailChanged` (ancienne adresse,
+  confirmation après changement) — bilingues FR puis EN.
+- Migration `users.pending_email` (nullable, colonne 9).
+
+⚠️ **Prod** : migration à lancer (`php artisan migrate`) ; routes ajoutées → `php artisan route:cache` en SSH.
+
+## [À compléter au merge] — PR #74 (export de données art. 15 RGPD — GET auth/account/export/pdf)
+
+### Added
+- Route `GET /api/v1/auth/account/export/pdf` (`auth:api`, `throttle:6,1`) : export PDF lisible (art. 15 RGPD)
+  généré par DOMPDF (`barryvdh/laravel-dompdf ^3.1`). Deux pages : page 1 en français, page 2 en anglais.
+  Logo, royaumes traduits en français, statuts traduits FR/EN, sections Compte / Personnages / Postes déclarés /
+  Non inclus, disclaimer « outil non officiel ». `Content-Disposition: attachment`, `Cache-Control: no-store`.
+- Logo PNG ajouté dans `public/images/email/` (servi par le backend Docker, même fichier que `frontend/public/`).
+- `Dockerfile.dev` : extension PHP GD activée (requise par DOMPDF pour afficher les images PNG).
+
+⚠️ **Prod** : aucune migration. Route ajoutée → `php artisan route:cache` en SSH après déploiement.
+
 ## [2026-10-28] — PR #72 (Décode le code : première activité du module Animation)
 
 ### Added

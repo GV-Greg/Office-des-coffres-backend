@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminCharacterController;
 use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
 use App\Http\Controllers\Api\AuthController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Api\MinePriceController;
 use App\Http\Controllers\Api\MineReportController;
 use App\Http\Controllers\Api\ProvinceHistoryController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::prefix('v1')->group(function () {
 
@@ -30,12 +32,25 @@ Route::prefix('v1')->group(function () {
             ->middleware('signed')
             ->name('verification.verify.api');
 
+        // Confirmation du changement d'email : lien signé cliqué depuis l'email, sans jeton Passport.
+        // ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('account/email/verify/{id}/{hash}', [AuthController::class, 'confirmEmailChange'])
+            ->where(['id' => '[0-9]+', 'hash' => '[a-f0-9]{40}'])
+            ->middleware(['signed', 'throttle:6,1'])
+            ->name('account.email.verify');
+
         Route::middleware('auth:api')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('me', [AuthController::class, 'me']);
             // Suppression self-service (art. 17 RGPD) : toujours le compte du porteur du jeton,
             // jamais un id passé en paramètre.
             Route::delete('account', [AuthController::class, 'destroyAccount']);
+            // Changement d'email : stocke le pending_email et envoie un lien de confirmation.
+            Route::patch('account/email', [AuthController::class, 'updateEmail'])
+                ->middleware('throttle:6,1');
+            // Changement de mot de passe : révoque tous les tokens sauf le courant.
+            Route::patch('account/password', [AuthController::class, 'updatePassword'])
+                ->middleware('throttle:6,1');
         });
     });
 
@@ -128,6 +143,13 @@ Route::prefix('v1')->group(function () {
         });
         Route::delete('mandates/{level}/{id}', [MandateController::class, 'destroy'])
             ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
+
+        // Correction du pseudo par l'admin (demande joueur en cas d'erreur à l'inscription).
+        // ⚠️ Routes ajoutées : route:cache en prod.
+        Route::middleware('role:admin')->group(function () {
+            Route::patch('admin/characters/{character}/pseudo', [AdminCharacterController::class, 'updatePseudo'])
+                ->where('character', '[0-9]+');
+        });
     });
 
 });
