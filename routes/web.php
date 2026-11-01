@@ -27,6 +27,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('characters', [DashboardController::class, 'characters'])->name('characters');
     Route::get('users', [DashboardController::class, 'users'])->name('users');
     Route::delete('users/{user}', [DashboardController::class, 'destroyUser'])->name('users.destroy');
     Route::patch('characters/{character}/validate', [DashboardController::class, 'toggleValidation'])->name('characters.validate');

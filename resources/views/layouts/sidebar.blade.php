@@ -3,6 +3,14 @@
         <x-nav-link-sidebar :href="route('users')" :active="request()->is('users*')">
             <i class="fa-solid fa-users"></i>
         </x-nav-link-sidebar>
+        @php($pendingCharacters = \App\Http\Controllers\Web\DashboardController::pendingCharactersCount())
+        <x-nav-link-sidebar :href="route('characters')" :active="request()->is('characters*')" class="relative" title="{{ __('dashboard.characters_nav') }}">
+            <i class="fa-solid fa-user"></i>
+            <span class="sr-only">{{ __('dashboard.characters_nav') }}</span>
+            @if($pendingCharacters > 0)
+                <span aria-hidden="true" class="absolute top-2 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 border border-white text-[10px] font-bold leading-none text-white tabular-nums">{{ $pendingCharacters > 9 ? '9+' : $pendingCharacters }}</span>
+            @endif
+        </x-nav-link-sidebar>
         @php($pendingMandates = \App\Http\Controllers\Web\MandateAdminController::pendingCount())
         {{-- Pastille accrochée au COIN DE LA TUILE (le lien est `relative`), pas à l'icône : sa place
              ne dépend plus de la police d'icônes. Cercle de 18 px, chiffre centré, plafonné à 9+.
