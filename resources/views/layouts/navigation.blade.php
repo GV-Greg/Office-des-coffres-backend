@@ -10,6 +10,10 @@
                             <i class="fa-solid fa-tent mr-1"></i>
                             {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('item-icons.index')" :active="request()->routeIs('item-icons.*')">
+                            <i class="fa-solid fa-image mr-1"></i>
+                            {{ __('item_icons.title') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -44,6 +48,9 @@
             @if(Auth::user()->hasRole('admin'))
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('item-icons.index')" :active="request()->routeIs('item-icons.*')">
+                    {{ __('item_icons.title') }}
                 </x-responsive-nav-link>
             @endif
         </div>

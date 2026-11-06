@@ -179,19 +179,21 @@ class DashboardController extends Controller
         // Nouveaux comptes
         User::latest()->limit($limit)->get()
             ->each(fn ($u) => $events->push([
-                'date' => $u->created_at,
-                'icon' => 'fa-user-plus',
-                'text' => __('dashboard.event_user_created', ['email' => $u->email]),
-                'url'  => route('users'),
+                'date'  => $u->created_at,
+                'icon'  => 'fa-user-plus',
+                'color' => 'text-blue-400',
+                'text'  => __('dashboard.event_user_created', ['email' => $u->email]),
+                'url'   => route('users'),
             ]));
 
         // Personnages créés
         Character::latest()->limit($limit)->get()
             ->each(fn ($c) => $events->push([
-                'date' => $c->created_at,
-                'icon' => 'fa-user',
-                'text' => __('dashboard.event_character_created', ['pseudo' => $c->pseudo]),
-                'url'  => route('characters'),
+                'date'  => $c->created_at,
+                'icon'  => 'fa-user',
+                'color' => 'text-green-400',
+                'text'  => __('dashboard.event_character_created', ['pseudo' => $c->pseudo]),
+                'url'   => route('characters'),
             ]));
 
         // Demandes de mandat (pending)
@@ -203,9 +205,10 @@ class DashboardController extends Controller
                 ->with(['character', $place])
                 ->latest()->limit($limit)->get()
                 ->each(fn ($m) => $events->push([
-                    'date' => $m->created_at,
-                    'icon' => 'fa-file-circle-plus',
-                    'text' => __('dashboard.event_mandate_pending', [
+                    'date'  => $m->created_at,
+                    'icon'  => 'fa-file-circle-plus',
+                    'color' => 'text-indigo-400',
+                    'text'  => __('dashboard.event_mandate_pending', [
                         'pseudo' => $m->character?->pseudo ?? __('dashboard.deleted_character'),
                         'type'   => $type,
                         'lieu'   => $m->{$place}?->{$field} ?? '?',
@@ -224,9 +227,10 @@ class DashboardController extends Controller
                 ->with(['character', $place])
                 ->orderByDesc('processed_at')->limit($limit)->get()
                 ->each(fn ($m) => $events->push([
-                    'date' => $m->processed_at,
-                    'icon' => 'fa-circle-check',
-                    'text' => __('dashboard.event_mandate_approved', [
+                    'date'  => $m->processed_at,
+                    'icon'  => 'fa-circle-check',
+                    'color' => 'text-indigo-400',
+                    'text'  => __('dashboard.event_mandate_approved', [
                         'pseudo' => $m->character?->pseudo ?? __('dashboard.deleted_character'),
                         'type'   => $type,
                         'lieu'   => $m->{$place}?->{$field} ?? '?',
@@ -245,9 +249,10 @@ class DashboardController extends Controller
                 ->with(['character', $place])
                 ->orderByDesc('holds_until')->limit($limit)->get()
                 ->each(fn ($m) => $events->push([
-                    'date' => $m->holds_until,
-                    'icon' => 'fa-hourglass-end',
-                    'text' => __('dashboard.event_mandate_expired', [
+                    'date'  => $m->holds_until,
+                    'icon'  => 'fa-hourglass-end',
+                    'color' => 'text-indigo-400',
+                    'text'  => __('dashboard.event_mandate_expired', [
                         'pseudo' => $m->character?->pseudo ?? __('dashboard.deleted_character'),
                         'type'   => $type,
                         'lieu'   => $m->{$place}?->{$field} ?? '?',
@@ -260,9 +265,10 @@ class DashboardController extends Controller
         MineReport::with(['province', 'character'])
             ->latest()->limit($limit)->get()
             ->each(fn ($r) => $events->push([
-                'date' => $r->created_at,
-                'icon' => 'fa-file-lines',
-                'text' => __('dashboard.event_mine_report', [
+                'date'  => $r->created_at,
+                'icon'  => 'fa-file-lines',
+                'color' => 'text-amber-400',
+                'text'  => __('dashboard.event_mine_report', [
                     'province' => $r->province?->province_name ?? '?',
                     'pseudo'   => $r->character?->pseudo ?? __('dashboard.deleted_character'),
                 ]),
@@ -273,9 +279,11 @@ class DashboardController extends Controller
         ProvinceMinePrice::with(['province', 'createdBy'])
             ->latest()->limit($limit)->get()
             ->each(fn ($p) => $events->push([
-                'date' => $p->created_at,
-                'icon' => 'fa-coins',
-                'text' => __('dashboard.event_mine_price', [
+                'date'      => $p->created_at,
+                'icon'      => 'crown-coin',
+                'icon_type' => 'game',
+                'color'     => 'text-amber-400',
+                'text'  => __('dashboard.event_mine_price', [
                     'province' => $p->province?->province_name ?? '?',
                     'pseudo'   => $p->createdBy?->pseudo ?? __('dashboard.deleted_character'),
                 ]),
@@ -286,9 +294,11 @@ class DashboardController extends Controller
         AnimDecodeActivity::with('character')
             ->latest()->limit($limit)->get()
             ->each(fn ($a) => $events->push([
-                'date' => $a->created_at,
-                'icon' => 'fa-gift',
-                'text' => __('dashboard.event_activity_created', [
+                'date'      => $a->created_at,
+                'icon'      => 'rolling-dice-cup',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_activity_created', [
                     'name'      => $a->name,
                     'organizer' => $a->is_anonymous
                         ? ($a->organizer_name ?? '?')
@@ -301,20 +311,24 @@ class DashboardController extends Controller
         AnimDecodeActivity::whereNotNull('launched_at')
             ->orderByDesc('launched_at')->limit($limit)->get()
             ->each(fn ($a) => $events->push([
-                'date' => $a->launched_at,
-                'icon' => 'fa-play',
-                'text' => __('dashboard.event_activity_launched', ['name' => $a->name]),
-                'url' => route('anim.index'),
+                'date'      => $a->launched_at,
+                'icon'      => 'rolling-dice-cup',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_activity_launched', ['name' => $a->name]),
+                'url'       => route('anim.index'),
             ]));
 
         // Activités clôturées
         AnimDecodeActivity::whereNotNull('closed_at')
             ->orderByDesc('closed_at')->limit($limit)->get()
             ->each(fn ($a) => $events->push([
-                'date' => $a->closed_at,
-                'icon' => 'fa-flag-checkered',
-                'text' => __('dashboard.event_activity_closed', ['name' => $a->name]),
-                'url' => route('anim.index'),
+                'date'      => $a->closed_at,
+                'icon'      => 'rolling-dice-cup',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_activity_closed', ['name' => $a->name]),
+                'url'       => route('anim.index'),
             ]));
 
         // Coffres percés
@@ -322,9 +336,11 @@ class DashboardController extends Controller
             ->with('secret.activity')
             ->latest()->limit($limit)->get()
             ->each(fn ($p) => $events->push([
-                'date' => $p->created_at,
-                'icon' => 'fa-lock-open',
-                'text' => __('dashboard.event_secret_found', [
+                'date'      => $p->created_at,
+                'icon'      => 'rolling-dice-cup',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_secret_found', [
                     'name'      => $p->secret?->activity?->name ?? '?',
                     'character' => $p->character_name ?? '?',
                 ]),

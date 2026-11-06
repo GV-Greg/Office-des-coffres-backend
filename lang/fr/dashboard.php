@@ -24,8 +24,12 @@ return [
     'alert_inactive_line'    => '« :name » (org. :organizer) — :days j restant',
 
     // Fil d'activité récente
-    'recent_title' => 'Activité récente',
-    'recent_empty' => 'Aucune activité enregistrée.',
+    'recent_title'      => 'Activité récente',
+    'recent_empty'      => 'Aucune activité enregistrée.',
+    'recent_today'      => 'Aujourd\'hui',
+    'recent_this_week'  => 'Cette semaine',
+    'recent_this_month' => 'Ce mois-ci',
+    'recent_older'      => 'Plus ancien',
 
     // Événements du fil
     'event_user_created'       => 'Nouveau compte : :email',

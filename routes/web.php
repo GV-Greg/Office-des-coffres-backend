@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\AnimAdminController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\ItemIconController;
 use App\Http\Controllers\Web\MandateAdminController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +65,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
             Route::post('verify', 'verify')->name('verify');
         });
     });
+
+    // Icônes des items — référentiel admin (brief admin/content/brief-icones-items.md).
+    // ⚠️ Routes ajoutées : route:cache en prod.
+    Route::get('item-icons', [ItemIconController::class, 'index'])->name('item-icons.index');
+    Route::post('item-icons', [ItemIconController::class, 'store'])->name('item-icons.store');
+    Route::patch('item-icons/{icon}', [ItemIconController::class, 'update'])->where('icon', '[0-9]+')->name('item-icons.update');
+    Route::delete('item-icons/{icon}', [ItemIconController::class, 'destroy'])->where('icon', '[0-9]+')->name('item-icons.destroy');
 
     // Animation (admin/modules/animation/brief-coffres-scelles.md ; tour 12 du fil) : types d'activité, surveillance des
     // activités récentes et recours de l'administration pour les activités SANS COMPTE seulement (clore, retirer avec

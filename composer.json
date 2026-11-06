@@ -6,7 +6,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "andreiio/blade-remix-icon": "^3.9",
         "barryvdh/laravel-dompdf": "^3.1",
+        "codeat3/blade-game-icons": "^1.6",
+        "davidhsianturi/blade-bootstrap-icons": "^2.2",
         "fakerphp/faker": "^1.23",
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^12.0",

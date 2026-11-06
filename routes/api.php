@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
+use App\Http\Controllers\Api\ItemIconController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\MinePriceController;
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     Route::get('map', [MapController::class, 'index']);
+
+    // Icônes des items — lecture publique (brief admin/content/brief-icones-items.md).
+    // ⚠️ Routes ajoutées : route:cache en prod.
+    Route::get('item-icons', [ItemIconController::class, 'lookup']);
 
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])
@@ -155,6 +160,14 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:admin')->group(function () {
             Route::patch('admin/characters/{character}/pseudo', [AdminCharacterController::class, 'updatePseudo'])
                 ->where('character', '[0-9]+');
+
+            // Icônes des items — CRUD admin (brief admin/content/brief-icones-items.md).
+            Route::get('admin/item-icons', [ItemIconController::class, 'index']);
+            Route::post('admin/item-icons', [ItemIconController::class, 'store']);
+            Route::put('admin/item-icons/{icon}', [ItemIconController::class, 'update'])
+                ->where('icon', '[0-9]+');
+            Route::delete('admin/item-icons/{icon}', [ItemIconController::class, 'destroy'])
+                ->where('icon', '[0-9]+');
         });
     });
 

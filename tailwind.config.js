@@ -11,7 +11,7 @@ export default {
     ],
 
     safelist:[
-        { pattern: /text-(gray|yellow|salmon|teal|blueGray|blue|red|orange|lime|green|cyan|indigo|pink)-(100|200|300|400|500|600|700|800|900)/, },
+        { pattern: /text-(gray|yellow|amber|salmon|teal|blueGray|blue|red|orange|lime|green|cyan|indigo|pink)-(100|200|300|400|500|600|700|800|900)/, },
         { pattern: /ring-offset-(gray|yellow|salmon|teal|blueGray|blue|red|orange|lime|green|cyan|indigo|pink)-(100|200|300|400|500|600|700|800|900)/, },
         { pattern: /ring-(gray|yellow|salmon|teal|blueGray|blue|red|orange|lime|green|cyan|indigo|pink)-(100|200|300|400|500|600|700|800|900)/, },
         { pattern: /bg-(gray|yellow|salmon|teal|blueGray|blue|red|orange|lime|green|cyan|indigo|pink)-(100|200|300|400|500|600|700|800|900)/, },
