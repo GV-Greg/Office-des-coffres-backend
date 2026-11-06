@@ -5,7 +5,7 @@
 return [
     'email' => [
         'greeting' => 'Bonjour,',
-        'salutation' => "Ludiquement,\nOffice des coffres",
+        'salutation' => "Ludiquement,\nGregory pour l'Office des coffres",
 
         'inactive_subject' => 'Votre compte sera supprimé faute de connexion',
         'inactive_notice' => "Votre compte de l'Office des coffres n'a pas été utilisé depuis le :last_seen. Comme l'annonce la politique de confidentialité, un compte inactif est supprimé après un préavis : sans connexion de votre part, le vôtre le sera à partir du :date, avec ses personnages.",

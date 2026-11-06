@@ -53,15 +53,15 @@ test('chaque type d\'email se rend dans les deux langues sans aucune clé brute'
 
 test('contrôle positif : une clé anglaise manquante fait apparaître la clé brute', function () {
     $mandate = approvedMayor(mandatePlayer($this->map['cityA']), $this->map['cityA'], '2026-05-01');
-    app('translator')->addLines(['mandates.email.revoked' => null], 'en');
+    app('translator')->addLines(['mandates.email.revoked_detail' => null], 'en');
     app('translator')->setLoaded([]); // oublie le fichier anglais chargé
     $translations = require lang_path('en/mandates.php');
-    unset($translations['email']['revoked']);
+    unset($translations['email']['revoked_detail']);
     app('translator')->addLines(Arr::dot($translations, 'mandates.'), 'en');
 
     $text = implode("\n", (new MandateDecision('revoked', $mandate, ['reason' => 'demission']))->lines());
 
-    expect($text)->toContain('mandates.email.revoked');
+    expect($text)->toContain('mandates.email.revoked_detail');
 });
 
 test('l\'email est en français d\'abord, puis en anglais', function () {
@@ -99,10 +99,13 @@ test('le commentaire libre est étiqueté par la langue dans laquelle il est éc
 // réécrite ne peut pas prendre en silence la convention de sa voisine.
 dataset('email_date_families', [
     'approved' => ['approved', 'both'],
+    'approved_detail' => ['approved_detail', 'both'],
     'revoked' => ['revoked', 'both'],
+    'revoked_detail' => ['revoked_detail', 'both'],
     'handover_out' => ['handover_out', 'both'],
     'handover_in' => ['handover_in', 'both'],
     'reminder' => ['reminder', 'both'],
+    'reminder_detail' => ['reminder_detail', 'both'],
     'reason_corrected' => ['reason_corrected', 'real'],
 ]);
 
@@ -121,7 +124,7 @@ test('toutes les chaînes datées sont classées : aucune n\'échappe au test pr
     $dated = collect((require lang_path('fr/mandates.php'))['email'])
         ->filter(fn (string $text) => str_contains($text, ':date'))->keys()->sort()->values()->all();
 
-    expect($dated)->toBe(collect(['approved', 'handover_in', 'handover_out', 'reason_corrected', 'reminder', 'revoked'])->all());
+    expect($dated)->toBe(collect(['approved', 'approved_detail', 'handover_in', 'handover_out', 'reason_corrected', 'reminder', 'reminder_detail', 'revoked', 'revoked_detail'])->all());
 });
 
 test('les emails s\'adressent au joueur et nomment le personnage (10)', function () {

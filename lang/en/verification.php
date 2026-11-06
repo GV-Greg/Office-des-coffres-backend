@@ -9,7 +9,7 @@ return [
         'expires' => 'This link expires in :minutes minutes.',
         'not_you' => 'If you did not sign up, you can ignore this email.',
         'action' => 'Confirm my email',
-        'salutation' => "Playfully,\nOffice des coffres",
+        'salutation' => "Playfully,\nGregory for the Office des Coffres",
     ],
     'email_change' => [
         'subject'    => 'Confirm your new email address',
@@ -18,13 +18,13 @@ return [
         'expires'    => 'This link expires in :minutes minutes.',
         'not_you'    => 'If you did not make this request, ignore this email. Your current address remains unchanged.',
         'action'     => 'Confirm my new address',
-        'salutation' => "Playfully,\nOffice des coffres",
+        'salutation' => "Playfully,\nGregory for the Office des Coffres",
     ],
     'email_changed_notice' => [
         'subject'    => 'Your email address has been changed',
         'greeting'   => 'Hello,',
         'intro'      => 'The email address on your Office des coffres account has just been changed to: :new_email',
         'warning'    => 'If you did not make this change, please contact the administrator immediately.',
-        'salutation' => "Playfully,\nOffice des coffres",
+        'salutation' => "Playfully,\nGregory for the Office des Coffres",
     ],
 ];

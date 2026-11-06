@@ -51,7 +51,7 @@ class MandateDecision extends Notification
         }
 
         return $mail
-            ->action(__('mandates.email.action', [], 'fr').' / '.__('mandates.email.action', [], 'en'),
+            ->action(__('mandates.email.action', [], 'fr'),
                 rtrim((string) config('app.frontend_url'), '/').'/app/profil')
             ->salutation(__('mandates.email.salutation', [], 'fr')."\n\n".__('mandates.email.salutation', [], 'en'));
     }
@@ -70,14 +70,38 @@ class MandateDecision extends Notification
                 $lines[] = '———';
             }
             $lines[] = __('mandates.email.greeting', [], $locale);
-            $lines[] = __('mandates.email.post_line', [
-                'character' => $this->mandate->character?->pseudo,
-                'post' => MandateLabels::post($this->mandate, $locale),
-            ], $locale);
+            $lines[] = $this->panelLine($locale);
             array_push($lines, ...$this->body($locale));
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('mandates.email.action', [], 'en').'%%');
         }
 
         return $lines;
+    }
+
+    private function panelLine(string $locale): string
+    {
+        $char = (string) ($this->mandate->character?->pseudo ?? '');
+        $post = MandateLabels::post($this->mandate, $locale);
+        [$color, $text] = $this->badgeParts($locale);
+        return "%%panel:{$char}:{$post}:{$color}:{$text}%%";
+    }
+
+    private function badgeParts(string $locale): array
+    {
+        $map = [
+            'approved'       => ['approved', 'badge_approved'],
+            'rejected'       => ['rejected', 'badge_rejected'],
+            'revoked'        => ['rejected', 'badge_revoked'],
+            'office_granted' => ['approved', 'badge_office_granted'],
+            'office_rejected'=> ['rejected', 'badge_office_rejected'],
+        ];
+
+        if (! isset($map[$this->type])) {
+            return ['', ''];
+        }
+
+        [$color, $key] = $map[$this->type];
+        return [$color, __("mandates.email.{$key}", [], $locale)];
     }
 
     /** @return array<int, string> */
@@ -95,17 +119,17 @@ class MandateDecision extends Notification
 
         $lines = match ($this->type) {
             'approved' => array_filter([
-                __('mandates.email.approved', $dates, $locale),
+                __('mandates.email.approved_detail', $dates, $locale),
                 ($this->details['elected'] ?? false) ? __('mandates.email.approved_elected', [], $locale) : null,
                 ($this->details['title_dropped'] ?? false) ? __('mandates.email.approved_title_dropped', [], $locale) : null,
             ]),
-            'rejected' => [__('mandates.email.rejected', ['reason' => $reason], $locale)],
-            'revoked' => [__('mandates.email.revoked', $dates + ['reason' => $reason], $locale)],
+            'rejected' => [__('mandates.email.rejected_detail', ['reason' => $reason], $locale)],
+            'revoked' => [__('mandates.email.revoked_detail', $dates + ['reason' => $reason], $locale)],
             'handover_out' => [__('mandates.email.handover_out', $dates, $locale)],
             'handover_in' => [__('mandates.email.handover_in', $dates, $locale)],
-            'office_granted' => [__('mandates.email.office_granted', ['office' => $office], $locale)],
+            'office_granted' => [__('mandates.email.office_granted_detail', ['office' => $office], $locale)],
             'office_removed' => [__('mandates.email.office_removed', $this->who() + ['reason' => $reason], $locale)],
-            'office_rejected' => [__('mandates.email.office_rejected', $this->who() + ['reason' => $reason], $locale)],
+            'office_rejected' => [__('mandates.email.office_rejected_detail', $this->who() + ['reason' => $reason], $locale)],
             // L'email dit ce qui a changé, pas seulement le nouveau motif (tour 17) : sans l'ancien,
             // un second motif différent arriverait sans explication.
             'reason_corrected' => array_filter([

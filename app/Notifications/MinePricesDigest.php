@@ -40,7 +40,7 @@ class MinePricesDigest extends Notification
         }
 
         return $mail
-            ->action(__('mines.prices_digest.action', [], 'fr').' / '.__('mines.prices_digest.action', [], 'en'),
+            ->action(__('mines.prices_digest.action', [], 'fr'),
                 rtrim((string) config('app.frontend_url'), '/').'/app/eco/registre/prix')
             ->salutation(__('mandates.email.salutation', [], 'fr')."\n\n".__('mandates.email.salutation', [], 'en'));
     }
@@ -64,6 +64,7 @@ class MinePricesDigest extends Notification
                 ], $locale);
             }
             $lines[] = __('mines.prices_digest.outro', [], $locale);
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('mines.prices_digest.action', [], 'en').'%%');
         }
 
         return $lines;
