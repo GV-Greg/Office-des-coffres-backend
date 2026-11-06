@@ -31,8 +31,7 @@ class UnverifiedAccountReminder extends Notification
         }
 
         return $mail
-            ->action(__('accounts.email.unverified_action', [], 'fr').' / '.__('accounts.email.unverified_action', [], 'en'),
-                $this->verificationUrl($notifiable))
+            ->action(__('accounts.email.unverified_action', [], 'fr'), $this->verificationUrl($notifiable))
             ->salutation(__('accounts.email.salutation', [], 'fr')."\n\n".__('accounts.email.salutation', [], 'en'));
     }
 
@@ -56,6 +55,7 @@ class UnverifiedAccountReminder extends Notification
             $lines[] = __('accounts.email.greeting', [], $locale);
             $lines[] = __('accounts.email.unverified_notice', $dates, $locale);
             $lines[] = __('accounts.email.unverified_not_you', [], $locale);
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('accounts.email.unverified_action', [], 'en').'%%');
         }
 
         return $lines;

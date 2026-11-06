@@ -40,11 +40,12 @@ class VerifyApiEmail extends VerifyEmail
             $mail->line(__('verification.email.greeting', [], $locale))
                 ->line(__('verification.email.thanks', [], $locale))
                 ->line(__('verification.email.expires', ['minutes' => $minutes], $locale))
-                ->line(__('verification.email.not_you', [], $locale));
+                ->line(__('verification.email.not_you', [], $locale))
+                ->line($locale === 'fr' ? '%%button%%' : ('%%button2:'.__('verification.email.action', [], 'en').'%%'));
         }
 
         return $mail
-            ->action(__('verification.email.action', [], 'fr').' / '.__('verification.email.action', [], 'en'), $url)
+            ->action(__('verification.email.action', [], 'fr'), $url)
             ->salutation(__('verification.email.salutation', [], 'fr')."\n\n".__('verification.email.salutation', [], 'en'));
     }
 }

@@ -36,7 +36,7 @@ class PolicyUpdated extends Notification
         }
 
         return $mail
-            ->action(__('policy.email.action', [], 'fr').' / '.__('policy.email.action', [], 'en'),
+            ->action(__('policy.email.action', [], 'fr'),
                 rtrim((string) config('app.frontend_url'), '/').'/legal/privacy')
             ->salutation(__('policy.email.salutation', [], 'fr')."\n\n".__('policy.email.salutation', [], 'en'));
     }
@@ -56,6 +56,7 @@ class PolicyUpdated extends Notification
                 $lines[] = $entry['summary'][$locale];
             }
             $lines[] = __('policy.email.why', [], $locale);
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('policy.email.action', [], 'en').'%%');
         }
 
         return $lines;

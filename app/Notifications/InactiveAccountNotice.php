@@ -29,7 +29,7 @@ class InactiveAccountNotice extends Notification
         }
 
         return $mail
-            ->action(__('accounts.email.inactive_action', [], 'fr').' / '.__('accounts.email.inactive_action', [], 'en'),
+            ->action(__('accounts.email.inactive_action', [], 'fr'),
                 rtrim((string) config('app.frontend_url'), '/').'/login')
             ->salutation(__('accounts.email.salutation', [], 'fr')."\n\n".__('accounts.email.salutation', [], 'en'));
     }
@@ -50,6 +50,7 @@ class InactiveAccountNotice extends Notification
             $lines[] = __('accounts.email.inactive_notice', $dates, $locale);
             $lines[] = __('accounts.email.inactive_keep', $dates, $locale);
             $lines[] = __('accounts.email.history_kept', [], $locale);
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('accounts.email.inactive_action', [], 'en').'%%');
         }
 
         return $lines;

@@ -32,7 +32,7 @@ class MandateReminder extends Notification
         }
 
         return $mail
-            ->action(__('mandates.email.action', [], 'fr').' / '.__('mandates.email.action', [], 'en'),
+            ->action(__('mandates.email.action', [], 'fr'),
                 rtrim((string) config('app.frontend_url'), '/').'/app/profil')
             ->salutation(__('mandates.email.salutation', [], 'fr')."\n\n".__('mandates.email.salutation', [], 'en'));
     }
@@ -46,14 +46,21 @@ class MandateReminder extends Notification
                 $lines[] = '———';
             }
             $lines[] = __('mandates.email.greeting', [], $locale);
-            $lines[] = __('mandates.email.reminder', [
-                'post' => MandateLabels::post($this->mandate, $locale),
-                'character' => $this->mandate->character?->pseudo,
+            $lines[] = $this->panelLine($locale);
+            $lines[] = __('mandates.email.reminder_detail', [
                 'date' => MandateLabels::date($this->mandate->holds_until),
                 'date_jeu' => MandateLabels::gameDate($this->mandate->holds_until),
             ], $locale);
+            $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('mandates.email.action', [], 'en').'%%');
         }
 
         return $lines;
+    }
+
+    private function panelLine(string $locale): string
+    {
+        $char = (string) ($this->mandate->character?->pseudo ?? '');
+        $post = MandateLabels::post($this->mandate, $locale);
+        return "%%panel:{$char}:{$post}::%%";
     }
 }
