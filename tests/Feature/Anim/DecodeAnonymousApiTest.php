@@ -9,7 +9,7 @@ use App\Notifications\DecodeEmailConfirmation;
 use App\Notifications\DecodeFinalReport;
 use App\Notifications\DecodePasswordChanged;
 use App\Notifications\DecodePasswordResetLink;
-use App\Services\DecodeActor;
+use App\Services\AnimActor;
 use App\Services\DecodeWorkflow;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Carbon;
@@ -406,7 +406,7 @@ test('une activité sans compte close ne se rouvre pas et ne se gère plus (D19)
     anonCall($this, 'les-trois-coffres', 'secrets')->assertForbidden();
 
     $activity = AnimDecodeActivity::sole();
-    expect(anonRefusal(fn () => app(DecodeWorkflow::class)->reopen(DecodeActor::forAnonymous($activity), $activity))->codes)->toBe(['activity' => 'reopen_anonymous']);
+    expect(anonRefusal(fn () => app(DecodeWorkflow::class)->reopen(AnimActor::forAnonymous($activity), $activity))->codes)->toBe(['activity' => 'reopen_anonymous']);
 });
 
 test('le slug reste pris après la clôture, et l\'auteur ne peut pas supprimer son résumé', function () {
@@ -416,7 +416,7 @@ test('le slug reste pris après la clôture, et l\'auteur ne peut pas supprimer 
     createAnon($this, [], '93.184.216.77')->assertStatus(422)->assertJsonPath('codes.slug', 'slug_taken');
 
     $activity = AnimDecodeActivity::sole();
-    expect(anonRefusal(fn () => app(DecodeWorkflow::class)->delete(DecodeActor::forAnonymous($activity), $activity))->codes)->toBe(['activity' => 'delete_anonymous']);
+    expect(anonRefusal(fn () => app(DecodeWorkflow::class)->delete(AnimActor::forAnonymous($activity), $activity))->codes)->toBe(['activity' => 'delete_anonymous']);
 });
 
 test('avec un email confirmé : le compte rendu COMPLET part à la clôture (propositions comprises), puis l\'adresse est effacée', function () {

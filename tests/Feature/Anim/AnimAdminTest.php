@@ -4,10 +4,10 @@ use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Models\User;
 use App\Notifications\DecodeFinalReport;
-use App\Services\DecodeActor;
+use App\Services\AnimActor;
 use App\Services\DecodeClosing;
 use App\Services\DecodeWorkflow;
-use App\Support\DecodeSlug;
+use App\Support\AnimSlug;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
@@ -101,7 +101,7 @@ test('l\'administrateur clôt une activité sans compte : résumé figé, donné
     Notification::fake();
     $anon = adminAnonymous($this, 'sans-compte', ['email' => 'a@example.test']);
     $this->getJson(URL::temporarySignedRoute('anim.decode.email-confirm', now()->addDay(), ['slug' => 'sans-compte', 'hash' => sha1('a@example.test')]))->assertOk();
-    $this->workflow->generateSecret(DecodeActor::forAnonymous($anon->refresh()), $anon);
+    $this->workflow->generateSecret(AnimActor::forAnonymous($anon->refresh()), $anon);
 
     $this->actingAs(mandateAdmin())->post("/anim/activities/{$anon->id}/close")->assertRedirect(route('anim.index'));
 
@@ -128,7 +128,7 @@ test('le slug redevient libre après la suppression par l\'administration', func
     $anon = adminAnonymous($this);
     $this->actingAs(mandateAdmin())->delete("/anim/activities/{$anon->id}");
 
-    expect(DecodeSlug::taken('sans-compte'))->toBeFalse();
+    expect(AnimSlug::taken('sans-compte', AnimDecodeActivity::class))->toBeFalse();
 });
 
 test('aucun geste sur une activité PRIVÉE : clore, supprimer et lien sont refusés avec un message', function () {

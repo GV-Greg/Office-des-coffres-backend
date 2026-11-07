@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Exceptions\MandateRefusal;
 use App\Models\AnimDecodeActivity;
 use App\Support\DecodeLinks;
-use App\Support\DecodePassword;
+use App\Support\AnimPassword;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
@@ -83,7 +83,7 @@ class DecodePasswordReset
             throw MandateRefusal::make('token', 'anim.api.reset_invalid');
         }
 
-        DecodePassword::assertValid($password, $activity->slug, $activity->organizer_name);
+        AnimPassword::assertValid($password, $activity->slug, $activity->organizer_name);
 
         $activity->forceFill([
             'password_hash' => Hash::make($password),

@@ -2,19 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\AnimDecodeActivity;
 use App\Models\Character;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * Celui qui agit sur une activité de « Décode le code » : un PERSONNAGE (mode privé, propriété par `character_id`) ou un
- * auteur SANS COMPTE qui vient de prouver son mot de passe (DecodeAccess). Les gestes de DecodeWorkflow ne
- * connaissent que cette abstraction : la vérification de propriété reste en tête de chacun, quel que soit le mode.
+ * Celui qui agit sur une activité du module Animation : un PERSONNAGE (mode privé, propriété par `character_id`) ou un
+ * auteur SANS COMPTE qui vient de prouver son mot de passe (AnimAccess). Les gestes des workflows ne connaissent que
+ * cette abstraction : la vérification de propriété reste en tête de chacun, quel que soit le mode.
+ *
+ * `proven` est typé sur `Model` pour couvrir tous les types d'activité (AnimDecodeActivity, AnimRewardsGrid…) sans
+ * couplage à un modèle précis.
  */
-final class DecodeActor
+final class AnimActor
 {
     private function __construct(
         public readonly ?Character $character,
-        public readonly ?AnimDecodeActivity $proven,
+        public readonly ?Model $proven,
     ) {}
 
     public static function forCharacter(Character $character): self
@@ -23,7 +26,7 @@ final class DecodeActor
     }
 
     /** L'activité dont le mot de passe vient d'être vérifié — jamais construit sans cette preuve. */
-    public static function forAnonymous(AnimDecodeActivity $activity): self
+    public static function forAnonymous(Model $activity): self
     {
         return new self(null, $activity);
     }
@@ -33,7 +36,7 @@ final class DecodeActor
         return $actor instanceof self ? $actor : self::forCharacter($actor);
     }
 
-    public function owns(AnimDecodeActivity $activity): bool
+    public function owns(Model $activity): bool
     {
         if ($this->character !== null) {
             return ! $activity->is_anonymous

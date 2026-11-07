@@ -11,7 +11,7 @@ use App\Exceptions\MandateRefusal;
  *  - 10 caractères au moins ;
  *  - différent du slug et du pseudo de l'organisateur (ce qu'un tiers essaie en premier).
  */
-class DecodePassword
+class AnimPassword
 {
     public const MIN = 10;
 

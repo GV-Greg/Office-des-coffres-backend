@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Api\Anim;
 use App\Exceptions\MandateRefusal;
 use App\Http\Controllers\Controller;
 use App\Models\AnimActivityType;
+use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeSecret;
-use App\Services\DecodeAccess;
+use App\Services\AnimAccess;
+use App\Services\AnimActor;
 use App\Services\DecodeActivityReader;
-use App\Services\DecodeActor;
 use App\Services\DecodeExporter;
 use App\Services\DecodePasswordReset;
 use App\Services\DecodeProposals;
 use App\Services\DecodeWorkflow;
-use App\Support\DecodeIp;
-use App\Support\DecodeSlug;
+use App\Support\AnimIp;
+use App\Support\AnimSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +33,7 @@ class DecodeAnonymousController extends Controller
     public function __construct(
         private readonly DecodeWorkflow $workflow,
         private readonly DecodeProposals $proposals,
-        private readonly DecodeAccess $access,
+        private readonly AnimAccess $access,
         private readonly DecodePasswordReset $reset,
         private readonly DecodeActivityReader $reader,
         private readonly DecodeExporter $exporter,
@@ -49,18 +50,18 @@ class DecodeAnonymousController extends Controller
             'slug' => ['nullable', 'string', 'max:60'],
         ]);
 
-        $proposal = DecodeSlug::propose((string) $request->query('name', ''));
+        $proposal = AnimSlug::propose((string) $request->query('name', ''));
         $candidate = $request->query('slug') !== null ? (string) $request->query('slug') : $proposal;
-        $valid = DecodeSlug::isValid($candidate);
+        $valid = AnimSlug::isValid($candidate);
 
         return response()->json([
             'success' => true,
             'proposal' => $proposal,
             'slug' => $candidate,
             'valid' => $valid,
-            'taken' => $valid && DecodeSlug::taken($candidate),
-            'min' => DecodeSlug::MIN,
-            'max' => DecodeSlug::MAX,
+            'taken' => $valid && AnimSlug::taken($candidate, AnimDecodeActivity::class),
+            'min' => AnimSlug::MIN,
+            'max' => AnimSlug::MAX,
         ]);
     }
 
@@ -82,7 +83,7 @@ class DecodeAnonymousController extends Controller
         }
 
         $type = AnimActivityType::where('key', 'decode')->firstOrFail();
-        $activity = $this->workflow->createAnonymous($type, $data, DecodeIp::fingerprint($request->ip()));
+        $activity = $this->workflow->createAnonymous($type, $data, AnimIp::fingerprint($request->ip(), 'anim-decode-ip'));
 
         return response()->json([
             'success' => true,
@@ -180,7 +181,7 @@ class DecodeAnonymousController extends Controller
         return response()->json(['success' => true]);
     }
 
-    private function actor(Request $request, string $slug): DecodeActor
+    private function actor(Request $request, string $slug): AnimActor
     {
         $password = $request->validate(['password' => ['required', 'string', 'max:200']])['password'];
 

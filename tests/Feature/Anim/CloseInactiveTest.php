@@ -3,10 +3,10 @@
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeSecret;
-use App\Services\DecodeActor;
+use App\Services\AnimActor;
 use App\Services\DecodeProposals;
 use App\Services\DecodeWorkflow;
-use App\Support\DecodeSlug;
+use App\Support\AnimSlug;
 use App\Support\MandateHeartbeat;
 use Illuminate\Support\Carbon;
 
@@ -29,7 +29,7 @@ function launchedDaysAgo($test, int $days, string $name): AnimDecodeActivity
 {
     atGameTime(Carbon::now()->subDays($days)->toDateTimeString());
     $orga = mandatePlayer($test->map['cityA']);
-    $activity = $test->workflow->create($orga, $test->type, ['name' => $name, 'slug' => DecodeSlug::propose($name)]);
+    $activity = $test->workflow->create($orga, $test->type, ['name' => $name, 'slug' => AnimSlug::propose($name)]);
     $secret = $test->workflow->generateSecret($orga, $activity);
     $test->proposals->submit($orga, $activity, $secret, '00000', 'Aldric');
     Carbon::setTestNow();
@@ -90,7 +90,7 @@ test('une activité SANS COMPTE inactive depuis 31 jours se clôt définitivemen
     $anon = $this->workflow->createAnonymous($this->type, [
         'slug' => 'sans-compte', 'name' => 'Sans compte', 'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
     ], hash('sha256', 'une-connexion'));
-    $this->workflow->generateSecret(DecodeActor::forAnonymous($anon), $anon);
+    $this->workflow->generateSecret(AnimActor::forAnonymous($anon), $anon);
     atGameTime('2026-10-27 09:00');
 
     $this->artisan('anim:close-inactive')->assertSuccessful();

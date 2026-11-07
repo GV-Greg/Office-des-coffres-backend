@@ -3,7 +3,7 @@
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Services\DecodeWorkflow;
-use App\Support\DecodeSlug;
+use App\Support\AnimSlug;
 use App\Support\MandateHeartbeat;
 use Illuminate\Support\Carbon;
 
@@ -37,7 +37,7 @@ test('supprime le résumé d\'une activité sans compte close depuis plus de 5 a
 
     $this->artisan('anim:purge-closed')->assertSuccessful();
 
-    expect(AnimDecodeActivity::count())->toBe(0)->and(DecodeSlug::taken('vieille'))->toBeFalse();
+    expect(AnimDecodeActivity::count())->toBe(0)->and(AnimSlug::taken('vieille', AnimDecodeActivity::class))->toBeFalse();
     // Le slug est réutilisable (D9).
     $reborn = $this->workflow->createAnonymous($this->type, ['slug' => 'vieille', 'name' => 'Nouvelle vie', 'organizer_name' => 'Autre', 'password' => 'un-autre-mot-de-passe'], null);
     expect($reborn->slug)->toBe('vieille');

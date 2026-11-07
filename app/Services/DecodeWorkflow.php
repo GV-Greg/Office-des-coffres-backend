@@ -8,8 +8,8 @@ use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeSecret;
 use App\Models\Character;
 use App\Models\User;
-use App\Support\DecodePassword;
-use App\Support\DecodeSlug;
+use App\Support\AnimPassword;
+use App\Support\AnimSlug;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Hash;
  * contrôleurs ne valident que la forme.
  *
  * 🔴 Autorisation PAR PROPRIÉTÉ, jamais par poste (premier module du projet sans Spatie ni mandat) : un geste de gestion
- * reçoit un `DecodeActor` — un personnage (mode privé) ou un auteur sans compte qui a prouvé son mot de passe — et vérifie
+ * reçoit un `AnimActor` — un personnage (mode privé) ou un auteur sans compte qui a prouvé son mot de passe — et vérifie
  * la propriété EN PREMIER. Un refus de propriété est un 403 ; les autres refus restent des 422 au contrat d'AnimApiErrors.
  *
  * Règles de Greg : une activité privée ne se supprime que close (D20) ; une réouverture est refusée si une autre
@@ -86,7 +86,7 @@ class DecodeWorkflow
         if ($pseudo === '') {
             throw MandateRefusal::make('organizer_name', 'anim.api.organizer_required');
         }
-        DecodePassword::assertValid((string) ($data['password'] ?? ''), $data['slug'], $pseudo);
+        AnimPassword::assertValid((string) ($data['password'] ?? ''), $data['slug'], $pseudo);
 
         // D17 : UNE SEULE activité sans compte non close par connexion (empreinte d'IP). Le refus dit pourquoi.
         if ($ipHash !== null && AnimDecodeActivity::query()
@@ -139,7 +139,7 @@ class DecodeWorkflow
      *
      * @throws MandateRefusal
      */
-    public function generateSecret(Character|DecodeActor $actor, AnimDecodeActivity $activity): AnimDecodeSecret
+    public function generateSecret(Character|AnimActor $actor, AnimDecodeActivity $activity): AnimDecodeSecret
     {
         $this->authorize($actor, $activity);
         if ($activity->isClosed()) {
@@ -180,7 +180,7 @@ class DecodeWorkflow
      *
      * @throws MandateRefusal
      */
-    public function reopen(Character|DecodeActor $actor, AnimDecodeActivity $activity): AnimDecodeActivity
+    public function reopen(Character|AnimActor $actor, AnimDecodeActivity $activity): AnimDecodeActivity
     {
         $this->authorize($actor, $activity);
         if ($activity->is_anonymous) {
@@ -189,7 +189,7 @@ class DecodeWorkflow
         if (! $activity->isClosed()) {
             throw MandateRefusal::make('activity', 'anim.api.activity_not_closed');
         }
-        if ($this->hasActiveOfType(DecodeActor::of($actor)->character, $activity->type, $activity)) {
+        if ($this->hasActiveOfType(AnimActor::of($actor)->character, $activity->type, $activity)) {
             throw MandateRefusal::make('activity', 'anim.api.reopen_blocked');
         }
 
@@ -205,7 +205,7 @@ class DecodeWorkflow
     }
 
     /** @throws MandateRefusal */
-    public function close(Character|DecodeActor $actor, AnimDecodeActivity $activity): AnimDecodeActivity
+    public function close(Character|AnimActor $actor, AnimDecodeActivity $activity): AnimDecodeActivity
     {
         $this->authorize($actor, $activity);
         if ($activity->isClosed()) {
@@ -228,7 +228,7 @@ class DecodeWorkflow
      *
      * @throws MandateRefusal
      */
-    public function delete(Character|DecodeActor $actor, AnimDecodeActivity $activity): void
+    public function delete(Character|AnimActor $actor, AnimDecodeActivity $activity): void
     {
         $this->authorize($actor, $activity);
         if ($activity->is_anonymous) {
@@ -273,9 +273,9 @@ class DecodeWorkflow
     }
 
     /** @throws MandateRefusal 403 */
-    public function authorize(Character|DecodeActor $actor, AnimDecodeActivity $activity): void
+    public function authorize(Character|AnimActor $actor, AnimDecodeActivity $activity): void
     {
-        if (! DecodeActor::of($actor)->owns($activity)) {
+        if (! AnimActor::of($actor)->owns($activity)) {
             throw self::forbidden();
         }
     }
@@ -288,10 +288,10 @@ class DecodeWorkflow
         }
 
         $slug = (string) ($data['slug'] ?? '');
-        if (! DecodeSlug::isValid($slug)) {
-            throw MandateRefusal::make('slug', 'anim.api.slug_invalid', ['min' => DecodeSlug::MIN, 'max' => DecodeSlug::MAX]);
+        if (! AnimSlug::isValid($slug)) {
+            throw MandateRefusal::make('slug', 'anim.api.slug_invalid', ['min' => AnimSlug::MIN, 'max' => AnimSlug::MAX]);
         }
-        if (DecodeSlug::taken($slug)) {
+        if (AnimSlug::taken($slug, AnimDecodeActivity::class)) {
             throw MandateRefusal::make('slug', 'anim.api.slug_taken');
         }
 
