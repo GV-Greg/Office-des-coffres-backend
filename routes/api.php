@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AdminCharacterController;
 use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
+use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
+use App\Http\Controllers\Api\Anim\RewardsGridController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\ItemIconController;
@@ -97,6 +99,33 @@ Route::prefix('v1')->group(function () {
         ->middleware('signed')
         ->name('anim.decode.email-confirm');
 
+    // Grille des lots — mode SANS COMPTE. Lecture publique : accessible via show() depuis drawed.
+    // ⚠️ Routes ajoutées : route:cache en prod.
+    Route::get('anim/rewards-slug', [RewardsAnonymousController::class, 'slug'])->middleware('throttle:anim-slug');
+    Route::post('anim/rewards-manage', [RewardsAnonymousController::class, 'create'])->middleware('throttle:anim-create');
+    Route::prefix('anim/rewards-manage/{slug}')->where(['slug' => '[a-z-]{1,60}'])->group(function () {
+        Route::middleware('throttle:anim-access')->group(function () {
+            Route::post('open', [RewardsAnonymousController::class, 'open']);
+            Route::post('lots', [RewardsAnonymousController::class, 'addLot']);
+            Route::delete('lots/{lot}', [RewardsAnonymousController::class, 'removeLot'])->where('lot', '[0-9]+');
+            Route::post('draw', [RewardsAnonymousController::class, 'draw']);
+            Route::patch('lots/{lot}/assign', [RewardsAnonymousController::class, 'assign'])->where('lot', '[0-9]+');
+            Route::patch('lots/{lot}/taken', [RewardsAnonymousController::class, 'markTaken'])->where('lot', '[0-9]+');
+            Route::post('close', [RewardsAnonymousController::class, 'close']);
+        });
+        Route::post('reset-complete', [RewardsAnonymousController::class, 'resetComplete']);
+    });
+    Route::post('anim/rewards-manage/{slug}/reset-request', [RewardsAnonymousController::class, 'resetRequest'])
+        ->where('slug', '[a-z-]{1,60}')
+        ->middleware('throttle:anim-reset');
+    Route::get('anim/rewards-email-confirm/{slug}/{hash}', [RewardsAnonymousController::class, 'confirmEmail'])
+        ->where(['slug' => '[a-z-]{1,60}', 'hash' => '[a-f0-9]{40}'])
+        ->middleware('signed')
+        ->name('anim.rewards.email-confirm');
+    // Lecture publique par slug (depuis drawed).
+    Route::get('anim/rewards-grids/{slug}', [RewardsGridController::class, 'show'])
+        ->where('slug', '[a-z-]{1,60}');
+
     Route::middleware('auth:api')->group(function () {
         Route::get('characters', [CharacterController::class, 'index']);
         Route::post('characters', [CharacterController::class, 'store']);
@@ -142,6 +171,24 @@ Route::prefix('v1')->group(function () {
             Route::delete('', [DecodeActivityController::class, 'destroy']);
             Route::get('export/rules', [DecodeActivityController::class, 'exportRules']);
             Route::get('export/results', [DecodeActivityController::class, 'exportResults']);
+        });
+
+        // Animation — Grille des lots, mode PRIVÉ. Autorisation par PROPRIÉTÉ (RewardsGridWorkflow). ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('characters/{character}/rewards-grids', [RewardsGridController::class, 'index'])
+            ->where('character', '[0-9]+');
+        Route::middleware('throttle:6,1')->group(function () {
+            Route::post('characters/{character}/rewards-grids', [RewardsGridController::class, 'store'])
+                ->where('character', '[0-9]+');
+        });
+        Route::prefix('rewards-grids/{grid}')->where(['grid' => '[0-9]+', 'lot' => '[0-9]+'])->group(function () {
+            Route::post('lots', [RewardsGridController::class, 'addLot']);
+            Route::delete('lots/{lot}', [RewardsGridController::class, 'removeLot']);
+            Route::post('draw', [RewardsGridController::class, 'draw']);
+            Route::patch('lots/{lot}/assign', [RewardsGridController::class, 'assign']);
+            Route::patch('lots/{lot}/taken', [RewardsGridController::class, 'markTaken']);
+            Route::post('reopen', [RewardsGridController::class, 'reopen']);
+            Route::post('close', [RewardsGridController::class, 'close']);
+            Route::delete('', [RewardsGridController::class, 'destroy']);
         });
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/mandates', [MandateController::class, 'store']);

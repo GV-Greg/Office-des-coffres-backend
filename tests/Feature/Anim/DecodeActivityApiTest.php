@@ -27,9 +27,12 @@ function createActivity($test, string $name = 'Coffre des Marches', string $slug
 }
 
 test('les types ouverts sont publics ; un type désactivé disparaît', function () {
-    $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['decode']);
+    $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['decode', 'rewards']);
 
     AnimActivityType::where('key', 'decode')->update(['is_active' => false]);
+    $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['rewards']);
+
+    AnimActivityType::where('key', 'rewards')->update(['is_active' => false]);
     $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', []);
 });
 

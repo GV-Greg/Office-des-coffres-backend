@@ -24,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleDataEncrypter::class, static function ($app): ModuleDataEncrypter {
             return ModuleDataEncrypter::fromConfig($app->make('config')->get('module_data'));
         });
+
+        // AnimAccess cible par défaut AnimDecodeActivity. RewardsAnonymousController doit l'avoir
+        // lié à AnimRewardsGrid via un binding contextuel.
+        $this->app->when(\App\Http\Controllers\Api\Anim\RewardsAnonymousController::class)
+            ->needs(\App\Services\AnimAccess::class)
+            ->give(fn () => new \App\Services\AnimAccess(\App\Models\AnimRewardsGrid::class));
     }
 
     public function boot(): void

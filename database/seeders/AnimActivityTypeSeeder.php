@@ -12,7 +12,7 @@ use Illuminate\Database\Seeder;
  */
 class AnimActivityTypeSeeder extends Seeder
 {
-    public const KEYS = ['decode'];
+    public const KEYS = ['decode', 'rewards'];
 
     public function run(): void
     {

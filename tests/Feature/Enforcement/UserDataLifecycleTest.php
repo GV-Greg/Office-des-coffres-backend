@@ -60,6 +60,10 @@ $declaredTables = [
     // COMPTE a `character_id` nul et n'est pas concernée. Tenu par Anim/DecodeWorkflowTest.
     'anim_decode_activities' => 'A',
 
+    // C — `character_id` nullOnDelete : une suppression de compte ne supprime pas la grille car
+    // d'autres joueurs y ont choisi des cases (données communautaires). La grille reste lisible.
+    'anim_rewards_grids' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

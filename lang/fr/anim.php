@@ -7,6 +7,13 @@
 return [
     'api' => [
         'not_owner' => "Seul l'organisateur de cette activité peut la gérer.",
+        'lot_not_found' => "Ce lot n'existe pas dans cette grille.",
+        'grid_not_editable' => 'La grille ne peut plus être modifiée à ce stade (lots déjà tirés ou clôture).',
+        'grid_full' => 'La grille est déjà remplie : retirez un lot avant d\'en ajouter un.',
+        'grid_not_filled' => 'La grille doit être entièrement remplie avant le tirage.',
+        'grid_not_drawed' => 'Le tirage doit être effectué avant de confirmer la grille.',
+        'grid_not_confirmed' => 'La grille doit être confirmée avant d\'assigner les joueurs.',
+        'grid_dimensions_invalid' => 'Les dimensions de la grille doivent être comprises entre 1 et 10.',
         'access_denied' => "Accès refusé : l'adresse ou le mot de passe ne correspond à aucune activité que vous puissiez gérer.",
         'activity_not_found' => "Cette activité n'existe pas.",
         'character_not_found' => "Ce personnage n'existe pas sur ce compte.",
@@ -42,6 +49,9 @@ return [
     ],
 
     'types' => [
+        'rewards' => [
+            'name' => 'Grille des lots',
+        ],
         'decode' => [
             'name' => 'Décode le code',
             'public_link_label' => 'Coffre n°:number à percer',
