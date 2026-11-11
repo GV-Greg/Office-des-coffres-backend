@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [À compléter au merge] — Inventaires : réglages en base aux trois niveaux, texte collé chiffré, historique de la province (`feat/inventory-settings`)
+## [2026-11-11] — PR #83 (Inventaires : réglages en base aux trois niveaux, texte collé chiffré, historique de la province)
 
 ### Added
 - **Réglages d'inventaire en base pour un joueur connecté**, aux trois niveaux (une table chacune, vraie clé étrangère) : **personnage** (`character_inventory_settings`, supprimé avec lui, catégorie A), **ville** (`city_inventory_settings`, le maire) et **province** (`province_inventory_settings`, le commissaire au commerce ; le dirigeant lit) en catégorie C. Un document JSON de clés connues (catégories personnalisées et masquées, ordre, couleur, assignations objet → catégorie ; options d'export et visibilité pour le personnel seulement), **écriture à version** (409 sinon).
