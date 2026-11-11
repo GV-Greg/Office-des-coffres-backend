@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Anim;
 
 use App\Exceptions\MandateRefusal;
 use App\Http\Controllers\Controller;
+use App\Models\AnimActivityType;
 use App\Models\AnimRewardsGrid;
 use App\Models\AnimRewardsList;
 use App\Services\RewardsGridReader;
@@ -20,6 +21,16 @@ use Illuminate\Http\Request;
  */
 class RewardsGridController extends Controller
 {
+    /**
+     * Forme d'un ajout de lot, commune aux deux modes : UN lot (`name`) ou PLUSIEURS en une requête (`names`, une liste collée ou une
+     * quantité). Le plafond de 500 n'est qu'un garde contre une charge absurde : la capacité de la grille, elle, est jugée par le service.
+     */
+    public const LOT_RULES = [
+        'name' => ['required_without:names', 'string', 'min:1', 'max:50'],
+        'names' => ['required_without:name', 'array', 'min:1', 'max:500'],
+        'names.*' => ['string', 'min:1', 'max:50'],
+    ];
+
     public function __construct(
         private readonly RewardsGridWorkflow $workflow,
         private readonly RewardsGridReader $reader,
@@ -74,7 +85,7 @@ class RewardsGridController extends Controller
             throw MandateRefusal::make('place', 'anim.api.place_required');
         }
 
-        $type = \App\Models\AnimActivityType::where('key', 'rewards')->firstOrFail();
+        $type = AnimActivityType::where('key', 'rewards')->firstOrFail();
         $grid = $this->workflow->create($character, $type, $data);
 
         return response()->json(['success' => true, 'grid' => $this->reader->read($grid, forOwner: true)], 201);
@@ -83,9 +94,12 @@ class RewardsGridController extends Controller
     public function addLot(Request $request, int $grid): JsonResponse
     {
         return $this->manage($request, $grid, function ($owner, $grid) use ($request) {
-            $data = $request->validate(['name' => ['required', 'string', 'min:1', 'max:50']]);
+            $data = $request->validate(self::LOT_RULES);
 
-            return $this->workflow->addLot($owner, $grid, $data['name']);
+            // Un lot (`name`) ou plusieurs en une requête (`names`).
+            return isset($data['names'])
+                ? $this->workflow->addLots($owner, $grid, $data['names'])
+                : $this->workflow->addLot($owner, $grid, $data['name']);
         }, 201);
     }
 

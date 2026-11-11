@@ -161,6 +161,38 @@ class RewardsGridWorkflow
     }
 
     /**
+     * Ajoute PLUSIEURS lots en un seul geste (une requête pour une liste collée ou une quantité : une requête par lot épuiserait la limite de
+     * débit de l'API). TOUT OU RIEN : si la liste ne tient pas dans les cases libres, rien n'est ajouté et le refus est celui de `addLot`
+     * (`grid_full`), pour que l'écran ne montre jamais une grille à moitié remplie par un échec. Un doublon est permis : deux lots peuvent
+     * porter le même nom (une quantité n'est que cela).
+     *
+     * @param  list<string>  $names
+     * @return list<AnimRewardsList>
+     *
+     * @throws MandateRefusal
+     */
+    public function addLots(Character|AnimActor $actor, AnimRewardsGrid $grid, array $names): array
+    {
+        $this->authorize($actor, $grid);
+        if (! $grid->isEditable()) {
+            throw MandateRefusal::make('activity', 'anim.api.grid_not_editable');
+        }
+        if ($grid->lots()->count() + count($names) > $grid->capacity()) {
+            throw MandateRefusal::make('name', 'anim.api.grid_full');
+        }
+
+        return DB::transaction(function () use ($grid, $names) {
+            $created = [];
+            foreach ($names as $name) {
+                $created[] = $grid->lots()->create(['name' => $name]);
+            }
+            $this->updateStatusAfterLotChange($grid);
+
+            return $created;
+        });
+    }
+
+    /**
      * Retire un lot de la grille. Autorisé seulement en new/incomplete/filled.
      *
      * @throws MandateRefusal
@@ -412,7 +444,7 @@ class RewardsGridWorkflow
     }
 
     /** Une autre grille du même type, non close, pour ce personnage (hors la grille donnée). */
-    private function hasActiveOfType(Character $actor, \App\Models\AnimActivityType $type, ?AnimRewardsGrid $except = null): bool
+    private function hasActiveOfType(Character $actor, AnimActivityType $type, ?AnimRewardsGrid $except = null): bool
     {
         return AnimRewardsGrid::query()
             ->where('character_id', $actor->id)

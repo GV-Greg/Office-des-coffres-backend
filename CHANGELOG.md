@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [À compléter au merge] — Grille des lots, 2ᵉ activité du module Animation (`feat/rewards-grid`, non mergée)
+
+### Added
+- Activité **Grille des lots** (`rewards`) : tables `anim_rewards_grids` / `anim_rewards_lists`, `RewardsGridWorkflow` (création, lots, tirage, attribution, remise, clôture, réouverture, suppression), API **privée** (propriété par personnage) et **sans compte** (slug + mot de passe dans le corps), page publique par slug, réinitialisation du mot de passe et confirmation d'email (comme Décode le code).
+- Le **tirage fait passer la grille directement à `confirmed`** (décision de Greg, 10/11/2026) : pas d'étape « confirmer ».
+- **Plusieurs lots en une requête** : `POST …/lots` accepte `names` (liste) en plus de `name`, pour les deux modes ; une seule transaction, **tout ou rien** (`grid_full` si la liste dépasse les cases libres). Une quantité n'est que des doublons de nom. Une requête pour 100 lots au lieu de cent (limite de 60 par minute).
+
+### Prod
+- ⚠️ `php artisan migrate` (tables et type `rewards`) et `php artisan route:cache` (routes ajoutées). **Rien ne se déploie avant le texte légal** (politique, cookies, « Vos données », registre des traitements : lignes `anim_rewards_grids` / `anim_rewards_lists`).
+- ⚠️ `anim:close-inactive` et `anim:purge-closed` **ne couvrent pas encore les grilles** (30 jours / 5 ans non tenus) : à ajouter avant d'annoncer ces durées.
+
 ## [À compléter au merge] — back #73 (export de données art. 20 RGPD — GET auth/account/export)
 
 ### Added

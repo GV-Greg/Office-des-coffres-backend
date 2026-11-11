@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Anim;
 
 use App\Exceptions\MandateRefusal;
 use App\Http\Controllers\Controller;
+use App\Models\AnimActivityType;
 use App\Models\AnimRewardsGrid;
 use App\Models\AnimRewardsList;
 use App\Services\AnimAccess;
@@ -11,6 +12,7 @@ use App\Services\AnimActor;
 use App\Services\RewardsGridPasswordReset;
 use App\Services\RewardsGridReader;
 use App\Services\RewardsGridWorkflow;
+use App\Support\AnimApiErrors;
 use App\Support\AnimIp;
 use App\Support\AnimSlug;
 use Illuminate\Http\JsonResponse;
@@ -79,7 +81,7 @@ class RewardsAnonymousController extends Controller
             throw MandateRefusal::make('place', 'anim.api.place_required');
         }
 
-        $type = \App\Models\AnimActivityType::where('key', 'rewards')->firstOrFail();
+        $type = AnimActivityType::where('key', 'rewards')->firstOrFail();
         $grid = $this->workflow->createAnonymous($type, $data, AnimIp::fingerprint($request->ip(), 'anim-rewards-ip'));
 
         return response()->json([
@@ -101,8 +103,14 @@ class RewardsAnonymousController extends Controller
     {
         $actor = $this->actor($request, $slug);
         $grid = $this->access->activityOf($actor);
-        $data = $request->validate(['name' => ['required', 'string', 'min:1', 'max:50']]);
-        $this->workflow->addLot($actor, $grid, $data['name']);
+        $data = $request->validate(RewardsGridController::LOT_RULES);
+
+        // Un lot (`name`) ou plusieurs en une requête (`names`).
+        if (isset($data['names'])) {
+            $this->workflow->addLots($actor, $grid, $data['names']);
+        } else {
+            $this->workflow->addLot($actor, $grid, $data['name']);
+        }
 
         return response()->json(['success' => true, 'grid' => $this->reader->read($grid->refresh(), forOwner: true)], 201);
     }
@@ -113,7 +121,7 @@ class RewardsAnonymousController extends Controller
         $grid = $this->access->activityOf($actor);
         $lotModel = AnimRewardsList::find($lot);
         if (! $lotModel || $lotModel->grid_id !== $grid->id) {
-            return \App\Support\AnimApiErrors::error(404, 'anim.api.lot_not_found');
+            return AnimApiErrors::error(404, 'anim.api.lot_not_found');
         }
         $this->workflow->removeLot($actor, $grid, $lotModel);
 
@@ -136,7 +144,7 @@ class RewardsAnonymousController extends Controller
         $grid = $this->access->activityOf($actor);
         $lotModel = AnimRewardsList::find($lot);
         if (! $lotModel || $lotModel->grid_id !== $grid->id) {
-            return \App\Support\AnimApiErrors::error(404, 'anim.api.lot_not_found');
+            return AnimApiErrors::error(404, 'anim.api.lot_not_found');
         }
         $this->workflow->assign($actor, $grid, $lotModel, $data['player'] ?? null);
 
@@ -150,7 +158,7 @@ class RewardsAnonymousController extends Controller
         $grid = $this->access->activityOf($actor);
         $lotModel = AnimRewardsList::find($lot);
         if (! $lotModel || $lotModel->grid_id !== $grid->id) {
-            return \App\Support\AnimApiErrors::error(404, 'anim.api.lot_not_found');
+            return AnimApiErrors::error(404, 'anim.api.lot_not_found');
         }
         $this->workflow->markTaken($actor, $grid, $lotModel, (bool) $data['is_taken']);
 

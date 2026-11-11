@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 28/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 10/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -574,6 +574,23 @@ sans compte** ; **rien ne se déploie avant le texte légal** (politique, « Vos
 Texte des règles (`types.decode.rules`) : rédigé par Cowork (28/10/2026).
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
+
+## Animation — Grille des lots (10/11/2026, `feat/rewards-grid`, non mergée)
+
+Deuxième activité du module Animation (brief `admin/content/brief-grille-des-lots.md`, stratégie `admin/strategies/animation.md`). Même modèle que Décode le code :
+**deux modes** dans les mêmes tables (`anim_rewards_grids.is_anonymous`), autorisation **par propriété** (`character_id`, catégorie **C**, `nullOnDelete`), sans compte par slug + mot de passe dans le corps.
+
+| Pièce | Rôle |
+|---|---|
+| `anim_rewards_grids` / `anim_rewards_lists` | la grille (largeur × hauteur, lieu obligatoire, `slug` unique) et ses lots (`name`, `place` 1..capacité, `player` texte libre, `is_taken`) ; `grid_id` en cascade |
+| `App\Services\RewardsGridWorkflow` | **seul écrivain** : `create`, `createAnonymous`, `addLot`, **`addLots`** (plusieurs lots, une transaction, tout ou rien), `removeLot`, `draw`, `assign`, `markTaken`, `close`, `reopen`, `delete` ; statut recalculé par `updateStatusAfterLotChange` |
+| `RewardsGridReader` | lecture unique (organisateur, public, photo figée) ; **les noms des lots non réclamés ne sont jamais envoyés avant la clôture** |
+| `RewardsGridClosing`, `RewardsGridPasswordReset`, `RewardsGridLinks` | clôture (sans compte : données personnelles effacées, lots conservés), réinitialisation (lien à usage unique 24 h), liens vers le site des joueurs |
+
+Machine à états : `new → incomplete → filled → confirmed → closed` (**`drawed` n'est jamais produit** : le tirage passe directement à `confirmed`, décision de Greg du 10/11/2026 ; `PUBLIC_STATUSES` le tolère). La page publique n'existe qu'à partir du tirage (404 avant).
+**Ajout de lots** : `POST rewards-grids/{grid}/lots` et `POST anim/rewards-manage/{slug}/lots` acceptent `name` (un lot) **ou** `names` (liste, jusqu'à 500 noms) — règles de forme communes `RewardsGridController::LOT_RULES` ; une liste qui dépasse les cases libres est refusée en entier (`grid_full`). La quantité n'existe pas côté serveur : l'interface envoie n fois le même nom.
+Routes : `anim/rewards-slug`, `anim/rewards-manage[/{slug}/…]`, `anim/rewards-grids/{slug}`, `characters/{character}/rewards-grids`, `rewards-grids/{grid}/…`. ⚠️ **Prod** : `migrate` + `route:cache`.
+🔴 **Reste avant le merge** : `anim:close-inactive` et `anim:purge-closed` ne couvrent pas les grilles (les constantes `INACTIVITY_DAYS` / `RETENTION_YEARS` existent sur le modèle, rien ne les applique) ; lignes du registre des traitements ; texte légal ; bornes des dimensions (1–10 côté serveur, 3–20 dans le brief).
 
 ## Tests
 

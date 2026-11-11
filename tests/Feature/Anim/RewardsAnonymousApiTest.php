@@ -1,9 +1,15 @@
 <?php
 
+use App\Exceptions\MandateRefusal;
 use App\Models\AnimRewardsGrid;
 use App\Models\AnimRewardsList;
+use App\Services\AnimActor;
+use App\Services\RewardsGridPasswordReset;
+use App\Services\RewardsGridWorkflow;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Testing\TestResponse;
 
 /*
 | Grille des lots — mode SANS COMPTE (RewardsAnonymousController).
@@ -16,7 +22,7 @@ const REWARDS_PASSWORD = 'un-bon-mot-de-passe';
 const REWARDS_PUBLIC_IP = '93.184.216.34';
 
 beforeEach(function () {
-    $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+    $this->withoutMiddleware(ThrottleRequests::class);
     $this->map = mandateMap();
 });
 
@@ -33,7 +39,7 @@ function rewardsAnonPayload(array $over = []): array
     ];
 }
 
-function createAnonGrid($test, array $over = [], string $ip = REWARDS_PUBLIC_IP): \Illuminate\Testing\TestResponse
+function createAnonGrid($test, array $over = [], string $ip = REWARDS_PUBLIC_IP): TestResponse
 {
     $place = array_intersect_key($over, array_flip(['kingdom_id', 'province_id', 'city_id'])) ? [] : ['province_id' => $test->map['provinceA']->id];
 
@@ -41,7 +47,7 @@ function createAnonGrid($test, array $over = [], string $ip = REWARDS_PUBLIC_IP)
         ->postJson('/api/v1/anim/rewards-manage', rewardsAnonPayload($over + $place));
 }
 
-function rewardsAnonCall($test, string $slug, string $path, array $body = [], string $password = REWARDS_PASSWORD, string $method = 'postJson'): \Illuminate\Testing\TestResponse
+function rewardsAnonCall($test, string $slug, string $path, array $body = [], string $password = REWARDS_PASSWORD, string $method = 'postJson'): TestResponse
 {
     return $test->{$method}("/api/v1/anim/rewards-manage/{$slug}/{$path}", ['password' => $password] + $body);
 }
@@ -142,6 +148,34 @@ test('workflow complet sans compte : lots → draw → assign → close', functi
         ->and(AnimRewardsList::count())->toBe(4);
 });
 
+test('plusieurs lots sans compte en UNE requête : le mot de passe dans le corps, tous créés', function () {
+    createAnonGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['Pain', 'Pain', 'Épée']])
+        ->assertCreated()
+        ->assertJsonPath('grid.status', 'incomplete')
+        ->assertJsonCount(3, 'grid.lots');
+    expect(AnimRewardsList::where('name', 'Pain')->count())->toBe(2);
+
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['Casque']])->assertCreated()->assertJsonPath('grid.status', 'filled');
+});
+
+test('plusieurs lots sans compte : liste trop longue refusée en entier, mauvais mot de passe refusé', function () {
+    createAnonGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['A', 'B', 'C', 'D', 'E']])
+        ->assertStatus(422)
+        ->assertJsonPath('codes.name', 'grid_full');
+    expect(AnimRewardsList::count())->toBe(0);
+
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['A']], 'un-mauvais-mot-de-passe')->assertForbidden();
+    expect(AnimRewardsList::count())->toBe(0);
+
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => []])->assertStatus(422);
+});
+
 test('retirer un lot sans compte', function () {
     createAnonGrid($this)->assertCreated();
     $grid = AnimRewardsGrid::first();
@@ -179,11 +213,11 @@ test('une grille sans compte ne peut pas être rouverte', function () {
     // La route de réouverture n'existe pas pour le mode sans compte → le workflow lève reopen_anonymous.
     // La meilleure façon de tester est de passer par l'API privée (aucun jeton disponible côté sans-compte).
     // On vérifie directement le workflow.
-    $wf = app(\App\Services\RewardsGridWorkflow::class);
+    $wf = app(RewardsGridWorkflow::class);
     try {
-        $wf->reopen(\App\Services\AnimActor::forAnonymous($grid->refresh()), $grid->refresh());
+        $wf->reopen(AnimActor::forAnonymous($grid->refresh()), $grid->refresh());
         expect(true)->toBeFalse('Un refus était attendu.');
-    } catch (\App\Exceptions\MandateRefusal $e) {
+    } catch (MandateRefusal $e) {
         expect($e->codes)->toBe(['activity' => 'reopen_anonymous']);
     }
 });
@@ -206,7 +240,7 @@ test('reset-complete : token valide permet de changer le mot de passe', function
     $grid = AnimRewardsGrid::first();
 
     // L'admin émet un lien : il reçoit l'URL contenant le token.
-    $reset = app(\App\Services\RewardsGridPasswordReset::class);
+    $reset = app(RewardsGridPasswordReset::class);
     $result = $reset->issueForAdmin($grid);
     parse_str((string) parse_url($result['url'], PHP_URL_QUERY), $query);
     $token = $query['token'];

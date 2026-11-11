@@ -2,6 +2,7 @@
 
 use App\Models\AnimRewardsGrid;
 use App\Models\AnimRewardsList;
+use Illuminate\Testing\TestResponse;
 use Laravel\Passport\Passport;
 
 /*
@@ -17,7 +18,7 @@ beforeEach(function () {
     $this->base = "/api/v1/characters/{$this->orga->id}/rewards-grids";
 });
 
-function createGrid($test, array $extra = []): \Illuminate\Testing\TestResponse
+function createGrid($test, array $extra = []): TestResponse
 {
     Passport::actingAs($test->orga->user);
     $place = array_intersect_key($extra, array_flip(['kingdom_id', 'province_id', 'city_id'])) ? [] : ['province_id' => $test->map['provinceA']->id];
@@ -112,6 +113,81 @@ test('lecture publique : noms des lots masqués (suspense) avant close', functio
             expect($lot['name'])->toBeNull();
         }
     }
+});
+
+// ─── Plusieurs lots en une requête ─────────────────────────────────
+
+test('plusieurs lots en UNE requête : 201, tous créés dans l\'ordre, statut recalculé une fois', function () {
+    Passport::actingAs($this->orga->user);
+    createGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['Pain', 'Épée']])
+        ->assertCreated()
+        ->assertJsonPath('grid.status', 'incomplete')
+        ->assertJsonCount(2, 'grid.lots');
+
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['Bouclier', 'Casque']])
+        ->assertCreated()
+        ->assertJsonPath('grid.status', 'filled');
+    expect(AnimRewardsList::orderBy('id')->pluck('name')->all())->toBe(['Pain', 'Épée', 'Bouclier', 'Casque']);
+});
+
+test('une quantité n\'est que des doublons : deux lots peuvent porter le même nom', function () {
+    Passport::actingAs($this->orga->user);
+    createGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['50 écus', '50 écus', '50 écus']])->assertCreated();
+
+    expect(AnimRewardsList::where('name', '50 écus')->count())->toBe(3);
+});
+
+test('une liste qui dépasse les cases libres est refusée EN ENTIER : rien n\'est ajouté', function () {
+    Passport::actingAs($this->orga->user);
+    createGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['name' => 'Pain'])->assertCreated();
+
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['A', 'B', 'C', 'D']])
+        ->assertStatus(422)
+        ->assertJsonPath('codes.name', 'grid_full');
+
+    expect(AnimRewardsList::count())->toBe(1);
+    expect($grid->refresh()->status)->toBe('incomplete');
+});
+
+test('forme d\'un ajout : ni name ni names, liste vide, nom vide ou trop long = 422, rien n\'est ajouté', function () {
+    Passport::actingAs($this->orga->user);
+    createGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+    $url = "/api/v1/rewards-grids/{$grid->id}/lots";
+
+    $this->postJson($url, [])->assertStatus(422);
+    $this->postJson($url, ['names' => []])->assertStatus(422);
+    $this->postJson($url, ['names' => ['Pain', '']])->assertStatus(422);
+    $this->postJson($url, ['names' => ['Pain', str_repeat('x', 51)]])->assertStatus(422);
+    $this->postJson($url, ['names' => 'Pain'])->assertStatus(422);
+
+    expect(AnimRewardsList::count())->toBe(0);
+});
+
+test('plusieurs lots : seul l\'organisateur ; refusé aussi une fois la grille tirée', function () {
+    Passport::actingAs($this->orga->user);
+    createGrid($this)->assertCreated();
+    $grid = AnimRewardsGrid::first();
+
+    Passport::actingAs($this->other->user);
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['A', 'B']])
+        ->assertForbidden()
+        ->assertJsonPath('codes.activity', 'not_owner');
+
+    Passport::actingAs($this->orga->user);
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['A', 'B', 'C', 'D']])->assertCreated();
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/draw")->assertOk();
+    $this->postJson("/api/v1/rewards-grids/{$grid->id}/lots", ['names' => ['E']])
+        ->assertStatus(422)
+        ->assertJsonPath('codes.activity', 'grid_not_editable');
 });
 
 // ─── Workflow complet ─────────────────────────────────────────────────────────
