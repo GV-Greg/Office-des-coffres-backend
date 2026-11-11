@@ -596,6 +596,36 @@ Routes : `anim/rewards-slug`, `anim/rewards-manage[/{slug}/…]`, `anim/rewards-
 Les tâches planifiées `anim:close-inactive` / `anim:purge-closed` couvrent les grilles (`AnimKinds`) : 30 jours sans action → clôture (privée : tout est gardé ; sans compte : clôture définitive, lots conservés) ; sans compte close depuis 5 ans → suppression avec ses lots. Une grille privée n'est jamais purgée par ces tâches ; elle disparaît avec son organisateur (catégorie A).
 🔴 **Reste avant le merge** : lignes du registre des traitements ; texte légal. **Le type `rewards` naît inactif** (`AnimActivityTypeSeeder::TYPES`) : à la mise en ligne, l'activer depuis `/anim` (bouton « Activer ») seulement une fois le texte légal publié.
 
+## Inventaires — réglages et inventaires en base (11/11/2026, `feat/inventory-settings`, non mergée)
+
+Fils `admin/echanges/inventaire-scopes/` (texte légal) et `inventaire-bilans/` (historique de la province) ; décisions de Greg et Cowork du 11/11/2026. Jusqu'ici **tout vivait dans le navigateur** (aucune table, aucune route). Pour un joueur **connecté**, les réglages d'inventaire passent **en base, aux trois niveaux** ; sans compte, rien ne change (navigateur seulement). La phase 1 du frontend (catégories, ordre, export) est livrée ; **le frontend n'est pas encore branché** sur cette API.
+
+| Table | Rattachée à | Contenu | Catégorie |
+|---|---|---|---|
+| `character_inventory_settings` | `character_id` (unique, **cascade**) | document de réglages + **dernier inventaire collé** (`inventory`, **chiffré**, un seul exemplaire remplacé) | **A** |
+| `city_inventory_settings` | `city_id` (unique) | idem ; `updated_by_character_id` nullable (`nullOnDelete`) | **C** |
+| `province_inventory_settings` | `province_id` (unique) | document de réglages seulement ; `updated_by_character_id` nullable | **C** |
+| `province_inventory_snapshots` | `province_id` | **HISTORIQUE** des collages du commissaire au commerce, calqué sur `mine_reports` : un exemplaire par province et par jour de Paris, un second collage le **remplace** (`active` NULL + `replaced_by_id`, rien ne s'efface), texte **chiffré** ; `character_id` nullable (`nullOnDelete`), `office_key` | **C** |
+
+🔴 **Une table par niveau, avec sa vraie clé étrangère** (§5ter) : le `owner_type` / `owner_id` polymorphe que proposaient les briefs est écarté (une colonne morph ne porte pas de FK, donc pas de `nullOnDelete` garanti). Le niveau et le propriétaire se résolvent **côté serveur, depuis le poste tenu MAINTENANT** (`App\Services\InventorySettings::owner()`), jamais depuis la requête.
+
+**Qui peut quoi** (`MandateAuthority`) : **personnel** = le personnage lui-même ; **ville** = le **maire** en fonction (`inventoryCity()`), lecture et écriture ; **province** = le **commissaire au commerce** seul écrit (`INVENTORY_PROVINCE_OFFICES`), il lit avec le **dirigeant**, lecture seule (`INVENTORY_PROVINCE_READER_OFFICES`). Le commissaire aux mines et le bailli n'ont **aucun accès** (à la différence des prix) ; le maire ne lit pas la province.
+
+| Pièce | Rôle |
+|---|---|
+| `App\Support\InventorySettingsDocument` | **seul garde de forme** du document : clés connues seulement (partagées : `custom`, `hiddenBuiltIn`, `order`, `exportColor`, `itemCategories` ; **personnel seulement** : `exportQtyFormat`, `exportShowEcus`, `exportWrapper`, `visibility`), slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko). Une clé inconnue est refusée |
+| `App\Services\InventorySettings` | **seul écrivain** des réglages : `scopes`, `show`, `save` (**écriture à version** : 409 `version_conflict` avec l'état courant si le client n'a pas lu la dernière), `copyPersonal` |
+| `App\Services\InventoryText` | le **dernier inventaire collé** (personnage, ville), chiffré, remplacé à chaque collage |
+| `App\Services\ProvinceInventoryRegistry` | l'**historique** de la province : `record` (poste du commissaire au commerce, jour de Paris, texte identique du jour = rien créé), `history` (les 100 exemplaires les plus récents, déchiffrés, **auteur jamais nommé** : seulement `by_me`) |
+
+**Routes** (`auth:api`, contrat d'erreurs `MandateApiErrors`, clés `inventory.api.*`) : `GET characters/{id}/inventory-scopes` ; `GET|PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT : `{data, version}`, `throttle:30,1`) ; `POST characters/{id}/inventory-settings/personal/copy` (`from_character_id`, `confirm_replace`) ; `GET|PUT characters/{id}/inventory/{personal|city}` (texte collé) ; `GET|POST characters/{id}/inventory/province` (historique / inscription du jour). ⚠️ **Routes ajoutées : `route:cache` en prod.**
+
+**Copie** : un joueur copie les réglages **personnels** d'un de ses personnages vers un autre **du même compte** ; elle remplace (confirmation `confirm_replace` si la cible en a déjà) et ne copie **jamais** le texte collé (chaque personnage a son inventaire).
+
+**Garde-fous** : les quatre tables sont classées dans `UserDataLifecycleTest` (A / C / C / C) et dans `AccountExportCoverageTest` — les réglages **personnels** sont dans l'export art. 20 (section `inventory`, texte collé déchiffré compris, résumé dans le PDF), ville, province et historique **exclus** (communautaires, dits dans `not_included.shared_data`) ; `module-data:check` relit les trois colonnes chiffrées (`ENCRYPTED_COLUMNS`, où manquait aussi `anim_rewards_grids.organizer_email`) ; `Enforcement/InventoryNotConsultableTest` échoue si une surface d'administration référence ces tables (§5bis). Registre des traitements : quatre lignes.
+
+⚠️ **Prod** : `php artisan migrate` (4 migrations), `route:cache` ; aucun nouveau `config/*.php`, aucune clé `.env`, aucun paquet Composer. **Rien ne se met en ligne avant le texte légal** (fil `inventaire-scopes`, Cowork).
+
 ## Tests
 
 `docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,

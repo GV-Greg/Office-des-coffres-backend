@@ -7,6 +7,24 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-11] — PR #83 (Inventaires : réglages en base aux trois niveaux, texte collé chiffré, historique de la province)
+
+### Added
+- **Réglages d'inventaire en base pour un joueur connecté**, aux trois niveaux (une table chacune, vraie clé étrangère) : **personnage** (`character_inventory_settings`, supprimé avec lui, catégorie A), **ville** (`city_inventory_settings`, le maire) et **province** (`province_inventory_settings`, le commissaire au commerce ; le dirigeant lit) en catégorie C. Un document JSON de clés connues (catégories personnalisées et masquées, ordre, couleur, assignations objet → catégorie ; options d'export et visibilité pour le personnel seulement), **écriture à version** (409 sinon).
+- **Dernier inventaire collé, chiffré** (`MODULE_DATA_KEY`) : un exemplaire remplacé à chaque collage pour le personnage et la ville.
+- **Historique des inventaires de la province** (`province_inventory_snapshots`, calqué sur `mine_reports`) pour les bilans du commissaire au commerce : un exemplaire par jour de Paris, remplacé sans rien effacer, texte chiffré, successeur voit tout, auteur jamais nommé.
+- **Copie des réglages personnels** vers un autre personnage du même compte (confirmation si la cible en a), sans le texte collé.
+- API `characters/{id}/inventory-scopes`, `inventory-settings/{personal|city|province}`, `inventory-settings/personal/copy`, `inventory/{personal|city}`, `inventory/province` ; autorisation par le poste tenu **maintenant** (`MandateAuthority::inventoryCity`, `canManageProvinceInventory`, `canReadProvinceInventory`).
+- Les réglages personnels figurent dans l'**export du compte** (JSON, section `inventory`, et résumé dans le PDF) ; ceux de la ville et de la province, non (communautaires).
+- Garde-fous : quatre tables classées au test de cycle de vie et à la couverture de l'export, test de non-consultation par l'administration, quatre lignes au registre des traitements.
+
+### Changed
+- `module-data:check` relit aussi `anim_rewards_grids.organizer_email`, qui n'y figurait pas (la Grille des lots chiffre l'adresse comme Décode).
+- Commentaire périmé de `AccountExportCoverageTest` corrigé : la grille privée est en catégorie A depuis le 11/11.
+
+### Prod
+- ⚠️ `php artisan migrate` (4 migrations) et `php artisan route:cache` (8 routes ajoutées). Aucun `config/*.php`, aucune clé `.env`, aucun paquet. **Rien ne se met en ligne avant le texte légal** (fil `admin/echanges/inventaire-scopes/`, Cowork). Le frontend n'est pas encore branché sur cette API.
+
 ## [2026-11-11] — PR #82 (Grille des lots, 2ᵉ activité du module Animation ; emails et écran /anim communs avec Décode)
 
 ### Added

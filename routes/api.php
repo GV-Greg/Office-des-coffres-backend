@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
 use App\Http\Controllers\Api\Anim\RewardsGridController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
+use App\Http\Controllers\Api\InventorySettingsController;
 use App\Http\Controllers\Api\ItemIconController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
@@ -140,6 +141,26 @@ Route::prefix('v1')->group(function () {
         // Registre des mines : ce que le personnage peut faire maintenant, et dans quelle province.
         Route::get('characters/{character}/mine-registry', [MineReportController::class, 'access'])
             ->where('character', '[0-9]+');
+        // Inventaires (fil admin/echanges/inventaire-scopes et inventaire-bilans, 11/11/2026) : réglages et texte collé aux trois
+        // niveaux — personnage, ville (maire), province (commissaire au commerce ; le dirigeant lit). ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('characters/{character}/inventory-scopes', [InventorySettingsController::class, 'scopes'])
+            ->where('character', '[0-9]+');
+        Route::get('characters/{character}/inventory-settings/{level}', [InventorySettingsController::class, 'show'])
+            ->where(['character' => '[0-9]+', 'level' => 'personal|city|province']);
+        Route::get('characters/{character}/inventory/province', [InventorySettingsController::class, 'provinceHistory'])
+            ->where('character', '[0-9]+');
+        Route::get('characters/{character}/inventory/{level}', [InventorySettingsController::class, 'textShow'])
+            ->where(['character' => '[0-9]+', 'level' => 'personal|city']);
+        Route::middleware('throttle:30,1')->group(function () {
+            Route::put('characters/{character}/inventory-settings/{level}', [InventorySettingsController::class, 'update'])
+                ->where(['character' => '[0-9]+', 'level' => 'personal|city|province']);
+            Route::post('characters/{character}/inventory-settings/personal/copy', [InventorySettingsController::class, 'copy'])
+                ->where('character', '[0-9]+');
+            Route::put('characters/{character}/inventory/{level}', [InventorySettingsController::class, 'textPut'])
+                ->where(['character' => '[0-9]+', 'level' => 'personal|city']);
+            Route::post('characters/{character}/inventory/province', [InventorySettingsController::class, 'provinceRecord'])
+                ->where('character', '[0-9]+');
+        });
         // Registre des mines : lecture (PR 4) — commissaire aux mines, bailli, dirigeant.
         Route::get('characters/{character}/mine-registry/reports', [MineReportController::class, 'reports'])
             ->where('character', '[0-9]+');

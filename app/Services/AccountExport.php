@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Character;
+use App\Models\CharacterInventorySettings;
 use App\Models\CouncilMandate;
 use App\Models\MayorMandate;
 use App\Models\User;
@@ -40,6 +41,7 @@ class AccountExport
             'account'      => $this->accountSection($user),
             'characters'   => $this->charactersSection($user),
             'mandates'     => $this->mandatesSection($user),
+            'inventory'    => $this->inventorySection($user),
             'not_included' => $this->notIncludedSection(),
         ];
     }
@@ -122,6 +124,31 @@ class AccountExport
         return $mandates;
     }
 
+    /**
+     * Réglages d'inventaire de chacun de ses personnages (catégories, assignations, options d'export, visibilité) et le
+     * dernier inventaire collé, déchiffré — des données que le joueur a fournies (art. 20). Les réglages de ville et de
+     * province, et l'historique des inventaires de la province, n'y sont PAS : donnée communautaire (catégorie C).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function inventorySection(User $user): array
+    {
+        $pseudos = $user->characters->pluck('pseudo', 'id');
+
+        return CharacterInventorySettings::query()
+            ->whereIn('character_id', $pseudos->keys())
+            ->orderBy('character_id')
+            ->get()
+            ->map(fn (CharacterInventorySettings $row) => [
+                'character'               => $pseudos[$row->character_id],
+                'settings'                => $row->data ?: null,
+                'last_inventory'          => $row->inventory,
+                'last_inventory_saved_at' => $row->inventory_saved_at?->toIso8601ZuluString(),
+            ])
+            ->values()
+            ->all();
+    }
+
     private function notIncludedSection(): array
     {
         return [
@@ -132,6 +159,11 @@ class AccountExport
                 "Your preferences (theme, language, consent) and your entries in the public modules " .
                 "(Mine Balance, Watch) are stored in your browser only — they are not sent to our " .
                 "servers and therefore do not appear here.",
+            'shared_data' =>
+                "Les réglages et l'inventaire de la ville ou de la province que vous gérez (maire, " .
+                "commissaire au commerce) appartiennent à la collectivité, pas à vous : ils n'apparaissent pas ici. / " .
+                "The settings and inventory of the city or province you manage (mayor, Trade Minister) " .
+                "belong to the community, not to you: they do not appear here.",
             'credentials' =>
                 'Votre mot de passe (stocké sous forme hachée, non réversible) et vos jetons de ' .
                 "connexion sont exclus de cet export pour votre sécurité. / " .

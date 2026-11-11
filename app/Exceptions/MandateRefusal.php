@@ -44,6 +44,11 @@ class MandateRefusal extends ValidationException
             return substr($key, strlen('anim.api.'));
         }
 
+        // Inventaires : même contrat, ses clés sous inventory.api.*.
+        if (str_starts_with($key, 'inventory.api.')) {
+            return substr($key, strlen('inventory.api.'));
+        }
+
         return str_starts_with($key, 'mandates.api.')
             ? substr($key, strlen('mandates.api.'))
             : 'admin.'.substr($key, strrpos($key, '.') + 1);

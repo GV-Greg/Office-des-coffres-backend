@@ -257,6 +257,7 @@ class AuthController extends BaseController
             'account'         => $data['account'],
             'characters'      => $data['characters'],
             'mandates'        => $data['mandates'],
+            'inventory'       => $data['inventory'],
             'notIncludedFr'   => [
                 'browser_storage' =>
                     'Vos préférences (thème, langue, consentement) et vos saisies dans les modules ' .

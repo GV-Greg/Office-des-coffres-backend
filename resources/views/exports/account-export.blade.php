@@ -151,6 +151,19 @@
       <div class="row"><span class="label">Validé :</span>
         {{ $character['is_validated'] ? 'oui' : 'non' }}
       </div>
+      @php
+        $inv = collect($inventory)->firstWhere('character', $character['pseudo']);
+      @endphp
+      @if($inv)
+      <div class="row"><span class="label">Inventaire :</span>
+        {{ count($inv['settings']['custom'] ?? []) }} catégorie(s) personnalisée(s),
+        {{ count($inv['settings']['itemCategories'] ?? []) }} objet(s) classé(s)
+        @if($inv['last_inventory_saved_at'])
+        — dernier inventaire enregistré le {{ \Carbon\Carbon::parse($inv['last_inventory_saved_at'])->setTimezone('Europe/Paris')->format('d/m/Y') }}
+        @endif
+        (détail complet dans l'export JSON).
+      </div>
+      @endif
     </div>
     @empty
     <div class="row">Aucun personnage enregistré.</div>
@@ -258,6 +271,19 @@
       <div class="row"><span class="label">Validated:</span>
         {{ $character['is_validated'] ? 'yes' : 'no' }}
       </div>
+      @php
+        $inv = collect($inventory)->firstWhere('character', $character['pseudo']);
+      @endphp
+      @if($inv)
+      <div class="row"><span class="label">Inventory:</span>
+        {{ count($inv['settings']['custom'] ?? []) }} custom categor(ies),
+        {{ count($inv['settings']['itemCategories'] ?? []) }} item(s) sorted
+        @if($inv['last_inventory_saved_at'])
+        — last inventory saved on {{ \Carbon\Carbon::parse($inv['last_inventory_saved_at'])->setTimezone('Europe/Paris')->format('d/m/Y') }}
+        @endif
+        (full detail in the JSON export).
+      </div>
+      @endif
     </div>
     @empty
     <div class="row">No characters registered.</div>
