@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  *  - Grille SANS COMPTE : clôture DÉFINITIVE. Dans UNE transaction, la photo figée est écrite et les données
  *    personnelles sont effacées — mot de passe haché, empreinte d'IP, adresse email, jeton de réinitialisation.
  *    Les LOTS restent en base (données communautaires) et sont purges à 5 ans par `anim:purge-closed`.
- *    ⚠️ Aucun email : « Hors scope: Notifications email » pour ce module.
+ *    Aucun compte rendu par email (contrairement à Décode le code) : la grille ne garde que ses lots, il n'y a rien à rendre.
  */
 class RewardsGridClosing
 {

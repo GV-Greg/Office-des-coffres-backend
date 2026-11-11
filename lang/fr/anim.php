@@ -46,6 +46,11 @@ return [
         'launched' => 'En cours',
         'relaunch' => 'Relancé',
         'closed' => 'Clos',
+        // Grille des lots.
+        'incomplete' => 'Incomplète',
+        'filled' => 'Remplie',
+        'drawed' => 'Tirée',
+        'confirmed' => 'Tirée',
     ],
 
     'types' => [
@@ -65,8 +70,9 @@ return [
     'email' => [
         'greeting' => 'Bonjour,',
         'confirm_subject' => 'Confirmez votre adresse — activité « :name »',
-        'confirm_intro' => "Vous avez indiqué cette adresse pour l'activité « :name » de « Décode le code » (adresse :slug).",
+        'confirm_intro' => "Vous avez indiqué cette adresse pour l'activité « :name » de « :type » (adresse :slug).",
         'confirm_use' => "Une fois confirmée, elle servira à vous envoyer un lien si vous oubliez votre mot de passe, à vous prévenir si ce mot de passe est modifié, et à vous envoyer le compte rendu quand l'activité sera close. Elle sera effacée à la clôture.",
+        'confirm_use_no_report' => 'Une fois confirmée, elle servira à vous envoyer un lien si vous oubliez votre mot de passe, et à vous prévenir si ce mot de passe est modifié. Elle sera effacée à la clôture.',
         'confirm_action' => 'Confirmer mon adresse',
         'confirm_ignore' => "Si ce n'est pas vous, ignorez ce message : l'adresse ne sera pas utilisée.",
         'reset_subject' => 'Nouveau mot de passe — activité « :name »',
@@ -126,13 +132,13 @@ return [
         'closed_flash' => 'Activité « :name » close : résumé figé, données personnelles effacées. Cette clôture est définitive.',
         'delete' => 'Supprimer',
         'delete_title' => "Supprimer l'activité « :name »",
-        'delete_warning' => "Cette activité et sa page de résumé disparaissent définitivement. L'adresse « :slug » redevient libre et les liens postés sur le forum donneront une erreur. Les données personnelles qui pourraient rester sont effacées avec elle.",
+        'delete_warning' => "Cette activité, sa page de résumé et ce qu'elle contient (lots, propositions) disparaissent définitivement. L'adresse « :slug » redevient libre et les liens postés sur le forum donneront une erreur. Les données personnelles qui pourraient rester sont effacées avec elle.",
         'delete_confirm' => 'Oui, supprimer définitivement',
         'delete_cancel' => 'Annuler',
         'deleted_flash' => 'Activité « :name » supprimée.',
         'reset_link' => 'Lien de réinitialisation',
         'reset_link_flash' => "Lien émis pour « :name » (usage unique, valable jusqu'au :until). Il n'est affiché qu'ici, UNE SEULE FOIS. Envoyez ce message au personnage « :pseudo » dans le jeu :",
-        'reset_message' => "Bonjour :pseudo, voici le lien pour choisir un nouveau mot de passe pour l'activité « :name » de « Décode le code » (valable 24 heures, à usage unique) : :url",
+        'reset_message' => "Bonjour :pseudo, voici le lien pour choisir un nouveau mot de passe pour l'activité « :name » de « :type » (valable 24 heures, à usage unique) : :url",
         'not_anonymous' => 'Cette action ne concerne que les activités sans compte.',
     ],
 

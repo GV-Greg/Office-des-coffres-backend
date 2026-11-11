@@ -16,6 +16,8 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 - **Dimensions de 3 à 20 cases par côté** (`AnimRewardsGrid::MIN_SIDE`/`MAX_SIDE`, Greg, 11/11/2026) ; le message de refus donne les bornes.
 
 ### Changed
+- **Emails de la Grille des lots** (option A de Greg, 11/11/2026) : la grille sans compte envoie la confirmation d'adresse, le lien de réinitialisation (adresse confirmée) et l'avis de changement de mot de passe, comme Décode le code. `DecodeMailer` devient **`AnimMailer`** et les notifications communes `Anim*` (`AnimKinds` porte désormais, par type, ses liens, son service de réinitialisation et la présence d'un compte rendu) ; le texte de confirmation nomme le type et ne promet un compte rendu que pour Décode. Un échec d'envoi se journalise `anim.mail_failed` (type, identifiant, genre — jamais l'adresse).
+- **`/anim` est un écran commun** : surveillance et recours (clore, supprimer avec confirmation, émettre un lien) pour **tous** les types d'activité ; les routes passent à `anim/activities/{kind}/{id}`.
 - **Une grille privée disparaît avec son personnage ou son compte** (catégorie A, `cascadeOnDelete`, comme Décode le code) : la migration `anim_rewards_grids` est modifiée en place — `character_id` en `CASCADE` (base de dev : `ALTER` à la main).
 - **Un nouveau type d'activité naît inactif** (`AnimActivityTypeSeeder::TYPES`) : `rewards` est créé `is_active = false`, `decode` reste actif ; le seeder ne touche jamais `is_active` d'un type existant.
 

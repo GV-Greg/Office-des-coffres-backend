@@ -14,20 +14,21 @@ use Illuminate\Support\Facades\Hash;
  * il passe toujours par un LIEN À USAGE UNIQUE (24 h) qui lui laisse CHOISIR le nouveau. Aucun mot de passe ne
  * circule — ni par email, ni par l'administrateur du site, qui ne le connaît jamais.
  *
- *  - avec un email CONFIRMÉ : l'auteur déclenche lui-même l'envoi (`requestByAuthor`), TODO email (hors scope).
- *    Pour l'instant `requestByAuthor` marque `reset_requested_at` comme pour le chemin sans email.
+ *  - avec un email CONFIRMÉ : l'auteur déclenche lui-même l'envoi (`requestByAuthor`), le lien part à l'adresse (`AnimMailer`).
  *  - sans email : l'administrateur du site émet le lien (`issueForAdmin`) et le remet AU PSEUDO DU PERSONNAGE VIA LE
  *    JEU — le site n'envoie rien.
  *
  * Le jeton est stocké HACHÉ sur la grille (sha256), jamais en clair ; un nouveau jeton annule le précédent.
- * ⚠️ Aucun email : « Hors scope: Notifications email » pour la Grille des lots pour l'instant.
+ * Même flux que Décode le code (`DecodePasswordReset`) : option A de Greg, 11/11/2026.
  */
 class RewardsGridPasswordReset
 {
+    public function __construct(private readonly AnimMailer $mailer) {}
+
     /**
-     * L'auteur demande le lien. SANS email (aucun email dans ce module), la demande est notée sur la grille
-     * (`reset_requested_at`) et l'administrateur du site la lit dans `/anim` pour faire porter le lien au pseudo du
-     * personnage dans le jeu. Sans effet visible si la grille n'existe pas ou est close.
+     * L'auteur demande le lien. Avec un email CONFIRMÉ, le lien part à l'adresse ; SANS email confirmé, la demande est notée
+     * sur la grille (`reset_requested_at`) et l'administrateur du site la lit dans `/anim` pour faire porter le lien au pseudo
+     * du personnage dans le jeu. Sans effet visible si la grille n'existe pas ou est close : la réponse est la même dans tous les cas.
      */
     public function requestByAuthor(string $slug): void
     {
@@ -36,8 +37,14 @@ class RewardsGridPasswordReset
             return;
         }
 
-        // Pas d'email dans ce module : toujours le chemin « noter la demande ».
-        $grid->forceFill(['reset_requested_at' => Carbon::now()])->save();
+        if (! $grid->hasVerifiedEmail()) {
+            $grid->forceFill(['reset_requested_at' => Carbon::now()])->save();
+
+            return;
+        }
+
+        $token = $this->issue($grid, 'email');
+        $this->mailer->sendResetLink($grid, $token);
     }
 
     /**
@@ -53,7 +60,7 @@ class RewardsGridPasswordReset
             throw MandateRefusal::make('activity', 'anim.api.reset_unavailable');
         }
 
-        $token = $this->issue($grid);
+        $token = $this->issue($grid, 'admin');
 
         return ['url' => RewardsGridLinks::reset($grid->slug, $token), 'expires_at' => $grid->reset_token_expires_at];
     }
@@ -86,6 +93,9 @@ class RewardsGridPasswordReset
             'password_reset_at' => Carbon::now(),
             'reset_requested_at' => null,
         ])->save();
+
+        // Chaque changement est signalé à l'auteur (par email s'il en a un ; sinon le message en jeu l'a porté).
+        $this->mailer->sendPasswordChanged($grid);
     }
 
     private function find(string $slug): ?AnimRewardsGrid
@@ -97,13 +107,13 @@ class RewardsGridPasswordReset
             ->first();
     }
 
-    private function issue(AnimRewardsGrid $grid): string
+    private function issue(AnimRewardsGrid $grid, string $mode): string
     {
         $token = bin2hex(random_bytes(32));
         $grid->forceFill([
             'reset_token_hash' => hash('sha256', $token),
             'reset_token_expires_at' => Carbon::now()->addHours(RewardsGridLinks::RESET_HOURS),
-            'reset_mode' => 'admin',
+            'reset_mode' => $mode,
             'reset_requested_at' => null,
         ])->save();
 

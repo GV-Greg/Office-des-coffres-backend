@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\MandateRefusal;
 use App\Models\AnimActivityType;
 use App\Models\AnimRewardsGrid;
 use App\Models\AnimRewardsList;
@@ -44,14 +45,14 @@ function fillGrid(RewardsGridWorkflow $workflow, $actor, AnimRewardsGrid $grid):
     return $grid->refresh();
 }
 
-function wfRefusal(callable $call): \App\Exceptions\MandateRefusal
+function wfRefusal(callable $call): MandateRefusal
 {
     try {
         $call();
-    } catch (\App\Exceptions\MandateRefusal $e) {
+    } catch (MandateRefusal $e) {
         return $e;
     }
-    throw new \RuntimeException('Un refus était attendu.');
+    throw new RuntimeException('Un refus était attendu.');
 }
 
 // ─── Création ────────────────────────────────────────────────────────────────
@@ -181,7 +182,6 @@ test('draw refusé si la grille n\'est pas remplie', function () {
     $e = wfRefusal(fn () => $this->workflow->draw($this->orga, $grid->refresh()));
     expect($e->codes)->toBe(['activity' => 'grid_not_filled']);
 });
-
 
 // ─── Assignation ─────────────────────────────────────────────────────────────
 

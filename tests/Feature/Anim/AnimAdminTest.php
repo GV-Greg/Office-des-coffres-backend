@@ -52,10 +52,10 @@ test('un joueur non administrateur ne peut rien : types, clôture, suppression, 
     $this->actingAs(User::factory()->create());
 
     $this->patch("/anim/types/{$this->type->id}/toggle")->assertForbidden();
-    $this->post("/anim/activities/{$anon->id}/close")->assertForbidden();
-    $this->get("/anim/activities/{$anon->id}/delete")->assertForbidden();
-    $this->delete("/anim/activities/{$anon->id}")->assertForbidden();
-    $this->post("/anim/activities/{$anon->id}/reset-link")->assertForbidden();
+    $this->post("/anim/activities/decode/{$anon->id}/close")->assertForbidden();
+    $this->get("/anim/activities/decode/{$anon->id}/delete")->assertForbidden();
+    $this->delete("/anim/activities/decode/{$anon->id}")->assertForbidden();
+    $this->post("/anim/activities/decode/{$anon->id}/reset-link")->assertForbidden();
 
     expect($this->type->refresh()->is_active)->toBeTrue()->and($anon->refresh()->isClosed())->toBeFalse()->and(AnimDecodeActivity::count())->toBe(1);
 });
@@ -103,7 +103,7 @@ test('l\'administrateur clôt une activité sans compte : résumé figé, donné
     $this->getJson(URL::temporarySignedRoute('anim.decode.email-confirm', now()->addDay(), ['slug' => 'sans-compte', 'hash' => sha1('a@example.test')]))->assertOk();
     $this->workflow->generateSecret(AnimActor::forAnonymous($anon->refresh()), $anon);
 
-    $this->actingAs(mandateAdmin())->post("/anim/activities/{$anon->id}/close")->assertRedirect(route('anim.index'));
+    $this->actingAs(mandateAdmin())->post("/anim/activities/decode/{$anon->id}/close")->assertRedirect(route('anim.index'));
 
     $anon->refresh();
     expect($anon->isClosed())->toBeTrue()->and($anon->closing_snapshot)->not->toBeNull()->and($anon->password_hash)->toBeNull()->and($anon->organizer_email)->toBeNull();
@@ -115,18 +115,18 @@ test('la suppression passe par une ÉTAPE DE CONFIRMATION, jamais en un clic', f
     $this->actingAs(mandateAdmin());
 
     // 1) la page de confirmation nomme l'activité et ce qui disparaît ; rien n'est supprimé.
-    $this->get("/anim/activities/{$anon->id}/delete")
+    $this->get("/anim/activities/decode/{$anon->id}/delete")
         ->assertOk()->assertSee('Supprimer l\'activité « Sans compte »')->assertSee('sans-compte')->assertSee('Oui, supprimer définitivement');
     expect(AnimDecodeActivity::count())->toBe(1);
 
     // 2) seule la requête DELETE de cette page supprime.
-    $this->delete("/anim/activities/{$anon->id}")->assertRedirect(route('anim.index'));
+    $this->delete("/anim/activities/decode/{$anon->id}")->assertRedirect(route('anim.index'));
     expect(AnimDecodeActivity::count())->toBe(0);
 });
 
 test('le slug redevient libre après la suppression par l\'administration', function () {
     $anon = adminAnonymous($this);
-    $this->actingAs(mandateAdmin())->delete("/anim/activities/{$anon->id}");
+    $this->actingAs(mandateAdmin())->delete("/anim/activities/decode/{$anon->id}");
 
     expect(AnimSlug::taken('sans-compte', AnimDecodeActivity::class))->toBeFalse();
 });
@@ -136,14 +136,14 @@ test('aucun geste sur une activité PRIVÉE : clore, supprimer et lien sont refu
     $private = $this->workflow->create($orga, $this->type, ['name' => 'Privée', 'slug' => 'privee']);
     $this->actingAs(mandateAdmin());
 
-    $this->post("/anim/activities/{$private->id}/close")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
-    $this->get("/anim/activities/{$private->id}/delete")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
-    $this->delete("/anim/activities/{$private->id}")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
-    $this->post("/anim/activities/{$private->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
+    $this->post("/anim/activities/decode/{$private->id}/close")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
+    $this->get("/anim/activities/decode/{$private->id}/delete")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
+    $this->delete("/anim/activities/decode/{$private->id}")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
+    $this->post("/anim/activities/decode/{$private->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
 
     expect($private->refresh()->isClosed())->toBeFalse()->and(AnimDecodeActivity::count())->toBe(1);
     // La page n'offre d'ailleurs aucun bouton pour elle.
-    $this->get('/anim')->assertDontSee("/anim/activities/{$private->id}/delete");
+    $this->get('/anim')->assertDontSee("/anim/activities/decode/{$private->id}/delete");
 });
 
 // ── D36, D37 : lien de réinitialisation pour un auteur sans email ──────────────────────────────────────
@@ -153,7 +153,7 @@ test('l\'administrateur émet un lien à usage unique, montré UNE SEULE FOIS, p
     $anon = adminAnonymous($this);
     $this->actingAs(mandateAdmin());
 
-    $this->post("/anim/activities/{$anon->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHas('reset_link');
+    $this->post("/anim/activities/decode/{$anon->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHas('reset_link');
     $flash = session('reset_link');
 
     expect($flash['message'])->toContain('Bonjour Artifice')->toContain('Sans compte')->toContain('https://site.example/app/anim/decode/reinitialiser?slug=sans-compte&token=')
@@ -167,7 +167,7 @@ test('l\'administrateur émet un lien à usage unique, montré UNE SEULE FOIS, p
 
 test('le lien émis par l\'administrateur permet à l\'auteur de choisir son mot de passe — l\'administrateur ne le connaît jamais', function () {
     $anon = adminAnonymous($this);
-    $this->actingAs(mandateAdmin())->post("/anim/activities/{$anon->id}/reset-link");
+    $this->actingAs(mandateAdmin())->post("/anim/activities/decode/{$anon->id}/reset-link");
     preg_match('/token=([a-f0-9]{64})/', session('reset_link')['message'], $m);
 
     $new = 'un-tout-nouveau-secret';
@@ -187,7 +187,7 @@ test('la demande de lien d\'un auteur SANS email confirmé est notée, visible d
     expect($anon->refresh()->reset_requested_at)->not->toBeNull();
     $this->actingAs(mandateAdmin())->get('/anim')->assertOk()->assertSee('Lien demandé le');
 
-    $this->post("/anim/activities/{$anon->id}/reset-link");
+    $this->post("/anim/activities/decode/{$anon->id}/reset-link");
     expect($anon->refresh()->reset_requested_at)->toBeNull();
 });
 
@@ -206,6 +206,6 @@ test('aucun lien pour une activité sans compte déjà close', function () {
     $anon = adminAnonymous($this);
     $this->workflow->closeNow($anon);
 
-    $this->actingAs(mandateAdmin())->post("/anim/activities/{$anon->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
+    $this->actingAs(mandateAdmin())->post("/anim/activities/decode/{$anon->id}/reset-link")->assertRedirect(route('anim.index'))->assertSessionHasErrors('activity');
     expect(session('reset_link'))->toBeNull();
 });

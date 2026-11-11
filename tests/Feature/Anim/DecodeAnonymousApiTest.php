@@ -5,10 +5,10 @@ use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeProposal;
 use App\Models\AnimDecodeSecret;
-use App\Notifications\DecodeEmailConfirmation;
+use App\Notifications\AnimEmailConfirmation;
+use App\Notifications\AnimPasswordChanged;
+use App\Notifications\AnimPasswordResetLink;
 use App\Notifications\DecodeFinalReport;
-use App\Notifications\DecodePasswordChanged;
-use App\Notifications\DecodePasswordResetLink;
 use App\Services\AnimActor;
 use App\Services\DecodeWorkflow;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -240,7 +240,7 @@ test('avec un email : un lien de confirmation part à l\'adresse, jamais un mot 
         ->assertJsonPath('email_pending', true)
         ->assertJsonPath('activity.email', ['set' => true, 'verified' => false]);
 
-    $mail = sentMail(DecodeEmailConfirmation::class, 'artifice@example.test');
+    $mail = sentMail(AnimEmailConfirmation::class, 'artifice@example.test');
     expect($mail)->not->toBeNull();
 
     $text = renderedText($mail);
@@ -472,7 +472,7 @@ test('l\'auteur avec email confirmé demande lui-même un lien à usage unique (
 
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-request')->assertStatus(202);
 
-    $mail = sentMail(DecodePasswordResetLink::class, 'artifice@example.test');
+    $mail = sentMail(AnimPasswordResetLink::class, 'artifice@example.test');
     expect($mail)->not->toBeNull();
     $token = resetTokenFrom($mail);
     $text = renderedText($mail);
@@ -492,13 +492,13 @@ test('la demande répond pareil pour une activité inconnue, sans email ou avec 
     }
 
     expect($answers[0])->toBe($answers[1])->toBe($answers[2]);
-    expect(sentMail(DecodePasswordResetLink::class, 'x@example.test'))->toBeNull();
+    expect(sentMail(AnimPasswordResetLink::class, 'x@example.test'))->toBeNull();
 });
 
 test('le lien permet de CHOISIR un nouveau mot de passe, une seule fois, et l\'auteur en est averti (D37)', function () {
     anonWithVerifiedEmail($this);
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-request')->assertStatus(202);
-    $token = resetTokenFrom(sentMail(DecodePasswordResetLink::class, 'artifice@example.test'));
+    $token = resetTokenFrom(sentMail(AnimPasswordResetLink::class, 'artifice@example.test'));
 
     $new = 'un-tout-nouveau-secret';
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-complete', ['token' => $token, 'password' => $new, 'password_confirmation' => $new])->assertOk();
@@ -512,7 +512,7 @@ test('le lien permet de CHOISIR un nouveau mot de passe, une seule fois, et l\'a
         ->assertStatus(422)->assertJsonPath('codes.token', 'reset_invalid');
 
     // Chaque changement est signalé (D37) : message sans mot de passe, bilingue.
-    $changed = sentMail(DecodePasswordChanged::class, 'artifice@example.test');
+    $changed = sentMail(AnimPasswordChanged::class, 'artifice@example.test');
     expect($changed)->not->toBeNull();
     expect(renderedText($changed))->toContain('modifié')->toContain('changed')->not->toContain($new);
 
@@ -523,7 +523,7 @@ test('le lien permet de CHOISIR un nouveau mot de passe, une seule fois, et l\'a
 test('un lien périmé, faux ou annulé par un plus récent est refusé — même message', function () {
     anonWithVerifiedEmail($this);
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-request')->assertStatus(202);
-    $old = resetTokenFrom(sentMail(DecodePasswordResetLink::class, 'artifice@example.test'));
+    $old = resetTokenFrom(sentMail(AnimPasswordResetLink::class, 'artifice@example.test'));
 
     $pw = 'un-tout-nouveau-secret';
     $try = fn (string $token) => $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-complete', ['token' => $token, 'password' => $pw, 'password_confirmation' => $pw]);
@@ -533,7 +533,7 @@ test('un lien périmé, faux ou annulé par un plus récent est refusé — mêm
     // Un nouveau lien annule le précédent.
     Notification::fake();
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-request')->assertStatus(202);
-    $fresh = resetTokenFrom(sentMail(DecodePasswordResetLink::class, 'artifice@example.test'));
+    $fresh = resetTokenFrom(sentMail(AnimPasswordResetLink::class, 'artifice@example.test'));
     $try($old)->assertStatus(422);
 
     // Périmé après 24 h.
@@ -544,7 +544,7 @@ test('un lien périmé, faux ou annulé par un plus récent est refusé — mêm
 test('le nouveau mot de passe suit les mêmes règles (10 caractères, pas le slug)', function () {
     anonWithVerifiedEmail($this);
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-request')->assertStatus(202);
-    $token = resetTokenFrom(sentMail(DecodePasswordResetLink::class, 'artifice@example.test'));
+    $token = resetTokenFrom(sentMail(AnimPasswordResetLink::class, 'artifice@example.test'));
 
     $this->postJson('/api/v1/anim/decode-manage/les-trois-coffres/reset-complete', ['token' => $token, 'password' => 'court', 'password_confirmation' => 'court'])
         ->assertStatus(422)->assertJsonPath('codes.password', 'password_too_short');

@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\URL;
  * Liens des emails et des pages de la « Grille des lots » : tous pointent vers le SITE DES JOUEURS, jamais vers le
  * domaine d'administration (dans un email, il ressemble à de l'hameçonnage — Greg, 05/10/2026).
  *
- * Note : aucun email pour ce module pour l'instant — la classe sert surtout pour les routes signées de confirmation
- * d'adresse et de réinitialisation du mot de passe.
+ * La confirmation d'adresse suit le patron de `DecodeLinks` : la signature est celle de l'API (route
+ * `anim.rewards.email-confirm`), la page du site rappelle l'API en JSON avec exactement ces paramètres.
  */
 class RewardsGridLinks
 {

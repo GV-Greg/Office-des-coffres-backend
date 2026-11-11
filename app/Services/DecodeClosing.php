@@ -21,7 +21,7 @@ class DecodeClosing
 {
     public function __construct(
         private readonly DecodeActivityReader $reader,
-        private readonly DecodeMailer $mailer,
+        private readonly AnimMailer $mailer,
     ) {}
 
     public function close(AnimDecodeActivity $activity): AnimDecodeActivity

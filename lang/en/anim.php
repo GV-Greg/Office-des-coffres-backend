@@ -45,6 +45,11 @@ return [
         'launched' => 'In progress',
         'relaunch' => 'Relaunched',
         'closed' => 'Closed',
+        // Rewards grid.
+        'incomplete' => 'Incomplete',
+        'filled' => 'Filled',
+        'drawed' => 'Drawn',
+        'confirmed' => 'Drawn',
     ],
 
     'types' => [
@@ -64,8 +69,9 @@ return [
     'email' => [
         'greeting' => 'Hello,',
         'confirm_subject' => 'Confirm your address — activity ":name"',
-        'confirm_intro' => 'You gave this address for the activity ":name" of Crack the Code (address :slug).',
+        'confirm_intro' => 'You gave this address for the activity ":name" of :type (address :slug).',
         'confirm_use' => 'Once confirmed, it will be used to send you a link if you forget your password, to warn you if that password is changed, and to send you the report when the activity is closed. It will be erased when the activity is closed.',
+        'confirm_use_no_report' => 'Once confirmed, it will be used to send you a link if you forget your password and to warn you if that password is changed. It will be erased when the activity is closed.',
         'confirm_action' => 'Confirm my address',
         'confirm_ignore' => 'If this was not you, ignore this message: the address will not be used.',
         'reset_subject' => 'New password — activity ":name"',

@@ -32,7 +32,7 @@ class DecodeWorkflow
 {
     public function __construct(
         private readonly DecodeClosing $closing,
-        private readonly DecodeMailer $mailer,
+        private readonly AnimMailer $mailer,
     ) {}
 
     /**

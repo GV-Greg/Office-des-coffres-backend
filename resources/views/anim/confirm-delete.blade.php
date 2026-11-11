@@ -12,7 +12,7 @@
                     <p class="text-sm">{{ __('anim.admin.delete_warning', ['slug' => $activity->slug]) }}</p>
 
                     <div class="flex gap-2">
-                        <form method="POST" action="{{ route('anim.activities.destroy', $activity) }}">
+                        <form method="POST" action="{{ route('anim.activities.destroy', ['kind' => $kind, 'id' => $activity->id]) }}">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="px-3 py-1 rounded bg-red-700 hover:bg-red-800 text-white text-xs uppercase font-bold">

@@ -44,6 +44,7 @@ class RewardsGridWorkflow
 {
     public function __construct(
         private readonly RewardsGridClosing $closing,
+        private readonly AnimMailer $mailer,
     ) {}
 
     /**
@@ -109,15 +110,21 @@ class RewardsGridWorkflow
 
         $email = filled($data['email'] ?? null) ? mb_strtolower(trim($data['email'])) : null;
 
-        return $this->persist($this->attributes($type, $data) + [
+        $grid = $this->persist($this->attributes($type, $data) + [
             'character_id' => null,
             'is_anonymous' => true,
             'organizer_name' => $pseudo,
             'password_hash' => Hash::make($data['password']),
             'creator_ip_hash' => $ipHash,
             'organizer_email' => $email,
-            // Pas d'email de confirmation ici : « Hors scope: Notifications email » pour ce module.
         ]);
+
+        // Une adresse n'est utilisée qu'une fois confirmée : ce message ne porte que le lien signé. Un échec d'envoi ne bloque pas la création.
+        if ($email !== null) {
+            $this->mailer->sendConfirmation($grid);
+        }
+
+        return $grid;
     }
 
     /** Confirmation de l'adresse par le lien signé. Faux si la grille, l'adresse ou l'empreinte ne correspondent plus. */
