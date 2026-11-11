@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-11] — PR #84 (Journal de la politique : entrée « Gestion des stocks »)
+
+### Added
+- Entrée `2026-11-11-gestion-des-stocks` dans `resources/policy/changelog.php` (substantielle, décidée par Greg) : nouveau traitement (réglages et texte des inventaires collés, chiffrés, pour un compte ; historique de la province) et nouveaux destinataires. Ne s'envoie (`php artisan policy:notify`) qu'une fois le texte en ligne (front `feat/inventory-legal`).
+
+### Prod
+- Aucun `config/*.php`, aucune route, aucun paquet. Le journal est lu à l'exécution : rien à mettre en cache. Après la mise en ligne : `policy:notify` par Greg (un seul email par jour ; `--again` si un envoi a déjà eu lieu aujourd'hui).
+
 ## [2026-11-11] — PR #83 (Inventaires : réglages en base aux trois niveaux, texte collé chiffré, historique de la province)
 
 ### Added

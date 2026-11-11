@@ -111,4 +111,19 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Gestion des stocks — inventaires (back #83 et front #111 mergées le 11/11/2026 ; le texte de la politique, de « Vos données » et
+    // des cookies part avec `feat/inventory-legal` — à dater de sa mise en ligne, la date ci-dessous est provisoire). Une entrée propre à
+    // cette modification. « Substantielle » : nouveau traitement (réglages et texte des inventaires collés enregistrés pour un compte,
+    // chiffrés ; historique de la province) et nouveaux destinataires (le maire lit l'inventaire de sa ville, le commissaire au commerce
+    // et le dirigeant celui de leur province). Texte : fil admin/echanges/inventaire-scopes/02-reponse-cowork.md, validé par Greg le
+    // 11/11/2026. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
+    '2026-11-11-gestion-des-stocks' => [
+        'date' => '2026-11-11',
+        'summary' => [
+            'fr' => "Un nouveau chapitre, la « Gestion des stocks », décrit désormais ce que l'Office conserve de vos inventaires. Avec un compte, vos réglages d'inventaire et le texte de vos inventaires collés sont enregistrés en base de données (le texte est chiffré), afin que vous les retrouviez d'un appareil à l'autre ; sans compte, ils restent dans votre navigateur. L'inventaire d'une ville est lisible du maire en fonction, celui d'une province du commissaire au commerce et du dirigeant, et la province en conserve l'historique. Consultez la politique de confidentialité mise à jour pour le détail.",
+            'en' => 'A new chapter, “Stock Management”, now describes what the Office keeps of your inventories. With an account, your inventory settings and the text of your pasted inventories are stored in the database (the text is encrypted) so that you can find them again from one device to another; without an account, they stay in your browser. A city’s inventory can be read by its acting mayor, a province’s by its Trade Minister and its leader, and the province keeps its history. See the updated privacy policy for details.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
