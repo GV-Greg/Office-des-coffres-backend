@@ -358,9 +358,10 @@ class RewardsGridWorkflow
      */
     public function lastActionAt(AnimRewardsGrid $grid): Carbon
     {
+        // `max('created_at')` rend une chaîne : en Carbon, sinon la plus récente pourrait sortir en texte (et `lessThan()` n'existerait pas).
         $lastLot = $grid->lots()->max('created_at');
 
-        return collect([$lastLot, $grid->drawn_at, $grid->updated_at, $grid->created_at])
+        return collect([$lastLot ? Carbon::parse($lastLot) : null, $grid->drawn_at, $grid->updated_at, $grid->created_at])
             ->filter()
             ->max();
     }
@@ -390,8 +391,10 @@ class RewardsGridWorkflow
 
         $width = (int) ($data['width'] ?? 0);
         $height = (int) ($data['height'] ?? 0);
-        if ($width < 1 || $height < 1 || $width > 10 || $height > 10) {
-            throw MandateRefusal::make('dimensions', 'anim.api.grid_dimensions_invalid');
+        $min = AnimRewardsGrid::MIN_SIDE;
+        $max = AnimRewardsGrid::MAX_SIDE;
+        if ($width < $min || $height < $min || $width > $max || $height > $max) {
+            throw MandateRefusal::make('dimensions', 'anim.api.grid_dimensions_invalid', ['min' => $min, 'max' => $max]);
         }
 
         $levels = array_filter([$data['kingdom_id'] ?? null, $data['province_id'] ?? null, $data['city_id'] ?? null]);

@@ -2,7 +2,10 @@
 
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
+use App\Models\AnimRewardsGrid;
+use App\Models\AnimRewardsList;
 use App\Services\DecodeWorkflow;
+use App\Services\RewardsGridWorkflow;
 use App\Support\AnimSlug;
 use App\Support\MandateHeartbeat;
 use Illuminate\Support\Carbon;
@@ -14,6 +17,7 @@ use Illuminate\Support\Carbon;
 
 beforeEach(function () {
     $this->map = mandateMap();
+    activateRewardsType();
     $this->type = AnimActivityType::where('key', 'decode')->firstOrFail();
     $this->workflow = app(DecodeWorkflow::class);
 });
@@ -86,4 +90,67 @@ test('chaque passage réussi est enregistré (heartbeat) et la tâche a son libe
     expect(MandateHeartbeat::lastSuccess('decode_purge'))->not->toBeNull()
         ->and(MandateHeartbeat::TASKS)->toHaveKey('decode_purge')
         ->and(__('mandates.scheduler.tasks.decode_purge'))->not->toBe('mandates.scheduler.tasks.decode_purge');
+});
+
+// ─── Grille des lots : la même purge, dans la même commande ───────────────────────────────────────
+
+/** Une grille SANS COMPTE close il y a $closedAgo, avec un lot. */
+function closedAnonymousGrid($test, string $slug, string $closedAgo): AnimRewardsGrid
+{
+    $workflow = app(RewardsGridWorkflow::class);
+    $grid = $workflow->createAnonymous(AnimActivityType::where('key', 'rewards')->firstOrFail(), [
+        'slug' => $slug, 'name' => ucfirst($slug), 'width' => 3, 'height' => 3, 'province_id' => $test->map['provinceA']->id,
+        'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
+    ], null);
+    $grid->lots()->create(['name' => 'Pain']);
+    $workflow->closeNow($grid);
+    $grid->forceFill(['closed_at' => Carbon::now()->sub($closedAgo)])->save();
+
+    return $grid->refresh();
+}
+
+test('grille sans compte close depuis plus de 5 ans : supprimée avec ses lots, slug libéré', function () {
+    $grid = closedAnonymousGrid($this, 'vieille-grille', '5 years 1 day');
+
+    $this->artisan('anim:purge-closed')->assertSuccessful();
+
+    expect(AnimRewardsGrid::count())->toBe(0)
+        ->and(AnimRewardsList::where('grid_id', $grid->id)->count())->toBe(0)
+        ->and(AnimSlug::taken('vieille-grille', AnimRewardsGrid::class))->toBeFalse();
+});
+
+test('grille sans compte close depuis moins de 5 ans : gardée', function () {
+    closedAnonymousGrid($this, 'recente-grille', '4 years 11 months');
+
+    $this->artisan('anim:purge-closed')->assertSuccessful();
+
+    expect(AnimRewardsGrid::where('slug', 'recente-grille')->exists())->toBeTrue();
+});
+
+test('une grille PRIVÉE close n\'est JAMAIS purgée, même depuis très longtemps ; une grille sans compte ouverte non plus', function () {
+    $workflow = app(RewardsGridWorkflow::class);
+    $type = AnimActivityType::where('key', 'rewards')->firstOrFail();
+    $private = $workflow->create(mandatePlayer($this->map['cityA']), $type, ['slug' => 'privee-grille', 'name' => 'Privée', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]);
+    $workflow->closeNow($private);
+    $private->forceFill(['closed_at' => Carbon::now()->subYears(20)])->save();
+    $workflow->createAnonymous($type, ['slug' => 'ouverte-grille', 'name' => 'Ouverte', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id, 'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe'], null);
+
+    $this->artisan('anim:purge-closed')->assertSuccessful();
+
+    expect(AnimRewardsGrid::count())->toBe(2);
+});
+
+test('la même passe purge Décode le code ET la Grille des lots ; --dry-run les compte sans rien supprimer', function () {
+    closedAnonymous($this, 'vieille', '6 years');
+    closedAnonymousGrid($this, 'vieille-grille', '6 years');
+
+    $this->artisan('anim:purge-closed --dry-run')
+        ->expectsOutputToContain('Décode le code — simulation : 1 page(s)')
+        ->expectsOutputToContain('Grille des lots — simulation : 1 page(s)')
+        ->assertSuccessful();
+    expect(AnimDecodeActivity::count())->toBe(1)->and(AnimRewardsGrid::count())->toBe(1);
+    expect(MandateHeartbeat::lastSuccess('decode_purge'))->toBeNull(); // une simulation n'est pas un passage
+
+    $this->artisan('anim:purge-closed')->expectsOutputToContain('2 page(s) de résumé supprimée(s)')->assertSuccessful();
+    expect(AnimDecodeActivity::count())->toBe(0)->and(AnimRewardsGrid::count())->toBe(0);
 });

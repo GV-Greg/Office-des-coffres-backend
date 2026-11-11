@@ -13,7 +13,7 @@ return [
         'grid_not_filled' => 'La grille doit être entièrement remplie avant le tirage.',
         'grid_not_drawed' => 'Le tirage doit être effectué avant de confirmer la grille.',
         'grid_not_confirmed' => 'La grille doit être confirmée avant d\'assigner les joueurs.',
-        'grid_dimensions_invalid' => 'Les dimensions de la grille doivent être comprises entre 1 et 10.',
+        'grid_dimensions_invalid' => 'Les dimensions de la grille doivent être comprises entre :min et :max.',
         'access_denied' => "Accès refusé : l'adresse ou le mot de passe ne correspond à aucune activité que vous puissiez gérer.",
         'activity_not_found' => "Cette activité n'existe pas.",
         'character_not_found' => "Ce personnage n'existe pas sur ce compte.",

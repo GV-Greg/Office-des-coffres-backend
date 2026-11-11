@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Lots d'une grille. Catégorie C (donnée communautaire de la province) : le lot reste quand l'organisateur
-     * disparaît (`grid_id` CASCADE depuis `anim_rewards_grids.character_id nullOnDelete`).
+     * Lots d'une grille. Ils suivent leur grille (`grid_id` CASCADE) : la suppression de l'organisateur d'une grille
+     * privée emporte la grille (`anim_rewards_grids.character_id` cascadeOnDelete, catégorie A) et ses lots.
      *
      * `place` est attribué au tirage (null avant) : un index partiel serait utile mais non portable SQLite/MariaDB.
      * `player` est le nom libre du personnage qui a choisi la case ; aucune clé vers un compte.

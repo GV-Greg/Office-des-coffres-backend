@@ -9,8 +9,9 @@ return new class extends Migration
     /**
      * Grille des lots — l'activité d'un organisateur. DEUX MODES dans la même table :
      *
-     *  - PRIVÉ : `character_id` renseigné. ⚠️ **Catégorie C, nullOnDelete** : la grille est communautaire, les joueurs
-     *    ont choisi des cases ; supprimer l'organisateur ne doit pas effacer la participation des autres.
+     *  - PRIVÉ : `character_id` renseigné. ⚠️ **Catégorie A, cascadeOnDelete** (décision de Greg, 11/11/2026, comme
+     *    Décode le code) : la suppression du personnage ou du compte emporte la grille privée et ses lots. Les noms
+     *    des gagnants sont du texte libre, sans lien vers un compte.
      *  - SANS COMPTE : `character_id` nul, `password_hash` renseigné.
      *
      * Automate d'état : new → incomplete → filled → drawed → confirmed → closed.
@@ -24,7 +25,7 @@ return new class extends Migration
             $table->id();
             $table->string('slug', 20)->unique();
             $table->string('name', 190);
-            $table->foreignId('character_id')->nullable()->constrained()->nullOnDelete(); // catégorie C
+            $table->foreignId('character_id')->nullable()->constrained()->cascadeOnDelete(); // catégorie A
             $table->boolean('is_anonymous')->default(false);
             $table->string('organizer_name', 30)->nullable();
             $table->string('password_hash')->nullable();

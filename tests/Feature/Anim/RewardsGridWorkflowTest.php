@@ -10,11 +10,12 @@ use Illuminate\Support\Facades\DB;
 /*
 | Grille des lots — machine d'état, autorisations, lots, tirage, assignation, clôture, réouverture.
 | Règle de base : autorisation PAR PROPRIÉTÉ (AnimActor), jamais par mandat.
-| Catégorie C : character_id nullOnDelete — une suppression de compte ne supprime PAS la grille.
+| Catégorie A : character_id cascadeOnDelete — la suppression du personnage emporte la grille privée et ses lots.
 */
 
 beforeEach(function () {
     $this->map = mandateMap();
+    activateRewardsType();
     $this->type = AnimActivityType::where('key', 'rewards')->firstOrFail();
     $this->orga = mandatePlayer($this->map['cityA']);
     $this->other = mandatePlayer($this->map['cityB']);
@@ -26,8 +27,8 @@ function rewardsGrid($test, string $name = 'Grille des Marches', array $extra = 
     return $test->workflow->create($test->orga, $test->type, [
         'slug' => 'grille-des-marches',
         'name' => $name,
-        'width' => 2,
-        'height' => 2,
+        'width' => 3,
+        'height' => 3,
         'province_id' => $test->map['provinceA']->id,
     ] + $extra);
 }
@@ -60,32 +61,37 @@ test('créer une grille privée : statut new, is_anonymous false, dimensions enr
 
     expect($grid->status)->toBe('new')
         ->and($grid->is_anonymous)->toBeFalse()
-        ->and($grid->width)->toBe(2)
-        ->and($grid->height)->toBe(2)
+        ->and($grid->width)->toBe(3)
+        ->and($grid->height)->toBe(3)
         ->and($grid->character_id)->toBe($this->orga->id);
 });
 
 test('slug invalide ou déjà pris : refus bilingue', function () {
-    $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-123', 'name' => 'X', 'width' => 2, 'height' => 2, 'province_id' => $this->map['provinceA']->id]));
+    $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-123', 'name' => 'X', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]));
     expect($e->codes)->toBe(['slug' => 'slug_invalid']);
 
     rewardsGrid($this);
 
-    $e2 = wfRefusal(fn () => $this->workflow->create($this->other, $this->type, ['slug' => 'grille-des-marches', 'name' => 'Autre', 'width' => 2, 'height' => 2, 'province_id' => $this->map['provinceA']->id]));
+    $e2 = wfRefusal(fn () => $this->workflow->create($this->other, $this->type, ['slug' => 'grille-des-marches', 'name' => 'Autre', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]));
     expect($e2->codes)->toBe(['slug' => 'slug_taken']);
 });
 
-test('dimensions hors 1–10 : refusées', function () {
-    $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-x', 'name' => 'X', 'width' => 0, 'height' => 2, 'province_id' => $this->map['provinceA']->id]));
-    expect($e->codes)->toBe(['dimensions' => 'grid_dimensions_invalid']);
+test('dimensions hors 3–20 : refusées, bornes comprises', function () {
+    $try = fn (int $w, int $h) => wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-x', 'name' => 'X', 'width' => $w, 'height' => $h, 'province_id' => $this->map['provinceA']->id]));
 
-    $e2 = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-x', 'name' => 'X', 'width' => 11, 'height' => 2, 'province_id' => $this->map['provinceA']->id]));
-    expect($e2->codes)->toBe(['dimensions' => 'grid_dimensions_invalid']);
+    foreach ([[2, 3], [3, 2], [21, 3], [3, 21], [0, 3]] as [$w, $h]) {
+        expect($try($w, $h)->codes)->toBe(['dimensions' => 'grid_dimensions_invalid']);
+    }
+
+    // Les bornes elles-mêmes passent : 3 × 3 (9 cases) et 20 × 20 (400 cases).
+    $small = $this->workflow->create($this->orga, $this->type, ['slug' => 'petite-grille', 'name' => 'Petite', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]);
+    $large = $this->workflow->create($this->other, $this->type, ['slug' => 'grande-grille', 'name' => 'Grande', 'width' => 20, 'height' => 20, 'province_id' => $this->map['provinceA']->id]);
+    expect($small->capacity())->toBe(9)->and($large->capacity())->toBe(400);
 });
 
 test('deux niveaux de lieu à la fois : refusé', function () {
     $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, [
-        'slug' => 'grille-x', 'name' => 'X', 'width' => 2, 'height' => 2,
+        'slug' => 'grille-x', 'name' => 'X', 'width' => 3, 'height' => 3,
         'kingdom_id' => $this->map['provinceA']->kingdom_id,
         'province_id' => $this->map['provinceA']->id,
     ]));
@@ -100,23 +106,24 @@ test('type désactivé : refusé', function () {
 
 test('une seule grille non close par type et par personnage', function () {
     rewardsGrid($this);
-    $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'autre-grille', 'name' => 'Autre', 'width' => 1, 'height' => 1, 'province_id' => $this->map['provinceA']->id]));
+    $e = wfRefusal(fn () => $this->workflow->create($this->orga, $this->type, ['slug' => 'autre-grille', 'name' => 'Autre', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]));
     expect($e->codes)->toBe(['name' => 'activity_already_active']);
 });
 
 // ─── Lots et transitions d'état ──────────────────────────────────────────────
 
 test('ajouter un lot : new → incomplete → filled, statut mis à jour', function () {
-    $grid = rewardsGrid($this); // 2×2
+    $grid = rewardsGrid($this); // 3×3 = 9
 
     $this->workflow->addLot($this->orga, $grid, 'Épée');
     expect($grid->refresh()->status)->toBe('incomplete');
 
-    $this->workflow->addLot($this->orga, $grid->refresh(), 'Bouclier');
-    $this->workflow->addLot($this->orga, $grid->refresh(), 'Casque');
-    $this->workflow->addLot($this->orga, $grid->refresh(), 'Armure');
+    for ($i = 2; $i <= 9; $i++) {
+        expect($grid->refresh()->status)->toBe('incomplete');
+        $this->workflow->addLot($this->orga, $grid->refresh(), "Lot $i");
+    }
     expect($grid->refresh()->status)->toBe('filled')
-        ->and($grid->lots()->count())->toBe(4);
+        ->and($grid->lots()->count())->toBe(9);
 });
 
 test('grille remplie : un lot de plus est refusé', function () {
@@ -157,7 +164,7 @@ test('ajouter / retirer un lot sur une grille tirée (drawed) : refusé', functi
 // ─── Tirage ──────────────────────────────────────────────────────────────────
 
 test('draw : chaque lot reçoit une place unique 1..capacity, statut confirmed', function () {
-    $grid = fillGrid($this->workflow, $this->orga, rewardsGrid($this)); // 2×2 = 4
+    $grid = fillGrid($this->workflow, $this->orga, rewardsGrid($this)); // 3×3 = 9
     $drawn = $this->workflow->draw($this->orga, $grid->refresh());
 
     expect($drawn->status)->toBe('confirmed')
@@ -165,7 +172,7 @@ test('draw : chaque lot reçoit une place unique 1..capacity, statut confirmed',
         ->and($drawn->confirmed_at)->not->toBeNull();
 
     $places = $drawn->lots()->pluck('place')->sort()->values()->all();
-    expect($places)->toBe([1, 2, 3, 4]);
+    expect($places)->toBe(range(1, 9));
 });
 
 test('draw refusé si la grille n\'est pas remplie', function () {
@@ -230,7 +237,7 @@ test('clôture PRIVÉE : statut closed, lots et données conservées, pas de sna
 
 test('clôture SANS COMPTE : données personnelles effacées, lots CONSERVÉS, snapshot non nul', function () {
     $grid = $this->workflow->createAnonymous($this->type, [
-        'slug' => 'grille-anon', 'name' => 'Grille anonyme', 'width' => 1, 'height' => 1,
+        'slug' => 'grille-anon', 'name' => 'Grille anonyme', 'width' => 3, 'height' => 3,
         'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
         'province_id' => $this->map['provinceA']->id,
     ], null);
@@ -273,13 +280,13 @@ test('réouverture refusée : activité non close, sans compte, autre active', f
 
     // Close puis une seconde grille active → réouverture bloquée.
     $this->workflow->close($this->orga, $grid->refresh());
-    $second = $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-deux', 'name' => 'Deux', 'width' => 1, 'height' => 1, 'province_id' => $this->map['provinceA']->id]);
+    $second = $this->workflow->create($this->orga, $this->type, ['slug' => 'grille-deux', 'name' => 'Deux', 'width' => 3, 'height' => 3, 'province_id' => $this->map['provinceA']->id]);
     $e2 = wfRefusal(fn () => $this->workflow->reopen($this->orga, $grid->refresh()));
     expect($e2->codes)->toBe(['activity' => 'reopen_blocked']);
 
     // Grille SANS COMPTE close : jamais rouvrable.
     $anon = $this->workflow->createAnonymous($this->type, [
-        'slug' => 'grille-anon', 'name' => 'Anon', 'width' => 1, 'height' => 1,
+        'slug' => 'grille-anon', 'name' => 'Anon', 'width' => 3, 'height' => 3,
         'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
         'province_id' => $this->map['provinceA']->id,
     ], null);
@@ -305,7 +312,7 @@ test('suppression PRIVÉE close : grille et lots effacés', function () {
 
 test('suppression SANS COMPTE : refusée pour l\'auteur', function () {
     $anon = $this->workflow->createAnonymous($this->type, [
-        'slug' => 'grille-anon', 'name' => 'Anon', 'width' => 1, 'height' => 1,
+        'slug' => 'grille-anon', 'name' => 'Anon', 'width' => 3, 'height' => 3,
         'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
         'province_id' => $this->map['provinceA']->id,
     ], null);
@@ -334,16 +341,22 @@ test('403 not_owner : un autre personnage ne peut rien faire', function () {
     }
 });
 
-// ─── Catégorie C ─────────────────────────────────────────────────────────────
+// ─── Catégorie A ─────────────────────────────────────────────────────────────
 
-test('catégorie C : la suppression du personnage passe character_id à NULL, la grille reste', function () {
-    $grid = rewardsGrid($this);
-    expect($grid->character_id)->not->toBeNull();
+test('catégorie A : la suppression du personnage emporte la grille privée et ses lots', function () {
+    $grid = fillGrid($this->workflow, $this->orga, rewardsGrid($this));
+    expect($grid->character_id)->not->toBeNull()
+        ->and($grid->lots()->count())->toBe(9);
 
-    // Simuler la cascade nullOnDelete en supprimant le personnage.
+    // Une grille SANS COMPTE (character_id nul) n'est pas concernée.
+    $anon = $this->workflow->createAnonymous($this->type, [
+        'slug' => 'grille-anon', 'name' => 'Anon', 'width' => 3, 'height' => 3,
+        'province_id' => $this->map['provinceA']->id, 'organizer_name' => 'Artifice', 'password' => 'un-bon-mot-de-passe',
+    ], null);
+
     $this->orga->delete();
 
-    $grid->refresh();
-    expect($grid->character_id)->toBeNull()
-        ->and(AnimRewardsGrid::count())->toBe(1);
+    expect(AnimRewardsGrid::find($grid->id))->toBeNull()
+        ->and(AnimRewardsList::where('grid_id', $grid->id)->count())->toBe(0)
+        ->and(AnimRewardsGrid::find($anon->id))->not->toBeNull();
 });

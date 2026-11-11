@@ -563,8 +563,9 @@ Règles tranchées par Greg :
 - **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.
 - **Page de résumé d'une activité sans compte** : 5 ans après la clôture (`anim:purge-closed`), puis suppression et **libération du slug**.
 
-**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`) : `anim:close-inactive` (30 jours sans action ; une
-réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de `AnimDecodeActivity`, pas
+**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`, **communes à toutes les activités d'Animation** : `App\Support\AnimKinds`
+liste Décode le code et la Grille des lots, ajouter un type = une ligne) : `anim:close-inactive` (30 jours sans action ; une
+réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de chaque modèle (`AnimDecodeActivity`, `AnimRewardsGrid`), pas
 un `config/*.php` (un nouveau fichier de config est absent du cache en prod).
 
 ⚠️ **Prod** : routes ajoutées → `php artisan route:cache` en SSH après le déploiement (sinon 404) ; le déploiement ne lance pas les
@@ -578,7 +579,7 @@ Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
 ## Animation — Grille des lots (10/11/2026, `feat/rewards-grid`, non mergée)
 
 Deuxième activité du module Animation (brief `admin/content/brief-grille-des-lots.md`, stratégie `admin/strategies/animation.md`). Même modèle que Décode le code :
-**deux modes** dans les mêmes tables (`anim_rewards_grids.is_anonymous`), autorisation **par propriété** (`character_id`, catégorie **C**, `nullOnDelete`), sans compte par slug + mot de passe dans le corps.
+**deux modes** dans les mêmes tables (`anim_rewards_grids.is_anonymous`), autorisation **par propriété** (`character_id`, catégorie **A**, `cascadeOnDelete` : une grille privée disparaît avec le personnage ou le compte, ses lots avec elle — Greg, 11/11/2026), sans compte par slug + mot de passe dans le corps.
 
 | Pièce | Rôle |
 |---|---|
@@ -589,8 +590,10 @@ Deuxième activité du module Animation (brief `admin/content/brief-grille-des-l
 
 Machine à états : `new → incomplete → filled → confirmed → closed` (**`drawed` n'est jamais produit** : le tirage passe directement à `confirmed`, décision de Greg du 10/11/2026 ; `PUBLIC_STATUSES` le tolère). La page publique n'existe qu'à partir du tirage (404 avant).
 **Ajout de lots** : `POST rewards-grids/{grid}/lots` et `POST anim/rewards-manage/{slug}/lots` acceptent `name` (un lot) **ou** `names` (liste, jusqu'à 500 noms) — règles de forme communes `RewardsGridController::LOT_RULES` ; une liste qui dépasse les cases libres est refusée en entier (`grid_full`). La quantité n'existe pas côté serveur : l'interface envoie n fois le même nom.
+**Dimensions** : de 3 à 20 cases par côté (`AnimRewardsGrid::MIN_SIDE` / `MAX_SIDE`, décision de Greg du 11/11/2026), soit 9 à 400 cases, dans les 500 noms d'une requête ; refus `grid_dimensions_invalid` (le message donne les bornes).
 Routes : `anim/rewards-slug`, `anim/rewards-manage[/{slug}/…]`, `anim/rewards-grids/{slug}`, `characters/{character}/rewards-grids`, `rewards-grids/{grid}/…`. ⚠️ **Prod** : `migrate` + `route:cache`.
-🔴 **Reste avant le merge** : `anim:close-inactive` et `anim:purge-closed` ne couvrent pas les grilles (les constantes `INACTIVITY_DAYS` / `RETENTION_YEARS` existent sur le modèle, rien ne les applique) ; lignes du registre des traitements ; texte légal ; bornes des dimensions (1–10 côté serveur, 3–20 dans le brief).
+Les tâches planifiées `anim:close-inactive` / `anim:purge-closed` couvrent les grilles (`AnimKinds`) : 30 jours sans action → clôture (privée : tout est gardé ; sans compte : clôture définitive, lots conservés) ; sans compte close depuis 5 ans → suppression avec ses lots. Une grille privée n'est jamais purgée par ces tâches ; elle disparaît avec son organisateur (catégorie A).
+🔴 **Reste avant le merge** : lignes du registre des traitements ; texte légal. **Le type `rewards` naît inactif** (`AnimActivityTypeSeeder::TYPES`) : à la mise en ligne, l'activer depuis `/anim` (bouton « Activer ») seulement une fois le texte légal publié.
 
 ## Tests
 

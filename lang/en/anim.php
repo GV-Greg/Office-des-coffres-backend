@@ -12,7 +12,7 @@ return [
         'grid_not_filled' => 'The grid must be completely filled before the draw.',
         'grid_not_drawed' => 'The draw must be performed before confirming the grid.',
         'grid_not_confirmed' => 'The grid must be confirmed before assigning players.',
-        'grid_dimensions_invalid' => 'Grid dimensions must be between 1 and 10.',
+        'grid_dimensions_invalid' => 'Grid dimensions must be between :min and :max.',
         'access_denied' => 'Access denied: the address or the password does not match any activity you can manage.',
         'activity_not_found' => 'This activity does not exist.',
         'character_not_found' => 'This character does not exist on this account.',

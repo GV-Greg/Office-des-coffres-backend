@@ -29,6 +29,11 @@ class AnimRewardsGrid extends Model
     /** Inactivité au-delà de laquelle `anim:close-inactive` ferme une grille. Constante, jamais config/ (incident 04/10/2026). */
     public const INACTIVITY_DAYS = 30;
 
+    /** Bornes du côté d'une grille (décision de Greg, 11/11/2026 : 3 à 20, soit 9 à 400 cases, dans les 500 noms d'une requête). */
+    public const MIN_SIDE = 3;
+
+    public const MAX_SIDE = 20;
+
     /** Années pendant lesquelles la page d'une grille SANS COMPTE reste en ligne après sa clôture. */
     public const RETENTION_YEARS = 5;
 

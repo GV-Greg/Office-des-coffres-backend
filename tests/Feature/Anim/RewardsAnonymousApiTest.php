@@ -24,6 +24,7 @@ const REWARDS_PUBLIC_IP = '93.184.216.34';
 beforeEach(function () {
     $this->withoutMiddleware(ThrottleRequests::class);
     $this->map = mandateMap();
+    activateRewardsType();
 });
 
 function rewardsAnonPayload(array $over = []): array
@@ -31,8 +32,8 @@ function rewardsAnonPayload(array $over = []): array
     return $over + [
         'slug' => 'grille-des-fees',
         'name' => 'Grille des Fées',
-        'width' => 2,
-        'height' => 2,
+        'width' => 3,
+        'height' => 3,
         'organizer_name' => 'Elfie',
         'password' => REWARDS_PASSWORD,
         'password_confirmation' => REWARDS_PASSWORD,
@@ -120,10 +121,10 @@ test('workflow complet sans compte : lots → draw → assign → close', functi
     $grid = AnimRewardsGrid::first();
 
     // Lots.
-    for ($i = 1; $i <= 4; $i++) {
+    for ($i = 1; $i <= 9; $i++) {
         rewardsAnonCall($this, $grid->slug, 'lots', ['name' => "Lot $i"])
             ->assertCreated()
-            ->assertJsonPath('grid.status', $i < 4 ? 'incomplete' : 'filled');
+            ->assertJsonPath('grid.status', $i < 9 ? 'incomplete' : 'filled');
     }
 
     // Draw → confirmed directement (tirage + confirmation en un geste).
@@ -145,7 +146,7 @@ test('workflow complet sans compte : lots → draw → assign → close', functi
     $raw = DB::table('anim_rewards_grids')->where('id', $grid->id)->first();
     expect($raw->password_hash)->toBeNull()
         ->and($raw->creator_ip_hash)->toBeNull()
-        ->and(AnimRewardsList::count())->toBe(4);
+        ->and(AnimRewardsList::count())->toBe(9);
 });
 
 test('plusieurs lots sans compte en UNE requête : le mot de passe dans le corps, tous créés', function () {
@@ -158,14 +159,14 @@ test('plusieurs lots sans compte en UNE requête : le mot de passe dans le corps
         ->assertJsonCount(3, 'grid.lots');
     expect(AnimRewardsList::where('name', 'Pain')->count())->toBe(2);
 
-    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['Casque']])->assertCreated()->assertJsonPath('grid.status', 'filled');
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['Casque', 'Bouclier', 'Lance', 'Arc', 'Dague', 'Torche']])->assertCreated()->assertJsonPath('grid.status', 'filled');
 });
 
 test('plusieurs lots sans compte : liste trop longue refusée en entier, mauvais mot de passe refusé', function () {
     createAnonGrid($this)->assertCreated();
     $grid = AnimRewardsGrid::first();
 
-    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['A', 'B', 'C', 'D', 'E']])
+    rewardsAnonCall($this, $grid->slug, 'lots', ['names' => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']])
         ->assertStatus(422)
         ->assertJsonPath('codes.name', 'grid_full');
     expect(AnimRewardsList::count())->toBe(0);

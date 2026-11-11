@@ -93,6 +93,17 @@ npm install
 npm run build   # ou npm run dev pour le live-reload — nécessite Node sur l'hôte
 ```
 
+**Aperçu d'un email sans l'envoyer** — `gen_proposals.php` (racine du backend, **ignoré par git**, local
+seulement) génère trois variantes HTML de l'email de décision d'un mandat de maire (décision en gras,
+encadrée, ou en badge de statut) pour en comparer la mise en forme. Il **supprime puis recrée** l'utilisateur
+`preview_proposals@example.com` (personnage, mandat approuvé) dans la base de dev, et écrit
+`storage/app/proposal_{c_gras,a_encadre,b_badge}.html`, à ouvrir dans un navigateur. Il sert de modèle pour
+prévisualiser tout autre email : changer le tableau de lignes et le gabarit passé à `buildMail()`.
+
+```bash
+docker exec odc-backend php artisan tinker --execute="include 'gen_proposals.php';"
+```
+
 ---
 
 ## Variables d'environnement (`.env`)

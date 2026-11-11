@@ -13,10 +13,15 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 - Activité **Grille des lots** (`rewards`) : tables `anim_rewards_grids` / `anim_rewards_lists`, `RewardsGridWorkflow` (création, lots, tirage, attribution, remise, clôture, réouverture, suppression), API **privée** (propriété par personnage) et **sans compte** (slug + mot de passe dans le corps), page publique par slug, réinitialisation du mot de passe et confirmation d'email (comme Décode le code).
 - Le **tirage fait passer la grille directement à `confirmed`** (décision de Greg, 10/11/2026) : pas d'étape « confirmer ».
 - **Plusieurs lots en une requête** : `POST …/lots` accepte `names` (liste) en plus de `name`, pour les deux modes ; une seule transaction, **tout ou rien** (`grid_full` si la liste dépasse les cases libres). Une quantité n'est que des doublons de nom. Une requête pour 100 lots au lieu de cent (limite de 60 par minute).
+- **Dimensions de 3 à 20 cases par côté** (`AnimRewardsGrid::MIN_SIDE`/`MAX_SIDE`, Greg, 11/11/2026) ; le message de refus donne les bornes.
+
+### Changed
+- **Une grille privée disparaît avec son personnage ou son compte** (catégorie A, `cascadeOnDelete`, comme Décode le code) : la migration `anim_rewards_grids` est modifiée en place — `character_id` en `CASCADE` (base de dev : `ALTER` à la main).
+- **Un nouveau type d'activité naît inactif** (`AnimActivityTypeSeeder::TYPES`) : `rewards` est créé `is_active = false`, `decode` reste actif ; le seeder ne touche jamais `is_active` d'un type existant.
 
 ### Prod
-- ⚠️ `php artisan migrate` (tables et type `rewards`) et `php artisan route:cache` (routes ajoutées). **Rien ne se déploie avant le texte légal** (politique, cookies, « Vos données », registre des traitements : lignes `anim_rewards_grids` / `anim_rewards_lists`).
-- ⚠️ `anim:close-inactive` et `anim:purge-closed` **ne couvrent pas encore les grilles** (30 jours / 5 ans non tenus) : à ajouter avant d'annoncer ces durées.
+- ⚠️ `php artisan migrate` (tables et type `rewards`, **créé inactif** : il n'apparaît pas dans le menu et refuse toute création) et `php artisan route:cache` (routes ajoutées). **Rien ne se déploie avant le texte légal** (politique, cookies, « Vos données », registre des traitements : lignes `anim_rewards_grids` / `anim_rewards_lists`). 🔴 **Ne l'activer** (bouton « Activer » de `/anim`, panneau d'administration) **qu'une fois le texte légal en ligne**.
+- `anim:close-inactive` (30 jours sans action) et `anim:purge-closed` (sans compte, closes depuis 5 ans) **couvrent aussi les grilles** : factorisées avec Décode le code par `App\Support\AnimKinds` (commandes renommées `CloseInactiveAnimActivities` / `PurgeClosedAnimActivities`, signatures et battements de cœur inchangés). `lastActionAt` d'une grille rend toujours un Carbon.
 
 ## [À compléter au merge] — back #73 (export de données art. 20 RGPD — GET auth/account/export)
 
