@@ -17,3 +17,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Script local jetable (aperçu d'emails de mandats) — voir README, « Développement local »
+/gen_proposals.php

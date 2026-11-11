@@ -20,6 +20,8 @@ class AnimApiErrors
             'api/v1/anim/*',
             'api/v1/characters/*/decode-activities',
             'api/v1/decode-activities/*',
+            'api/v1/characters/*/rewards-grids',
+            'api/v1/rewards-grids/*',
         );
     }
 

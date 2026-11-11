@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AnimActivityType;
 use App\Models\AnimDecodeSecret;
 use App\Models\Character;
 use App\Models\City;
@@ -63,6 +64,12 @@ function something()
 | Mandats — aides partagées (tests/Feature/Mandates)
 |--------------------------------------------------------------------------
 */
+
+/** La Grille des lots naît inactive (seeder) : les tests de la grille l'activent, comme le ferait l'administrateur. */
+function activateRewardsType(): void
+{
+    AnimActivityType::where('key', 'rewards')->update(['is_active' => true]);
+}
 
 /** Une carte minimale : deux provinces, deux villes chacune. */
 function mandateMap(): array

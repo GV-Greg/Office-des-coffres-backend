@@ -6,6 +6,13 @@
 return [
     'api' => [
         'not_owner' => 'Only the organizer of this activity can manage it.',
+        'lot_not_found' => 'This lot does not exist in this grid.',
+        'grid_not_editable' => 'The grid can no longer be modified at this stage (lots already drawn or closed).',
+        'grid_full' => 'The grid is already full: remove a lot before adding one.',
+        'grid_not_filled' => 'The grid must be completely filled before the draw.',
+        'grid_not_drawed' => 'The draw must be performed before confirming the grid.',
+        'grid_not_confirmed' => 'The grid must be confirmed before assigning players.',
+        'grid_dimensions_invalid' => 'Grid dimensions must be between :min and :max.',
         'access_denied' => 'Access denied: the address or the password does not match any activity you can manage.',
         'activity_not_found' => 'This activity does not exist.',
         'character_not_found' => 'This character does not exist on this account.',
@@ -38,9 +45,17 @@ return [
         'launched' => 'In progress',
         'relaunch' => 'Relaunched',
         'closed' => 'Closed',
+        // Rewards grid.
+        'incomplete' => 'Incomplete',
+        'filled' => 'Filled',
+        'drawed' => 'Drawn',
+        'confirmed' => 'Drawn',
     ],
 
     'types' => [
+        'rewards' => [
+            'name' => 'Prize Grid',
+        ],
         'decode' => [
             'name' => 'Crack the Code',
             'public_link_label' => 'Chest #:number to crack',
@@ -54,8 +69,9 @@ return [
     'email' => [
         'greeting' => 'Hello,',
         'confirm_subject' => 'Confirm your address — activity ":name"',
-        'confirm_intro' => 'You gave this address for the activity ":name" of Crack the Code (address :slug).',
+        'confirm_intro' => 'You gave this address for the activity ":name" of :type (address :slug).',
         'confirm_use' => 'Once confirmed, it will be used to send you a link if you forget your password, to warn you if that password is changed, and to send you the report when the activity is closed. It will be erased when the activity is closed.',
+        'confirm_use_no_report' => 'Once confirmed, it will be used to send you a link if you forget your password and to warn you if that password is changed. It will be erased when the activity is closed.',
         'confirm_action' => 'Confirm my address',
         'confirm_ignore' => 'If this was not you, ignore this message: the address will not be used.',
         'reset_subject' => 'New password — activity ":name"',

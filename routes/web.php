@@ -79,7 +79,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::prefix('anim')->name('anim.')->controller(AnimAdminController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::patch('types/{type}/toggle', 'toggleType')->name('types.toggle');
-        Route::prefix('activities/{activity}')->name('activities.')->group(function () {
+        // `{kind}` = la clé du type d'activité (AnimKinds : decode, rewards), `{id}` son identifiant dans ce type.
+        Route::prefix('activities/{kind}/{id}')->where(['kind' => '[a-z]+', 'id' => '[0-9]+'])->name('activities.')->group(function () {
             Route::post('close', 'close')->name('close');
             Route::get('delete', 'confirmDelete')->name('delete');
             Route::delete('/', 'destroy')->name('destroy');

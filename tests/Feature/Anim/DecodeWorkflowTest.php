@@ -7,7 +7,7 @@ use App\Models\AnimDecodeProposal;
 use App\Models\AnimDecodeSecret;
 use App\Services\DecodeProposals;
 use App\Services\DecodeWorkflow;
-use App\Support\DecodeSlug;
+use App\Support\AnimSlug;
 use Illuminate\Support\Carbon;
 
 /*
@@ -28,7 +28,7 @@ afterEach(fn () => Carbon::setTestNow());
 
 function decodeActivity($test, string $name = 'Coffre des Marches', array $extra = []): AnimDecodeActivity
 {
-    return $test->workflow->create($test->orga, $test->type, ['name' => $name, 'slug' => DecodeSlug::propose($name)] + $extra);
+    return $test->workflow->create($test->orga, $test->type, ['name' => $name, 'slug' => AnimSlug::propose($name)] + $extra);
 }
 
 function refusal(callable $call): MandateRefusal

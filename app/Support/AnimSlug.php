@@ -2,21 +2,23 @@
 
 namespace App\Support;
 
-use App\Models\AnimDecodeActivity;
 use Illuminate\Support\Str;
 
 /**
- * Le « code » d'une activité de « Décode le code » : un slug PUBLIC dérivé du nom, que l'utilisateur accepte (D3, D14,
- * D26, D27). SEULE source des règles : le site demande l'aperçu au serveur, il ne les recopie pas.
+ * Le slug public d'une activité du module Animation : dérivé du nom, que l'utilisateur accepte ou corrige.
+ * SEULE source des règles : le site demande l'aperçu au serveur, il ne les recopie pas.
  *
  *  - lettres minuscules et tirets seulement, **aucun chiffre** ;
  *  - accents retirés (é→e, ç→c, œ→oe, ß→ss), tout autre signe → un seul tiret, jamais au début, à la fin ni doublé ;
  *  - **3 à 20 caractères** ;
- *  - **aucun mot réservé** (D14) : aucune route fixe ne voisine `{slug}`, voir routes/api.php.
+ *  - **aucun mot réservé** : aucune route fixe ne voisine `{slug}`, voir routes/api.php.
  *
- * Jamais de suffixe automatique en cas de collision (D27) : `taken()` le dit, l'utilisateur choisit.
+ * `taken()` prend la class-string du modèle concerné : chaque type d'activité a sa propre table, les slugs ne sont
+ * uniques qu'au sein d'un type (les pages publiques vivent sous des préfixes distincts).
+ *
+ * Jamais de suffixe automatique en cas de collision : `taken()` le dit, l'utilisateur choisit.
  */
-class DecodeSlug
+class AnimSlug
 {
     public const MIN = 3;
 
@@ -48,9 +50,13 @@ class DecodeSlug
         return $length >= self::MIN && $length <= self::MAX && preg_match(self::PATTERN, $slug) === 1;
     }
 
-    /** Déjà pris par une activité (privée ou sans compte, close ou non : le slug reste pris tant que la page existe). */
-    public static function taken(string $slug): bool
+    /**
+     * Déjà pris dans la table du modèle donné (close ou non : le slug reste réservé tant que la page existe).
+     *
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     */
+    public static function taken(string $slug, string $model): bool
     {
-        return AnimDecodeActivity::where('slug', $slug)->exists();
+        return $model::where('slug', $slug)->exists();
     }
 }

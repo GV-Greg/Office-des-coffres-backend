@@ -10,7 +10,7 @@ use App\Support\DecodeLinks;
  *
  * @phpstan-type Report array{name: string, slug: string, chests: list<array{number: int, code: string, opened: bool, discoverer: ?string, proposals: list<array{combination: string, character_name: string, points: int}>}>, ranking: list<array{character_name: string, points: int}>}
  */
-class DecodeFinalReport extends DecodeMessage
+class DecodeFinalReport extends AnimMessage
 {
     /** @param  Report  $report */
     public function __construct(private readonly array $report) {}

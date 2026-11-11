@@ -1,4 +1,4 @@
-{{-- Animation — administration : types d'activité (activer / désactiver), activités récentes (surveillance) et recours pour les
+{{-- Animation — administration, commune à tous les types d'activité : types (activer / désactiver), activités récentes (surveillance) et recours pour les
      activités SANS COMPTE (clore, retirer avec confirmation, lien de réinitialisation). Aucun texte en dur. --}}
 <x-app-layout>
     <x-slot name="header">
@@ -75,6 +75,7 @@
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-gray-200 dark:border-gray-600 text-left">
+                                    <th class="py-2">{{ __('anim.admin.type') }}</th>
                                     <th class="py-2">{{ __('anim.admin.activity') }}</th>
                                     <th class="py-2">{{ __('anim.admin.mode') }}</th>
                                     <th class="py-2">{{ __('anim.admin.organizer') }}</th>
@@ -89,6 +90,7 @@
                             <tbody>
                                 @foreach($activities as $activity)
                                     <tr class="border-b border-gray-100 dark:border-gray-600 align-top">
+                                        <td class="py-2" data-testid="activity-type">{{ __('anim.types.'.$activity->anim_kind.'.name') }}</td>
                                         <td class="py-2">{{ $activity->name }}<br><code class="text-xs">{{ $activity->slug }}</code></td>
                                         <td class="py-2">{{ $activity->is_anonymous ? __('anim.admin.mode_anonymous') : __('anim.admin.mode_private') }}</td>
                                         <td class="py-2">
@@ -124,16 +126,16 @@
                                             @if($activity->is_anonymous)
                                                 <div class="flex flex-wrap gap-1">
                                                     @unless($activity->isClosed())
-                                                        <form method="POST" action="{{ route('anim.activities.reset-link', $activity) }}">
+                                                        <form method="POST" action="{{ route('anim.activities.reset-link', ['kind' => $activity->anim_kind, 'id' => $activity->id]) }}">
                                                             @csrf
                                                             <button type="submit" class="px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs uppercase font-bold whitespace-nowrap">{{ __('anim.admin.reset_link') }}</button>
                                                         </form>
-                                                        <form method="POST" action="{{ route('anim.activities.close', $activity) }}">
+                                                        <form method="POST" action="{{ route('anim.activities.close', ['kind' => $activity->anim_kind, 'id' => $activity->id]) }}">
                                                             @csrf
                                                             <button type="submit" class="px-2 py-1 rounded bg-gray-600 hover:bg-gray-700 text-white text-xs uppercase font-bold">{{ __('anim.admin.close') }}</button>
                                                         </form>
                                                     @endunless
-                                                    <a href="{{ route('anim.activities.delete', $activity) }}" class="px-2 py-1 rounded bg-red-700 hover:bg-red-800 text-white text-xs uppercase font-bold">{{ __('anim.admin.delete') }}</a>
+                                                    <a href="{{ route('anim.activities.delete', ['kind' => $activity->anim_kind, 'id' => $activity->id]) }}" class="px-2 py-1 rounded bg-red-700 hover:bg-red-800 text-white text-xs uppercase font-bold">{{ __('anim.admin.delete') }}</a>
                                                 </div>
                                             @endif
                                         </td>

@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 28/10/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 10/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -534,7 +534,7 @@ chacune est notée ; quand un personnage trouve, le code est révélé avec son 
 | `App\Services\DecodeProposals` | saisie d'une proposition — propriétaire seul |
 | `App\Services\DecodeActivityReader` | lecture publique **et** écran de l'organisateur, une seule forme, deux sources (tables, ou photo figée d'une activité sans compte close) |
 | `App\Services\DecodeExporter` | BBCode en **français fixe**, lien par slug |
-| `App\Services\DecodeMailer` + `App\Notifications\Decode*` | cinq emails **bilingues, français puis anglais**, jamais de mot de passe : confirmation d'adresse, lien de réinitialisation, avis « mot de passe modifié » (D37, après chaque changement), compte rendu de fin (propositions comprises, D31) ; synchrones ; l'adresse n'est jamais journalisée |
+| `App\Services\AnimMailer` + `App\Notifications\Anim*` / `DecodeFinalReport` | **commun à toutes les activités sans compte** (Décode le code, Grille des lots : `AnimKinds` donne à chaque type son générateur de liens, son service de réinitialisation et s'il envoie un compte rendu) — quatre emails **bilingues, français puis anglais**, jamais de mot de passe : confirmation d'adresse (nomme le type, ne promet un compte rendu que s'il en existe un), lien de réinitialisation, avis « mot de passe modifié » (D37, après chaque changement), et — **Décode seulement** — compte rendu de fin (propositions comprises, D31) ; synchrones ; l'adresse n'est jamais journalisée (échec d'envoi : `anim.mail_failed`, type + identifiant + genre de message) |
 | `App\Support\DecodeIp` | empreinte HMAC-SHA256 de l'IP (clé = `MODULE_DATA_KEY`, aucune variable `.env` de plus) ; **nulle** pour une adresse privée/de bouclage/réservée (sinon « une seule activité par connexion » bloquerait tout le monde derrière un répartiteur mal configuré) |
 | `App\Support\DecodePassword` | règles du mot de passe imposées par le serveur : 10 caractères, différent du slug et du pseudo |
 | `App\Support\DecodeLinks` | liens des emails et de l'export, tous vers le **site des joueurs** (jamais le domaine d'administration) ; la page publique d'une activité est `/public/activite/decode/{slug}` (convention : `/public/` pour ce qui se partage) |
@@ -550,7 +550,7 @@ Routes (`/api/v1`) — **aucune route fixe ne voisine `{slug}`** (aucun mot rés
 - privé (`auth:api`) : `characters/{character}/decode-activities` (GET, POST `throttle:6,1`) et `decode-activities/{activity}/…`
   (`secrets`, `secrets/{secret}/proposals`, `reopen`, `close`, DELETE, `export/rules`, `export/results`).
 
-Administration Blade (`role:admin`, `/anim`) : types, surveillance des activités récentes (mode, organisateur, **adresse seulement si
+Administration Blade (`role:admin`, `/anim`), **commune à tous les types d'activité** (une activité s'adresse par `activities/{kind}/{id}`, `kind` = clé de `AnimKinds`) : types, surveillance des activités récentes de tous les types (type, mode, organisateur, **adresse seulement si
 confirmée** — D32, date et mode du dernier changement de mot de passe) et **recours pour les activités SANS COMPTE uniquement**
 (D13) : clore (définitif), supprimer (**étape de confirmation**, jamais en un clic), émettre un lien de réinitialisation (montré
 **une seule fois**, message prêt à envoyer au personnage dans le jeu). Aucun geste sur une activité privée.
@@ -563,8 +563,9 @@ Règles tranchées par Greg :
 - **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.
 - **Page de résumé d'une activité sans compte** : 5 ans après la clôture (`anim:purge-closed`), puis suppression et **libération du slug**.
 
-**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`) : `anim:close-inactive` (30 jours sans action ; une
-réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de `AnimDecodeActivity`, pas
+**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`, **communes à toutes les activités d'Animation** : `App\Support\AnimKinds`
+liste Décode le code et la Grille des lots, ajouter un type = une ligne) : `anim:close-inactive` (30 jours sans action ; une
+réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de chaque modèle (`AnimDecodeActivity`, `AnimRewardsGrid`), pas
 un `config/*.php` (un nouveau fichier de config est absent du cache en prod).
 
 ⚠️ **Prod** : routes ajoutées → `php artisan route:cache` en SSH après le déploiement (sinon 404) ; le déploiement ne lance pas les
@@ -574,6 +575,26 @@ sans compte** ; **rien ne se déploie avant le texte légal** (politique, « Vos
 Texte des règles (`types.decode.rules`) : rédigé par Cowork (28/10/2026).
 
 Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
+
+## Animation — Grille des lots (10/11/2026, `feat/rewards-grid`, non mergée)
+
+Deuxième activité du module Animation (brief `admin/content/brief-grille-des-lots.md`, stratégie `admin/strategies/animation.md`). Même modèle que Décode le code :
+**deux modes** dans les mêmes tables (`anim_rewards_grids.is_anonymous`), autorisation **par propriété** (`character_id`, catégorie **A**, `cascadeOnDelete` : une grille privée disparaît avec le personnage ou le compte, ses lots avec elle — Greg, 11/11/2026), sans compte par slug + mot de passe dans le corps.
+
+| Pièce | Rôle |
+|---|---|
+| `anim_rewards_grids` / `anim_rewards_lists` | la grille (largeur × hauteur, lieu obligatoire, `slug` unique) et ses lots (`name`, `place` 1..capacité, `player` texte libre, `is_taken`) ; `grid_id` en cascade |
+| `App\Services\RewardsGridWorkflow` | **seul écrivain** : `create`, `createAnonymous`, `addLot`, **`addLots`** (plusieurs lots, une transaction, tout ou rien), `removeLot`, `draw`, `assign`, `markTaken`, `close`, `reopen`, `delete` ; statut recalculé par `updateStatusAfterLotChange` |
+| `RewardsGridReader` | lecture unique (organisateur, public, photo figée) ; **les noms des lots non réclamés ne sont jamais envoyés avant la clôture** |
+| `RewardsGridClosing`, `RewardsGridPasswordReset`, `RewardsGridLinks` | clôture (sans compte : données personnelles effacées, lots conservés), réinitialisation (lien à usage unique 24 h), liens vers le site des joueurs |
+
+Machine à états : `new → incomplete → filled → confirmed → closed` (**`drawed` n'est jamais produit** : le tirage passe directement à `confirmed`, décision de Greg du 10/11/2026 ; `PUBLIC_STATUSES` le tolère). La page publique n'existe qu'à partir du tirage (404 avant).
+**Ajout de lots** : `POST rewards-grids/{grid}/lots` et `POST anim/rewards-manage/{slug}/lots` acceptent `name` (un lot) **ou** `names` (liste, jusqu'à 500 noms) — règles de forme communes `RewardsGridController::LOT_RULES` ; une liste qui dépasse les cases libres est refusée en entier (`grid_full`). La quantité n'existe pas côté serveur : l'interface envoie n fois le même nom.
+**Emails et administration** (option A de Greg, 11/11/2026 : « faire comme Décode ») : la grille sans compte envoie les mêmes emails que Décode par `AnimMailer` (confirmation à la création, lien de réinitialisation demandé par l'auteur à une adresse confirmée, avis après chaque changement de mot de passe) ; **aucun compte rendu de fin** (la clôture efface l'adresse et ne garde que les lots). Sans adresse confirmée, la demande est notée et l'administrateur émet le lien depuis `/anim` (écran commun avec Décode). `RewardsGridPasswordReset` et `DecodePasswordReset` restent deux classes jumelles (tests `Anim/RewardsEmailAdminTest`, `Anim/DecodeAnonymousApiTest`).
+**Dimensions** : de 3 à 20 cases par côté (`AnimRewardsGrid::MIN_SIDE` / `MAX_SIDE`, décision de Greg du 11/11/2026), soit 9 à 400 cases, dans les 500 noms d'une requête ; refus `grid_dimensions_invalid` (le message donne les bornes).
+Routes : `anim/rewards-slug`, `anim/rewards-manage[/{slug}/…]`, `anim/rewards-grids/{slug}`, `characters/{character}/rewards-grids`, `rewards-grids/{grid}/…`. ⚠️ **Prod** : `migrate` + `route:cache`.
+Les tâches planifiées `anim:close-inactive` / `anim:purge-closed` couvrent les grilles (`AnimKinds`) : 30 jours sans action → clôture (privée : tout est gardé ; sans compte : clôture définitive, lots conservés) ; sans compte close depuis 5 ans → suppression avec ses lots. Une grille privée n'est jamais purgée par ces tâches ; elle disparaît avec son organisateur (catégorie A).
+🔴 **Reste avant le merge** : lignes du registre des traitements ; texte légal. **Le type `rewards` naît inactif** (`AnimActivityTypeSeeder::TYPES`) : à la mise en ligne, l'activer depuis `/anim` (bouton « Activer ») seulement une fois le texte légal publié.
 
 ## Tests
 

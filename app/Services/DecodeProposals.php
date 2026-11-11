@@ -29,7 +29,7 @@ class DecodeProposals
      *
      * @throws MandateRefusal
      */
-    public function submit(Character|DecodeActor $actor, AnimDecodeActivity $activity, AnimDecodeSecret $secret, string $combination, string $characterName): array
+    public function submit(Character|AnimActor $actor, AnimDecodeActivity $activity, AnimDecodeSecret $secret, string $combination, string $characterName): array
     {
         $this->workflow->authorize($actor, $activity);
         if ($activity->isClosed()) {

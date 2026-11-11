@@ -5,7 +5,7 @@ namespace App\Notifications;
 /**
  * Avis envoyé après CHAQUE changement de mot de passe (D37), pour qu'une prise de contrôle ne passe pas inaperçue.
  */
-class DecodePasswordChanged extends DecodeMessage
+class AnimPasswordChanged extends AnimMessage
 {
     public function __construct(private readonly string $name) {}
 

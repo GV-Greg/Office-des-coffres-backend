@@ -3,6 +3,7 @@
 use App\Models\AnimActivityType;
 use App\Models\AnimDecodeActivity;
 use App\Services\DecodeWorkflow;
+use Database\Seeders\AnimActivityTypeSeeder;
 use Laravel\Passport\Passport;
 
 /*
@@ -26,10 +27,27 @@ function createActivity($test, string $name = 'Coffre des Marches', string $slug
     return $test->postJson($test->base, ['name' => $name, 'slug' => $slug] + $extra + $place);
 }
 
-test('les types ouverts sont publics ; un type désactivé disparaît', function () {
+test('un seeder neuf crée la Grille des lots INACTIVE : elle n\'est pas listée tant qu\'on ne l\'active pas', function () {
+    expect(AnimActivityType::where('key', 'rewards')->value('is_active'))->toBeFalse()
+        ->and(AnimActivityType::where('key', 'decode')->value('is_active'))->toBeTrue();
     $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['decode']);
 
+    // Rejouer le seeder ne réactive ni ne désactive un type existant.
+    AnimActivityType::where('key', 'rewards')->update(['is_active' => true]);
     AnimActivityType::where('key', 'decode')->update(['is_active' => false]);
+    (new AnimActivityTypeSeeder)->run();
+    expect(AnimActivityType::where('key', 'rewards')->value('is_active'))->toBeTrue()
+        ->and(AnimActivityType::where('key', 'decode')->value('is_active'))->toBeFalse();
+});
+
+test('les types ouverts sont publics ; un type désactivé disparaît', function () {
+    activateRewardsType();
+    $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['decode', 'rewards']);
+
+    AnimActivityType::where('key', 'decode')->update(['is_active' => false]);
+    $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', ['rewards']);
+
+    AnimActivityType::where('key', 'rewards')->update(['is_active' => false]);
     $this->getJson('/api/v1/anim/activity-types')->assertOk()->assertJsonPath('types', []);
 });
 

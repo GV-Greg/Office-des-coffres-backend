@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Exceptions\MandateRefusal;
 use App\Models\AnimDecodeActivity;
+use App\Support\AnimPassword;
 use App\Support\DecodeLinks;
-use App\Support\DecodePassword;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Hash;
  */
 class DecodePasswordReset
 {
-    public function __construct(private readonly DecodeMailer $mailer) {}
+    public function __construct(private readonly AnimMailer $mailer) {}
 
     /**
      * L'auteur demande le lien. Avec un email CONFIRMÉ, le lien part à l'adresse ; SANS email confirmé, la demande est notée sur l'activité
@@ -83,7 +83,7 @@ class DecodePasswordReset
             throw MandateRefusal::make('token', 'anim.api.reset_invalid');
         }
 
-        DecodePassword::assertValid($password, $activity->slug, $activity->organizer_name);
+        AnimPassword::assertValid($password, $activity->slug, $activity->organizer_name);
 
         $activity->forceFill([
             'password_hash' => Hash::make($password),

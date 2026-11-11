@@ -6,7 +6,7 @@ namespace App\Notifications;
  * Lien de réinitialisation du mot de passe (D35) : à usage unique, 24 h ; l'auteur CHOISIT lui-même son nouveau mot
  * de passe sur le site. Aucun mot de passe ne circule par email.
  */
-class DecodePasswordResetLink extends DecodeMessage
+class AnimPasswordResetLink extends AnimMessage
 {
     public function __construct(
         private readonly string $name,

@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notification;
  * signés comme les autres emails de l'Office, sans lien vers le domaine d'administration. Aucun ne contient de mot de
  * passe. Synchrones (aucune file d'attente : `failed_jobs` reste hors périmètre).
  */
-abstract class DecodeMessage extends Notification
+abstract class AnimMessage extends Notification
 {
     /** @return array<string, mixed> paramètres de traduction communs à l'objet et aux lignes */
     abstract protected function params(): array;

@@ -93,6 +93,17 @@ npm install
 npm run build   # ou npm run dev pour le live-reload — nécessite Node sur l'hôte
 ```
 
+**Aperçu d'un email sans l'envoyer** — `gen_proposals.php` (racine du backend, **ignoré par git**, local
+seulement) génère trois variantes HTML de l'email de décision d'un mandat de maire (décision en gras,
+encadrée, ou en badge de statut) pour en comparer la mise en forme. Il **supprime puis recrée** l'utilisateur
+`preview_proposals@example.com` (personnage, mandat approuvé) dans la base de dev, et écrit
+`storage/app/proposal_{c_gras,a_encadre,b_badge}.html`, à ouvrir dans un navigateur. Il sert de modèle pour
+prévisualiser tout autre email : changer le tableau de lignes et le gabarit passé à `buildMail()`.
+
+```bash
+docker exec odc-backend php artisan tinker --execute="include 'gen_proposals.php';"
+```
+
 ---
 
 ## Variables d'environnement (`.env`)
@@ -222,7 +233,7 @@ docker exec odc-backend ./vendor/bin/pint           # Corriger le style
 
 Base SQLite in-memory configurée dans `phpunit.xml`. Attention : `CharacterFactory` utilise `RAND()` (MySQL/MariaDB) — passer `'city_id' => null` explicitement dans les factories de test.
 
-612 tests verts au 28/10/2026 (`Feature/Anim/{DecodeWorkflowTest,DecodeActivityApiTest,DecodeAnonymousApiTest,DecodeExporterTest,CloseInactiveTest,PurgeClosedTest,AnimAdminTest}`, `Unit/Anim/{DecodeScoringTest,DecodeSlugTest}`, `Feature/Mines/{MinePriceTest,MineReportSchemaTest,MineRegistryWriteTest,MineRegistryReadTest,MineRedateTest}`, `Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
+722 tests verts au 10/11/2026 (`Feature/Anim/{DecodeWorkflowTest,DecodeActivityApiTest,DecodeAnonymousApiTest,DecodeExporterTest,CloseInactiveTest,PurgeClosedTest,AnimAdminTest}`, `Unit/Anim/{DecodeScoringTest,DecodeSlugTest}`, `Feature/Mines/{MinePriceTest,MineReportSchemaTest,MineRegistryWriteTest,MineRegistryReadTest,MineRedateTest}`, `Feature/Api/{AuthTest,CharacterControllerTest,CorsTest,LastSeenTest,MapTest,RateLimitTest,RejectedTokenReportingTest}`,
 `Feature/Mandates/{RealignOfficeStartsTest,MandateAdminTest,MandateApiErrorsTest,MandateApiTest,ProvinceHistoryApiTest,MandateAuthorityTest,MandateLanguageTest,MandateOfficeTest,MandateScheduleTest}`,
 `Feature/Policy/{AccountPurgeTest,PolicyNotifyTest,PruneLogsTest}`, `Feature/Mail/EmailLayoutTest`, `Feature/Auth/*`, `Feature/{DashboardTest,ProfileTest}`,
 `Feature/Enforcement/{LoggingRetentionTest,UserDataLifecycleTest}`, `Feature/ModuleDataEncryptionTest`,
