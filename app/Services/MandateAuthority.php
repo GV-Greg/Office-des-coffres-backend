@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Character;
+use App\Models\City;
 use App\Models\CouncilMandate;
 use App\Models\MayorMandate;
 use App\Models\Province;
@@ -206,6 +207,36 @@ class MandateAuthority
      *
      * @param  array<int, string>  $officeKeys
      */
+
+    /**
+     * Inventaires (fil admin/echanges/inventaire-scopes et inventaire-bilans ; Greg et Cowork, 11/11/2026).
+     *
+     * VILLE : le maire en fonction, lecture et écriture — la ville de son MANDAT. PROVINCE : le commissaire au commerce
+     * SEUL écrit (ni le commissaire aux mines ni le bailli, à la différence des prix) ; il lit, avec le dirigeant de la
+     * province (lecture seule). Province du POSTE, jamais la résidence ; par le titre, maintenant seulement.
+     */
+    public const INVENTORY_PROVINCE_OFFICES = ['commissaire_commerce'];
+
+    public const INVENTORY_PROVINCE_READER_OFFICES = ['commissaire_commerce', 'leader'];
+
+    /** Ville dont le personnage est le maire en fonction MAINTENANT, ou null. */
+    public function inventoryCity(Character $character): ?City
+    {
+        return $this->activeMayorMandate($character)?->city;
+    }
+
+    /** Province dont le personnage peut ÉCRIRE l'inventaire (commissaire au commerce en fonction), ou null. */
+    public function canManageProvinceInventory(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_OFFICES)->with('province')->first()?->province;
+    }
+
+    /** Province dont le personnage peut CONSULTER l'inventaire (commissaire au commerce ou dirigeant), ou null. */
+    public function canReadProvinceInventory(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_READER_OFFICES)->with('province')->first()?->province;
+    }
+
     private function councilMandateHoldingOffice(Character $character, array $officeKeys): Builder
     {
         $now = Carbon::now();

@@ -30,8 +30,9 @@ $exportDecisions = [
     // encore actif (pseudo en texte) : non exportée, le compte rattaché n'existe plus.
     'office_history_archive' => 'excluded',
 
-    // C — grille des lots (character_id nullOnDelete, catégorie C : données communautaires partagées,
-    // les lots restent après suppression du compte organisateur). Non exportée : mêmes raisons que mine_reports.
+    // A — grille des lots (character_id cascadeOnDelete, catégorie A depuis le 11/11/2026, comme Décode le code : une grille
+    // PRIVÉE disparaît avec le personnage ou le compte). Non exportée pour l'instant : les lots portent des noms de joueurs
+    // qui ne sont pas ceux de l'organisateur ; une section dédiée viendra avec le lot export animation.
     'anim_rewards_grids' => 'excluded',
 
     // A — activité Décode le code (privé : character_id catégorie A). Non exportée pour l'instant :
@@ -43,6 +44,16 @@ $exportDecisions = [
     // C — relevé communautaire de la province. character_id -> NULL à la suppression.
     // Non exporté : données communautaires, pas propriété exclusive de l'auteur.
     'mine_reports' => 'excluded',
+
+    // A — réglages d'inventaire du personnage et dernier inventaire collé : des données que le joueur a fournies (art. 20).
+    // Section « inventory » de AccountExport, texte collé déchiffré compris.
+    'character_inventory_settings' => 'exported',
+
+    // C — réglages et inventaire de la ville, réglages de la province et HISTORIQUE de ses inventaires : communautaires,
+    // pas propriété de l'auteur. Non exportés (mêmes raisons que mine_reports) ; AccountExport le dit dans `not_included.shared_data`.
+    'city_inventory_settings' => 'excluded',
+    'province_inventory_settings' => 'excluded',
+    'province_inventory_snapshots' => 'excluded',
 
     // C — prix communautaires de la province.
     // Non exportés : mêmes raisons que mine_reports.

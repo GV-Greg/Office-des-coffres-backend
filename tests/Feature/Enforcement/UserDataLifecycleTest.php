@@ -66,6 +66,22 @@ $declaredTables = [
     // Tenu par Anim/RewardsGridWorkflowTest.
     'anim_rewards_grids' => 'A',
 
+    // A — réglages d'inventaire du PERSONNAGE (11/11/2026, Greg : « c'est l'inventaire du personnage ») et son dernier
+    // inventaire collé, chiffré : produit au titre de soi-même (§5ter), il disparaît avec le personnage ou le compte (cascade).
+    // Tenu par Inventory/InventorySettingsTest.
+    'character_inventory_settings' => 'A',
+
+    // C — réglages et dernier inventaire de la VILLE (maire) et réglages de la PROVINCE (commissaire au commerce) : produits au titre
+    // d'un poste, rattachés à la ville ou à la province par une vraie FK (§5ter) ; `updated_by_character_id` passe à NULL par la base
+    // (nullOnDelete), les réglages restent pour le successeur. Absents de l'export art. 20 (communautaires). Tenu par Inventory/*.
+    'city_inventory_settings' => 'C',
+    'province_inventory_settings' => 'C',
+
+    // C — HISTORIQUE des inventaires de la province (Cowork et Greg, 11/11/2026, fil inventaire-bilans), calqué sur mine_reports :
+    // la mémoire de la province, transmise d'un commissaire au commerce au suivant. `character_id` passe à NULL par la base
+    // (nullOnDelete), l'exemplaire reste. Texte chiffré. Tenu par Inventory/ProvinceInventoryTest.
+    'province_inventory_snapshots' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte
