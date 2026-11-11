@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [À compléter au merge] — Grille des lots, 2ᵉ activité du module Animation (`feat/rewards-grid`, non mergée)
+## [2026-11-11] — PR #82 (Grille des lots, 2ᵉ activité du module Animation ; emails et écran /anim communs avec Décode)
 
 ### Added
 - Activité **Grille des lots** (`rewards`) : tables `anim_rewards_grids` / `anim_rewards_lists`, `RewardsGridWorkflow` (création, lots, tirage, attribution, remise, clôture, réouverture, suppression), API **privée** (propriété par personnage) et **sans compte** (slug + mot de passe dans le corps), page publique par slug, réinitialisation du mot de passe et confirmation d'email (comme Décode le code).
