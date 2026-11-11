@@ -94,4 +94,21 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Grille des lots, 2ᵉ activité du module Animation, et réécriture du texte d'Animation en UN chapitre commun avec Décode le
+    // code (back et front de `feat/rewards-grid` — à dater de leur mise en ligne ; la date ci-dessous est provisoire). Une entrée
+    // propre à cette modification. « Substantielle » : nouveau traitement (la Grille des lots : données du mode sans compte
+    // identiques à celles de Décode le code, lots et noms de personnages conservés 5 ans après la clôture) et réécriture du
+    // chapitre en un texte unique — sans mention d'un changement de la clôture à 30 jours (Cowork et Greg, 11/11/2026 : le
+    // texte en ligne la décrivait déjà pour les deux modes). Texte : admin/content/policy-animation.md ; fil
+    // admin/echanges/animation-textes-legaux/. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE ; le type `rewards`
+    // ne s'active (bouton de /anim) qu'après.
+    '2026-11-11-animation-grille-des-lots' => [
+        'date' => '2026-11-11',
+        'summary' => [
+            'fr' => "Une deuxième activité, la « Grille des lots », rejoint « Décode le code » dans la Salle des Jeux, et la politique de confidentialité décrit désormais les deux dans un seul chapitre « Animation ». Jouée avec votre personnage, une activité disparaît avec lui ou avec votre compte. Jouée sans compte, l'Office conserve un pseudo, un mot de passe haché, une adresse email facultative et une empreinte à sens unique de la connexion, effacés à la clôture ; la page de résumé reste visible 5 ans — pour la Grille des lots, avec ses lots et les noms des personnages qui ont choisi une case (articles 3, 5 et 6 de la politique de confidentialité, article 3 de la politique des cookies, et page « Vos données »).",
+            'en' => 'A second activity, the “Prize Grid”, joins “Crack the Code” in the Games Hall, and the privacy policy now describes both in a single “Animation” chapter. Played with your character, an activity disappears with it or with your account. Played without an account, the Office keeps a nickname, a hashed password, an optional email address and a one-way fingerprint of the connection, erased when the activity closes; the summary page stays visible for 5 years — for the Prize Grid, with its prizes and the names of the characters who chose a cell (sections 3, 5 and 6 of the privacy policy, section 3 of the cookie policy, and the “Your data” page).',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
