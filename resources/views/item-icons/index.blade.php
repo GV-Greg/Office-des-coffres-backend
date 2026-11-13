@@ -69,7 +69,7 @@
                             <div>
                                 <p class="text-xs font-medium mb-1">{{ __('item_icons.preview') }}</p>
                                 <template x-if="url">
-                                    <img :src="url" :alt="'{{ __('item_icons.preview_label') }}'"
+                                    <img :src="url" :alt="@js(__('item_icons.preview_label'))"
                                          width="48" height="48"
                                          class="rounded border border-gray-200 dark:border-gray-600"
                                          x-on:error="broken = true; url = null">
@@ -180,7 +180,7 @@
 
                                                 <form method="POST"
                                                       action="{{ route('item-icons.destroy', $icon) }}"
-                                                      onsubmit="return confirm('{{ __('item_icons.confirm_delete') }}')">
+                                                      onsubmit="return confirm(@js(__('item_icons.confirm_delete')))">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
@@ -212,6 +212,9 @@
 </x-app-layout>
 
 <script>
+// Un seul endroit où vit le motif d'URL du CDN : ItemIcon::CDN_URL_PATTERN (« %d » = l'ID).
+const ITEM_ICON_URL_PATTERN = @js(\App\Models\ItemIcon::CDN_URL_PATTERN);
+
 function iconPreview() {
     return {
         url: null,
@@ -220,7 +223,7 @@ function iconPreview() {
             this.broken = false;
             const n = parseInt(id, 10);
             if (n > 0) {
-                this.url = `https://lesroyaumes.cdn.oxv.fr/images/items/item${n}.png`;
+                this.url = ITEM_ICON_URL_PATTERN.replace('%d', n);
             } else {
                 this.url = null;
             }
