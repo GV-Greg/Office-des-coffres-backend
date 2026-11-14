@@ -15,6 +15,18 @@ class ItemIcon extends Model
 
     protected $guarded = ['id'];
 
+    /**
+     * Forme sous laquelle deux noms d'items se rapprochent : espaces superflus retirés, casse ignorée.
+     * Faite en PHP et non par la collation de la base : MariaDB (prod) ignore la casse ET les accents,
+     * SQLite (tests) ne les ignore pas, et le même nom doit se rapprocher partout de la même façon.
+     * Les accents comptent : « Mais » et « Maïs » sont deux noms (la base, elle, refusera d'enregistrer
+     * les deux — collation `utf8mb4_unicode_ci`).
+     */
+    public static function normalizeName(string $name): string
+    {
+        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $name)));
+    }
+
     /** URL publique de l'icône sur le CDN Celsius. */
     public function iconUrl(): string
     {

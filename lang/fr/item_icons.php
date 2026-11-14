@@ -29,5 +29,4 @@ return [
     'col_icon'        => 'Icône',
     'col_id'          => 'ID Celsius',
     'col_actions'     => 'Actions',
-    'cdn_pattern'     => 'https://lesroyaumes.cdn.oxv.fr/images/items/item{ID}.png',
 ];

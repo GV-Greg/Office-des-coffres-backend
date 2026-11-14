@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 10/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 13/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -31,6 +31,7 @@ admin n'ont pas de `Character`.
 | `CouncilOfficePeriod` | `council_office_periods` | `started_at`, `ended_at`, `end_reason` | `belongsTo(CouncilMandate)`, `belongsTo(CouncilOffice)` |
 | `MineReport` | `mine_reports` | axes en clair (`province_id`, `reported_at`, `character_id` **nullable**, `office_key`), `payload` **chiffré** (`EncryptedModuleData`), `active` (1 / NULL), `replaced_by_id`, `replaced_at` | `belongsTo(Province)`, `belongsTo(Character)`, `replacedBy()` — Registre des mines, voir plus bas |
 | `ProvinceMinePrice` | `province_mine_prices` | `province_id`, `effective_from` (date, unique par province), 5 prix + `hourly_rate` en `decimal(10,2)`, `created_by_character_id` / `updated_by_character_id` (**personnages**, `nullOnDelete`) | `belongsTo(Province)`, `belongsTo(Character)` ×2 — prix des mines par période, voir plus bas |
+| `ItemIcon` | `item_icons` | `item_name` (unique, **insensible à la casse et aux accents** côté MariaDB), `game_item_id` (unique) — **aucune image ni URL stockée**, l'URL du CDN de Celsius est construite par `iconUrl()` depuis `ItemIcon::CDN_URL_PATTERN` | aucune — référentiel hors taxinomie des données utilisateur (aucun lien vers un compte), voir « Icônes des items » |
 | `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
 
 **Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
@@ -135,6 +136,10 @@ l'ADR de bascule.
 
 `GET characters/{character}/mine-registry` renvoie aussi `prices: {write, read}` (province ou `null`).
 
+| GET | `item-icons?names[]=…` | `Api\ItemIconController@lookup` | public — icônes d'items, voir « Icônes des items » |
+| GET/POST | `admin/item-icons` | `Api\ItemIconController@index/store` | `auth:api`, `role:admin` |
+| PUT/DELETE | `admin/item-icons/{icon}` | `Api\ItemIconController@update/destroy` | `auth:api`, `role:admin` — le PUT ne corrige que `game_item_id` |
+
 ### `routes/web.php` (admin Blade)
 
 | Méthode | URI | Nom | Contrôleur | Middleware |
@@ -143,6 +148,7 @@ l'ADR de bascule.
 | GET | `users` | `users` | `Web\DashboardController@users` | `auth,verified,role:admin` |
 | DELETE | `users/{user}` | `users.destroy` | `Web\DashboardController@destroyUser` | `auth,verified,role:admin` |
 | PATCH | `characters/{character}/validate` | `characters.validate` | `Web\DashboardController@toggleValidation` | `auth,verified,role:admin` |
+| GET/POST/PATCH/DELETE | `item-icons` | `item-icons.*` | `Web\ItemIconController` | `auth,verified,role:admin` — référentiel des icônes (liste + recherche, ajout avec aperçu, correction de l'ID, retrait) |
 | GET/POST | `mandates/…` | `mandates.*` | `Web\MandateAdminController` (5 pages dont « Historique », 15 gestes) | `auth,verified,role:admin` |
 | GET/PATCH/DELETE | `/profile` | `profile.*` | `ProfileController` | `auth,verified` (self-service admin, pas un outil de gestion d'autres users) |
 
@@ -625,6 +631,17 @@ Fils `admin/echanges/inventaire-scopes/` (texte légal) et `inventaire-bilans/` 
 **Garde-fous** : les quatre tables sont classées dans `UserDataLifecycleTest` (A / C / C / C) et dans `AccountExportCoverageTest` — les réglages **personnels** sont dans l'export art. 20 (section `inventory`, texte collé déchiffré compris, résumé dans le PDF), ville, province et historique **exclus** (communautaires, dits dans `not_included.shared_data`) ; `module-data:check` relit les trois colonnes chiffrées (`ENCRYPTED_COLUMNS`, où manquait aussi `anim_rewards_grids.organizer_email`) ; `Enforcement/InventoryNotConsultableTest` échoue si une surface d'administration référence ces tables (§5bis). Registre des traitements : quatre lignes.
 
 ⚠️ **Prod** : `php artisan migrate` (4 migrations), `route:cache` ; aucun nouveau `config/*.php`, aucune clé `.env`, aucun paquet Composer. **Rien ne se met en ligne avant le texte légal** (fil `inventaire-scopes`, Cowork).
+
+## Icônes des items (05/11/2026, corrigé le 13/11/2026)
+
+Brief `admin/content/brief-icones-items.md`, fil `admin/echanges/icones-items/`. Associe le nom d'un item à l'**ID de son icône chez Celsius Online** : l'Office ne stocke, ne copie et ne proxifie **aucune image** — l'export BBCode y renvoie par `[img]` vers `lesroyaumes.cdn.oxv.fr`, comme un joueur le ferait à la main. Table `item_icons`, hors taxinomie des données utilisateur.
+
+- **Lecture publique** `GET /api/v1/item-icons?names[]=…` (200 noms au plus) → `{success, icons: {nom demandé: id}}`. 🔴 La **clé est le nom tel que demandé**, jamais celui enregistré : le rapprochement se fait en PHP (`ItemIcon::normalizeName` : espaces et casse ignorés, **accents significatifs**) sur tout le référentiel, donc identique sur SQLite et MariaDB. Rien ne correspond → `icons: {}` (objet, pas tableau). `Cache-Control: public, max-age=86400, stale-while-revalidate=3600` (brief du 13/11/2026, décision de Greg : « respecte le briefing ») : une icône ajoutée ou corrigée met jusqu'à 24 h à se voir dans un export déjà en cache chez le joueur ; les erreurs de validation ne sont pas mises en cache.
+- **Administration** : page Blade `/item-icons` (c'est l'écran de travail) et API JSON `/api/v1/admin/item-icons` (même règle, aucun écran ne l'appelle). Seul `game_item_id` se corrige ; le nom, lui, se supprime et se recrée.
+- ⚠️ La base refuse deux noms qui ne diffèrent que par la casse **ou l'accent** (collation `utf8mb4_unicode_ci` : « Mais » = « Maïs ») ; le rapprochement PHP, lui, les distingue. Sur la durée, un doublon accentué est donc refusé à l'écriture plutôt que résolu à la lecture.
+- La vue Blade passe ses chaînes françaises dans JavaScript par **`@js()`** (apostrophes : « Retirer l'icône » rompait le `confirm('…')`, le bouton Supprimer partait sans confirmation) et lit l'URL du CDN dans `ItemIcon::CDN_URL_PATTERN`. Garde-fous : `Feature/ItemIcons/ItemIconsTest`.
+- **Pas d'autocomplete du nom** : la table `inventory_items` du brief n'existe pas (les inventaires sont des textes chiffrés, jamais décomposés).
+- **Décision de Greg (13/11/2026) pour la phase 2 (frontend)** : **aucun aperçu des icônes dans l'interface**, seulement le `[img]` de l'export — un aperçu ferait charger le CDN de Celsius par le navigateur du joueur (adresse IP transmise), ce que `/legal/privacy` §6 exclut.
 
 ## Tests
 
