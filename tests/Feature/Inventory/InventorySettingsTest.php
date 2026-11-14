@@ -110,10 +110,11 @@ test('une écriture sur une version périmée est refusée (409) et renvoie l\'�
 });
 
 test('personnel : les options d\'export et la visibilité n\'existent que pour le personnel', function () {
-    $personal = invDoc(['exportQtyFormat' => 'suffix', 'exportShowEcus' => false, 'exportWrapper' => 'quote',
+    $personal = invDoc(['exportQtyFormat' => 'suffix', 'exportShowEcus' => false, 'exportShowIcons' => true, 'exportWrapper' => 'quote',
         'visibility' => ['hiddenCategories' => ['divers'], 'hiddenItems' => ['Cailloux']]]);
     invAs($this->plain)->putJson(invUrl($this->plain, 'inventory-settings/personal'), ['data' => $personal, 'version' => 0])->assertOk()
-        ->assertJsonPath('settings.data.exportWrapper', 'quote')->assertJsonPath('settings.data.visibility.hiddenItems.0', 'Cailloux');
+        ->assertJsonPath('settings.data.exportWrapper', 'quote')->assertJsonPath('settings.data.exportShowIcons', true)
+        ->assertJsonPath('settings.data.visibility.hiddenItems.0', 'Cailloux');
 
     // Partagées entre titulaires d'un poste, ces réglages ne portent pas le goût d'un joueur.
     invAs($this->mayor)->putJson(invUrl($this->mayor, 'inventory-settings/city'), ['data' => $personal, 'version' => 0])
@@ -183,6 +184,8 @@ test('un document refuse les clés inconnues, les formes fausses et les excès �
     $put(['itemCategories' => ['Pain' => 'pas un slug!']])->assertStatus(422)->assertJsonPath('codes.data', 'document_malformed');
     $put(['order' => 'alimentation'])->assertStatus(422)->assertJsonPath('codes.data', 'document_malformed');
     $put(['exportWrapper' => 'html'])->assertStatus(422)->assertJsonPath('codes.data', 'document_malformed');
+    $put(['exportShowIcons' => 'oui'])->assertStatus(422)->assertJsonPath('codes.data', 'document_malformed');
+    $put(['exportShowIcons' => 1])->assertStatus(422)->assertJsonPath('codes.data', 'document_malformed');
 
     $tooMany = array_map(fn ($i) => ['key' => "c$i", 'fr' => "Cat $i"], range(1, 31));
     $put(['custom' => $tooMany])->assertStatus(422)->assertJsonPath('codes.data', 'document_too_many');

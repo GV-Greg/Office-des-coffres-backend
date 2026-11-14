@@ -619,7 +619,7 @@ Fils `admin/echanges/inventaire-scopes/` (texte légal) et `inventaire-bilans/` 
 
 | Pièce | Rôle |
 |---|---|
-| `App\Support\InventorySettingsDocument` | **seul garde de forme** du document : clés connues seulement (partagées : `custom`, `hiddenBuiltIn`, `order`, `exportColor`, `itemCategories` ; **personnel seulement** : `exportQtyFormat`, `exportShowEcus`, `exportWrapper`, `visibility`), slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko). Une clé inconnue est refusée |
+| `App\Support\InventorySettingsDocument` | **seul garde de forme** du document : clés connues seulement (partagées : `custom`, `hiddenBuiltIn`, `order`, `exportColor`, `itemCategories` ; **personnel seulement** : `exportQtyFormat`, `exportShowEcus`, `exportShowIcons` (booléen, 14/11/2026 : inclure les `[img]` des icônes d'items dans l'export BBCode, voir « Icônes des items »), `exportWrapper`, `visibility`), slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko). Une clé inconnue est refusée |
 | `App\Services\InventorySettings` | **seul écrivain** des réglages : `scopes`, `show`, `save` (**écriture à version** : 409 `version_conflict` avec l'état courant si le client n'a pas lu la dernière), `copyPersonal` |
 | `App\Services\InventoryText` | le **dernier inventaire collé** (personnage, ville), chiffré, remplacé à chaque collage |
 | `App\Services\ProvinceInventoryRegistry` | l'**historique** de la province : `record` (poste du commissaire au commerce, jour de Paris, texte identique du jour = rien créé), `history` (les 100 exemplaires les plus récents, déchiffrés, **auteur jamais nommé** : seulement `by_me`) |
