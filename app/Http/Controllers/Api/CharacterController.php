@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\BaseController;
 use App\Models\Character;
+use App\Services\AdminNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,7 +21,7 @@ class CharacterController extends BaseController
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, AdminNotifier $adminNotifier): JsonResponse
     {
         $validated = $request->validate([
             'pseudo'  => ['required', 'string', 'max:190', 'unique:characters,pseudo'],
@@ -33,6 +34,8 @@ class CharacterController extends BaseController
             'is_validated'              => false,
             'pending_residence_change'  => false,
         ])->load('city.province.kingdom');
+
+        $adminNotifier->characterCreated($character);
 
         return response()->json([
             'success'   => true,

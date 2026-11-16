@@ -300,6 +300,27 @@ navigation directe, l'API redirige encore, pour les liens envoyés avant le 05/1
 **version texte** (`vendor/mail/text/message.blade.php`) reprend le même contenu. Garde-fou :
 `Feature/Mail/EmailLayoutTest` (HTML et texte).
 
+## Notifications d'administration (17/11/2026)
+
+Un email aux comptes `admin` quand un joueur fait un geste qui attend l'administrateur (brief `admin/content/brief-notifications-admin.md`, fil `admin/echanges/notifications-admin`, arbitrages de Greg du 17/11/2026). **Pas une donnée joueur de plus** : la boîte du destinataire reçoit déjà ces noms de personnages et de lieux par le panneau d'administration.
+
+| Geste | Quand | Sujet |
+|---|---|---|
+| Compte | à la **confirmation** de l'adresse (première fois seulement), pas à l'inscription : un faux compte non confirmé n'écrit à personne | Nouveau compte confirmé |
+| Personnage | `POST characters` réussi | Nouveau personnage créé |
+| Poste | `POST characters/{id}/mandates` réussi | Nouvelle demande de poste |
+| Renouvellement | `POST mandates/{level}/{id}/renew` réussi | Nouvelle demande de renouvellement |
+
+| Pièce | Rôle |
+|---|---|
+| `App\Services\AdminNotifier` | **seul émetteur** : une méthode par geste (`accountConfirmed`, `characterCreated`, `mandateRequested`), appelée par `AuthController::verifyEmail`, `CharacterController::store` et `MandateController::store/renew`. Un nouvel événement (suppression de compte…) = une méthode de plus, sans toucher le reste. **Pas d'événements Laravel** : le projet n'en a aucun, trois appels ne justifient pas la couche |
+| `App\Notifications\AdminEventNotice` | l'email (sujet, lignes, bouton, signature du récapitulatif des mandats) ; **français seul** : l'interface d'administration n'a pas de bascule de langue. Textes dans `lang/fr/admin_notices.php` |
+
+- **Destinataires** : `User::role('admin', 'web')`, comme le récapitulatif quotidien — **aucune clé `.env`, aucun `config/*.php`**. 🔴 **Le garde `web` s'écrit en clair** : le rôle est créé sous `web` (`UserSeeder`), mais une requête `auth:api` fait de `api` le garde par défaut, où `role('admin')` lève `RoleDoesNotExist` — et personne ne serait jamais prévenu, en silence (attrapé par `AdminNotificationsTest`, jeton API simulé).
+- 🔴 **Jamais l'adresse email d'un joueur dans le corps** (ni mot de passe, ni lien d'annonce) : un compte se désigne par son numéro et le total des comptes confirmés.
+- 🔴 **L'envoi ne bloque jamais le geste du joueur** : toute exception est attrapée et journalisée (`admin.notification_failed`, genre d'événement + classe de l'exception, **jamais son message**, qui peut contenir l'adresse). Précédent : « Server Error » muet à l'inscription, 09/10/2026.
+- Tests : `Feature/AdminNotifications/AdminNotificationsTest`.
+
 ## Gestion des utilisateurs (admin)
 
 Tout vit dans `Web\DashboardController` + `users.blade.php` :

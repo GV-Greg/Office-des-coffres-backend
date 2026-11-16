@@ -7,6 +7,23 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-17] — PR #87 (Notifications admin : un email aux comptes admin à chaque geste qui les attend)
+
+### Added
+- **Email aux comptes `admin`** (brief `brief-notifications-admin.md`, arbitrages de Greg du 17/11/2026) : **compte confirmé** (à la confirmation de l'adresse, première fois seulement — un faux compte non confirmé n'écrit à personne), **personnage créé**, **demande de poste**, **demande de renouvellement** (sujet distinct). Français seul, gabarit habituel et bouton vers la page d'administration concernée.
+- `App\Services\AdminNotifier` (seul émetteur, une méthode par geste), `App\Notifications\AdminEventNotice`, `lang/fr/admin_notices.php`. Un événement de plus (suppression de compte…) = une méthode de plus ; pas de couche d'événements Laravel.
+- 13 tests (`Feature/AdminNotifications/AdminNotificationsTest`) ; section « Notifications d'administration » de `docs/ARCHITECTURE.md`.
+
+### Security
+- **Jamais l'adresse email d'un joueur** dans le corps (ni mot de passe, ni lien d'annonce) : un compte se désigne par son numéro et le total des comptes confirmés.
+- **L'envoi ne bloque jamais le geste du joueur** : toute exception est attrapée et journalisée (`admin.notification_failed` : genre d'événement et classe de l'exception, jamais son message, qui peut contenir l'adresse).
+
+### Fixed
+- Destinataires cherchés avec le garde `web` en clair (`User::role('admin', 'web')`) : sous un jeton `auth:api` le garde par défaut est `api`, où `role('admin')` lève `RoleDoesNotExist` — personne n'aurait jamais été prévenu, en silence (test dédié, jeton API simulé).
+
+### Prod
+- **Rien à lancer en SSH** : aucune migration, route, `config/*.php`, clé `.env` ni paquet. Les emails partent dès le déploiement ; le compte `admin` de Greg recevra aussi ceux de ses propres gestes.
+
 ## [2026-11-16] — PR #86 (Inventaires : réglage personnel `exportShowIcons`, phase 2 des icônes d'items)
 
 ### Added
