@@ -7,6 +7,26 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-16] — PR #85 (Icônes d'items : correction de la phase 1, singulier et pluriel)
+
+### Added
+- **Singulier et pluriel associés à une même icône** (décision de Greg, 16/11/2026) : le jeu écrit « 1 Kilo de minerai de fer » mais « 2 Kilos… ». Une ligne du référentiel porte son nom (singulier) et, facultatif, `item_name_plural` (unique) ; la lecture publique rapproche les deux formes. Un nom, singulier ou pluriel, n'appartient qu'à un seul item, et le pluriel diffère du singulier (`ItemIcon::nameRules`). Saisie à l'ajout et à la modification, page admin et API admin ; la recherche couvre les deux formes.
+- Le **singulier se corrige** après l'enregistrement, avec les mêmes garde-fous.
+- 29 tests (`Feature/ItemIcons/ItemIconsTest`) : lecture publique, API admin, page admin, garde-fous de la vue.
+
+### Fixed
+- `GET item-icons` : les **clés de la réponse sont les noms demandés**, jamais ceux enregistrés ; rapprochement en PHP (`ItemIcon::normalizeName` : casse et espaces superflus ignorés, accents comptés), identique sur SQLite et MariaDB.
+- Page admin : une apostrophe dans un texte français rompait le JavaScript de la vue (confirmation de suppression, aperçu) ; ces chaînes passent par `@js()`.
+- L'URL du CDN Celsius n'existe plus qu'à un endroit : `ItemIcon::CDN_URL_PATTERN`.
+
+### Changed
+- `GET item-icons` : cache `public, max-age=86400, stale-while-revalidate=3600` (brief du 13/11/2026).
+- Page `/item-icons` à 75 % de la largeur.
+
+### Prod
+- **`php artisan migrate` en SSH après le déploiement** : colonne `item_icons.item_name_plural` (nullable, unique). Sans elle, la lecture publique des icônes et la page admin échouent.
+- Aucune route ajoutée (pas de `route:cache`), aucun `config/*.php`, aucun paquet, aucune clé `.env`.
+
 ## [2026-11-11] — PR #84 (Journal de la politique : entrée « Gestion des stocks »)
 
 ### Added
