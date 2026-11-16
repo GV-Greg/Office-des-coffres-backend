@@ -7,7 +7,7 @@
     </x-slot>
 
     <div class="pl-14 py-6">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="w-3/4 mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- Flash --}}
             @if(session('status'))
