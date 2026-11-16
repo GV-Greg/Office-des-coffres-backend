@@ -11,7 +11,7 @@ use App\Exceptions\MandateRefusal;
  * deviendrait un dépôt de texte arbitraire dans une base de joueurs), les tailles sont bornées.
  *
  *  - partagé (les trois niveaux) : custom, hiddenBuiltIn, order, exportColor, itemCategories ;
- *  - personnel seulement : exportQtyFormat, exportShowEcus, exportWrapper, visibility (le goût d'un joueur et l'état
+ *  - personnel seulement : exportQtyFormat, exportShowEcus, exportShowIcons, exportWrapper, visibility (le goût d'un joueur et l'état
  *    d'un collage, pas un réglage que se partagent les titulaires d'un poste).
  *
  * Les clés de catégories sont des slugs ; on ne les confronte PAS à la liste des catégories prédéfinies (elle vit dans le
@@ -37,7 +37,7 @@ final class InventorySettingsDocument
 
     private const SHARED = ['custom', 'hiddenBuiltIn', 'order', 'exportColor', 'itemCategories'];
 
-    private const PERSONAL_ONLY = ['exportQtyFormat', 'exportShowEcus', 'exportWrapper', 'visibility'];
+    private const PERSONAL_ONLY = ['exportQtyFormat', 'exportShowEcus', 'exportShowIcons', 'exportWrapper', 'visibility'];
 
     /** @return list<string> */
     public static function allowedKeys(string $level): array
@@ -162,6 +162,9 @@ final class InventorySettingsDocument
         }
         if (array_key_exists('exportShowEcus', $data)) {
             $out['exportShowEcus'] = is_bool($data['exportShowEcus']) ? $data['exportShowEcus'] : self::malformed('exportShowEcus');
+        }
+        if (array_key_exists('exportShowIcons', $data)) {
+            $out['exportShowIcons'] = is_bool($data['exportShowIcons']) ? $data['exportShowIcons'] : self::malformed('exportShowIcons');
         }
         if (array_key_exists('exportWrapper', $data)) {
             $out['exportWrapper'] = in_array($data['exportWrapper'], ['none', 'rp', 'quote'], true) ? $data['exportWrapper'] : self::malformed('exportWrapper');

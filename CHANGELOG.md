@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-16] — PR #86 (Inventaires : réglage personnel `exportShowIcons`, phase 2 des icônes d'items)
+
+### Added
+- Clé booléenne **`exportShowIcons`** dans le document de réglages d'inventaire **personnel** (`InventorySettingsDocument`) : inclure les `[img]` des icônes d'items dans l'export BBCode. Booléen strict, personnelle seulement — ville et province la refusent comme toute clé inconnue. Tests dans `InventorySettingsTest`.
+
+### Prod
+- Rien à lancer en SSH : aucune migration, route, `config/*.php`, clé `.env` ni paquet. Livrée avec sa jumelle frontend (front #116) ; s'appuie sur back #85 (clés de réponse de `GET item-icons`, singulier et pluriel), déjà en prod.
+
 ## [2026-11-16] — PR #85 (Icônes d'items : correction de la phase 1, singulier et pluriel)
 
 ### Added
