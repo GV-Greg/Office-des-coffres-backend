@@ -165,9 +165,15 @@
                                             <form x-show="editing"
                                                   method="POST"
                                                   action="{{ route('item-icons.update', $icon) }}"
-                                                  class="flex items-center gap-1">
+                                                  class="flex flex-wrap items-center gap-1">
                                                 @csrf
                                                 @method('PATCH')
+                                                <input type="text" name="item_name"
+                                                       value="{{ $icon->item_name }}"
+                                                       maxlength="150" required
+                                                       placeholder="{{ __('item_icons.item_name') }}"
+                                                       aria-label="{{ __('item_icons.item_name') }}"
+                                                       class="w-48 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 text-xs shadow-sm">
                                                 <input type="text" name="item_name_plural"
                                                        value="{{ $icon->item_name_plural }}"
                                                        maxlength="150"

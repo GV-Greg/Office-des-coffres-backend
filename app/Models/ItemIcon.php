@@ -33,10 +33,12 @@ class ItemIcon extends Model
      * un seul item : sans cela « Kilos de minerai de fer » pourrait désigner deux icônes. Le pluriel
      * est facultatif et doit différer du singulier (un item invariable n'en déclare pas).
      *
-     * @param  string|null  $singular  le singulier de la ligne (saisi, ou déjà enregistré pour une correction)
+     * @param  string|null  $singular  le singulier effectif de la ligne (saisi, ou déjà enregistré)
+     * @param  string|null  $plural  le pluriel effectif quand la requête ne le porte pas : il ne doit pas devenir égal au nouveau singulier
+     * @param  bool  $partial  correction d'une ligne existante : le singulier n'est validé que s'il est envoyé
      * @return array<string, array<int, mixed>>
      */
-    public static function nameRules(?int $ignoreId = null, ?string $singular = null): array
+    public static function nameRules(?int $ignoreId = null, ?string $singular = null, ?string $plural = null, bool $partial = false): array
     {
         $taken = function (string $attribute, mixed $value, \Closure $fail) use ($ignoreId): void {
             if (! is_string($value) || $value === '') {
@@ -51,16 +53,16 @@ class ItemIcon extends Model
             }
         };
 
-        $differs = function (string $attribute, mixed $value, \Closure $fail) use ($singular): void {
-            if (is_string($value) && $singular !== null
-                && self::normalizeName($value) === self::normalizeName($singular)) {
+        // Le pluriel diffère du singulier ; et, vu de l'autre côté, un singulier ne peut pas devenir le pluriel enregistré.
+        $differsFrom = fn (?string $other) => function (string $attribute, mixed $value, \Closure $fail) use ($other): void {
+            if (is_string($value) && $other !== null && self::normalizeName($value) === self::normalizeName($other)) {
                 $fail(__('item_icons.plural_same'));
             }
         };
 
         return [
-            'item_name' => ['required', 'string', 'max:150', $taken],
-            'item_name_plural' => ['nullable', 'string', 'max:150', $taken, $differs],
+            'item_name' => [...($partial ? ['sometimes'] : []), 'required', 'string', 'max:150', $taken, $differsFrom($plural)],
+            'item_name_plural' => ['nullable', 'string', 'max:150', $taken, $differsFrom($singular)],
         ];
     }
 

@@ -45,14 +45,19 @@ class ItemIconController extends Controller
     public function update(Request $request, ItemIcon $icon): RedirectResponse
     {
         $request->validate([
-            'item_name_plural' => ItemIcon::nameRules($icon->id, $icon->item_name)['item_name_plural'],
+            ...ItemIcon::nameRules(
+                $icon->id,
+                (string) $request->input('item_name', $icon->item_name),
+                $request->has('item_name_plural') ? null : $icon->item_name_plural,
+                partial: true,
+            ),
             'game_item_id' => [
                 'required', 'integer', 'min:1',
                 'unique:item_icons,game_item_id,'.$icon->id,
             ],
         ]);
 
-        $icon->update($request->only('item_name_plural', 'game_item_id'));
+        $icon->update($request->only('item_name', 'item_name_plural', 'game_item_id'));
 
         return back()->with('status', __('item_icons.updated'));
     }

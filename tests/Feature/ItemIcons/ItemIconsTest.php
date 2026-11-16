@@ -327,6 +327,59 @@ test('page admin : le pluriel s\'associe, s\'affiche, se retrouve par la recherc
         ->assertSessionHasErrors(['item_name_plural']);
 });
 
+test('le singulier se corrige après l\'enregistrement, avec les mêmes garde-fous', function () {
+    Passport::actingAs(iconsAdmin());
+    $a = ItemIcon::create(['item_name' => 'Kilo de minerai de fr', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76]);
+    ItemIcon::create(['item_name' => 'Sac de maïs', 'item_name_plural' => 'Sacs de maïs', 'game_item_id' => 2]);
+
+    // Faute de frappe corrigée ; le pluriel (absent de la requête) reste en place.
+    $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76, 'item_name' => 'Kilo de minerai de fer'])
+        ->assertOk()
+        ->assertJsonPath('icon.item_name', 'Kilo de minerai de fer')
+        ->assertJsonPath('icon.item_name_plural', 'Kilos de minerai de fer');
+
+    // Absent = inchangé (le contrat d'avant : seul l'ID est envoyé).
+    $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76])
+        ->assertOk()->assertJsonPath('icon.item_name', 'Kilo de minerai de fer');
+
+    // Pris par un autre item (son singulier ou son pluriel) : refusé. Vide : refusé.
+    foreach (['Sac de maïs', 'Sacs de maïs', ''] as $taken) {
+        $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76, 'item_name' => $taken])
+            ->assertStatus(422)->assertJsonValidationErrors(['item_name']);
+    }
+    // Il ne peut pas non plus devenir égal au pluriel déjà enregistré de la même ligne…
+    $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76, 'item_name' => 'Kilos de minerai de fer'])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name']);
+    // …ni le pluriel devenir égal au nouveau singulier envoyé dans la même requête.
+    $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76, 'item_name' => 'Fer brut', 'item_name_plural' => 'Fer brut'])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name_plural']);
+
+    expect($a->fresh()->item_name)->toBe('Kilo de minerai de fer');
+
+    // La lecture publique suit la correction.
+    $this->getJson('/api/v1/item-icons?'.http_build_query(['names' => ['Kilo de minerai de fer', 'Kilo de minerai de fr']]))
+        ->assertExactJson(['success' => true, 'icons' => ['Kilo de minerai de fer' => 76]]);
+});
+
+test('page admin : le singulier se corrige depuis le formulaire de modification', function () {
+    $admin = iconsAdmin();
+    $icon = ItemIcon::create(['item_name' => 'Kilo de minerai de fr', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76]);
+    ItemIcon::create(['item_name' => 'Sac de maïs', 'game_item_id' => 2]);
+
+    $this->actingAs($admin)->get('/item-icons')
+        ->assertOk()->assertSee('name="item_name"', false);
+
+    $this->actingAs($admin)
+        ->patch("/item-icons/{$icon->id}", ['item_name' => 'Kilo de minerai de fer', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76])
+        ->assertSessionHas('status', __('item_icons.updated'));
+    expect($icon->fresh()->item_name)->toBe('Kilo de minerai de fer');
+
+    $this->actingAs($admin)
+        ->patch("/item-icons/{$icon->id}", ['item_name' => 'Sac de maïs', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76])
+        ->assertSessionHasErrors(['item_name']);
+    expect($icon->fresh()->item_name)->toBe('Kilo de minerai de fer');
+});
+
 // ─── Garde-fous de la vue ────────────────────────────────────────────────────
 
 test('la vue n\'injecte aucune chaîne française à apostrophe dans un JavaScript entre guillemets simples', function () {

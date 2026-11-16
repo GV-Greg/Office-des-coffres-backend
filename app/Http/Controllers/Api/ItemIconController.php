@@ -51,13 +51,18 @@ class ItemIconController extends Controller
     }
 
     /**
-     * Corrige le game_item_id d'une association existante, et/ou son pluriel (`item_name_plural` :
-     * absent = inchangé, vide = retiré). Le singulier ne se corrige pas : c'est l'identité de la ligne. (admin)
+     * Corrige une association existante : `item_name` (singulier), `item_name_plural` (absent = inchangé,
+     * vide = retiré) et `game_item_id`. (admin)
      */
     public function update(Request $request, ItemIcon $icon): JsonResponse
     {
         $validated = $request->validate([
-            'item_name_plural' => ItemIcon::nameRules($icon->id, $icon->item_name)['item_name_plural'],
+            ...ItemIcon::nameRules(
+                $icon->id,
+                (string) $request->input('item_name', $icon->item_name),
+                $request->has('item_name_plural') ? null : $icon->item_name_plural,
+                partial: true,
+            ),
             'game_item_id' => [
                 'required', 'integer', 'min:1',
                 'unique:item_icons,game_item_id,'.$icon->id,
