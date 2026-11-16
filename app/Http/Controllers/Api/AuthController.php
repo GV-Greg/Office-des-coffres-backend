@@ -9,6 +9,7 @@ use App\Notifications\VerifyApiEmail;
 use App\Notifications\VerifyEmailChange;
 use App\Services\AccountDeletion;
 use App\Services\AccountExport;
+use App\Services\AdminNotifier;
 use App\Support\LastSeen;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Notification;
@@ -77,7 +78,7 @@ class AuthController extends BaseController
      * - en navigation directe, pour les liens envoyés avant : redirection vers le site, comme avant.
      * La signature (middleware `signed`) est vérifiée dans les deux cas.
      */
-    public function verifyEmail(Request $request, int $id, string $hash): RedirectResponse|JsonResponse
+    public function verifyEmail(Request $request, int $id, string $hash, AdminNotifier $adminNotifier): RedirectResponse|JsonResponse
     {
         $user = User::find($id);
 
@@ -89,6 +90,8 @@ class AuthController extends BaseController
 
         if (! $user->hasVerifiedEmail()) {
             $user->markEmailAsVerified();
+            // Seulement à la première confirmation : un lien rejoué ne prévient pas deux fois.
+            $adminNotifier->accountConfirmed($user);
         }
 
         // Lien signé, pas de mot de passe disponible ici : impossible de passer par le

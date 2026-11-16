@@ -7,6 +7,7 @@ use App\Models\CouncilMandate;
 use App\Models\CouncilOffice;
 use App\Models\Mandate;
 use App\Models\MayorMandate;
+use App\Services\AdminNotifier;
 use App\Services\MandateWorkflow;
 use App\Support\MandateApiErrors;
 use App\Support\MandateLabels;
@@ -68,7 +69,7 @@ class MandateController extends BaseController
         return response()->json(['success' => true, 'mandates' => $mandates, 'characters' => $characters]);
     }
 
-    public function store(Request $request, int $character): JsonResponse
+    public function store(Request $request, int $character, AdminNotifier $adminNotifier): JsonResponse
     {
         $character = $request->user()->characters()->find($character);
         if (! $character) {
@@ -85,11 +86,12 @@ class MandateController extends BaseController
         ]);
 
         $mandate = $this->workflow->request($character, $validated['level'], $validated);
+        $adminNotifier->mandateRequested($mandate);
 
         return response()->json(['success' => true, 'mandate' => $this->payload($mandate->fresh())], 201);
     }
 
-    public function renew(Request $request, string $level, int $id): JsonResponse
+    public function renew(Request $request, string $level, int $id, AdminNotifier $adminNotifier): JsonResponse
     {
         $mandate = $this->workflow->findForUser($level, $id, $request->user()->id);
         if (! $mandate) {
@@ -102,6 +104,7 @@ class MandateController extends BaseController
         ]);
 
         $renewal = $this->workflow->renew($mandate, $validated['started_at'], $validated['announcement_url']);
+        $adminNotifier->mandateRequested($renewal, renewal: true);
 
         return response()->json(['success' => true, 'mandate' => $this->payload($renewal->fresh())], 201);
     }
