@@ -32,7 +32,7 @@
                         @csrf
 
                         {{-- Ligne 1 : les deux champs côte à côte --}}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label for="item_name" class="block text-sm font-medium mb-1">
                                     {{ __('item_icons.item_name') }} <span aria-hidden="true">*</span>
@@ -44,6 +44,18 @@
                                        placeholder="{{ __('item_icons.item_name_help') }}"
                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('item_icons.item_name_help') }}</p>
+                            </div>
+
+                            <div>
+                                <label for="item_name_plural" class="block text-sm font-medium mb-1">
+                                    {{ __('item_icons.item_name_plural') }}
+                                </label>
+                                <input type="text"
+                                       id="item_name_plural" name="item_name_plural"
+                                       value="{{ old('item_name_plural') }}"
+                                       maxlength="150"
+                                       class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('item_icons.item_name_plural_help') }}</p>
                             </div>
 
                             <div>
@@ -120,7 +132,7 @@
                                 <tr class="border-b border-gray-200 dark:border-gray-600 text-left">
                                     <th class="py-2 pr-4 w-10">{{ __('item_icons.col_icon') }}</th>
                                     <th class="py-2 pr-4">{{ __('item_icons.col_item') }}</th>
-                                    <th class="py-2 pr-4 w-28">{{ __('item_icons.col_id') }}</th>
+                                    <th class="py-2 pr-4">{{ __('item_icons.col_id') }}</th>
                                     <th class="py-2 text-right">{{ __('item_icons.col_actions') }}</th>
                                 </tr>
                             </thead>
@@ -139,7 +151,12 @@
                                         </td>
 
                                         {{-- Nom --}}
-                                        <td class="py-2 pr-4 font-medium">{{ $icon->item_name }}</td>
+                                        <td class="py-2 pr-4 font-medium">
+                                            {{ $icon->item_name }}
+                                            @if($icon->item_name_plural)
+                                                <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">{{ $icon->item_name_plural }}</span>
+                                            @endif
+                                        </td>
 
                                         {{-- ID / formulaire d'édition --}}
                                         <td class="py-2 pr-4">
@@ -151,6 +168,12 @@
                                                   class="flex items-center gap-1">
                                                 @csrf
                                                 @method('PATCH')
+                                                <input type="text" name="item_name_plural"
+                                                       value="{{ $icon->item_name_plural }}"
+                                                       maxlength="150"
+                                                       placeholder="{{ __('item_icons.item_name_plural') }}"
+                                                       aria-label="{{ __('item_icons.item_name_plural') }}"
+                                                       class="w-48 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 text-xs shadow-sm">
                                                 <input type="number" name="game_item_id"
                                                        value="{{ $icon->game_item_id }}"
                                                        min="1" required

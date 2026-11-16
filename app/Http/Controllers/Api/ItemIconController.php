@@ -20,7 +20,9 @@ class ItemIconController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $icons = ItemIcon::query()
-            ->when($search !== '', fn ($q) => $q->where('item_name', 'like', "%{$search}%"))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('item_name', 'like', "%{$search}%")
+                ->orWhere('item_name_plural', 'like', "%{$search}%")))
             ->orderBy('item_name')
             ->paginate(50);
 
@@ -35,11 +37,11 @@ class ItemIconController extends Controller
         ]);
     }
 
-    /** Crée une association item_name → game_item_id. (admin) */
+    /** Crée une association item_name (+ pluriel facultatif) → game_item_id. (admin) */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'item_name' => ['required', 'string', 'max:150', 'unique:item_icons,item_name'],
+            ...ItemIcon::nameRules(singular: (string) $request->input('item_name')),
             'game_item_id' => ['required', 'integer', 'min:1', 'unique:item_icons,game_item_id'],
         ]);
 
@@ -48,10 +50,14 @@ class ItemIconController extends Controller
         return response()->json(['success' => true, 'icon' => $this->present($icon)], 201);
     }
 
-    /** Corrige le game_item_id d'une association existante. (admin) */
+    /**
+     * Corrige le game_item_id d'une association existante, et/ou son pluriel (`item_name_plural` :
+     * absent = inchangé, vide = retiré). Le singulier ne se corrige pas : c'est l'identité de la ligne. (admin)
+     */
     public function update(Request $request, ItemIcon $icon): JsonResponse
     {
         $validated = $request->validate([
+            'item_name_plural' => ItemIcon::nameRules($icon->id, $icon->item_name)['item_name_plural'],
             'game_item_id' => [
                 'required', 'integer', 'min:1',
                 'unique:item_icons,game_item_id,'.$icon->id,
@@ -90,11 +96,11 @@ class ItemIconController extends Controller
             'names.*' => ['required', 'string', 'max:150'],
         ]);
 
+        // Chaque ligne se retrouve sous son singulier ET sous son pluriel : le jeu écrit « 1 Kilo… » mais « 2 Kilos… ».
         $index = ItemIcon::query()
-            ->get(['item_name', 'game_item_id'])
-            ->mapWithKeys(fn (ItemIcon $icon) => [
-                ItemIcon::normalizeName($icon->item_name) => $icon->game_item_id,
-            ]);
+            ->get(['item_name', 'item_name_plural', 'game_item_id'])
+            ->flatMap(fn (ItemIcon $icon) => collect($icon->names())
+                ->mapWithKeys(fn (string $name) => [ItemIcon::normalizeName($name) => $icon->game_item_id]));
 
         $map = [];
         foreach (array_unique($request->input('names', [])) as $name) {
@@ -111,12 +117,13 @@ class ItemIconController extends Controller
             ->header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
     }
 
-    /** Représentation JSON d'une icône (id, item_name, game_item_id, icon_url). */
+    /** Représentation JSON d'une icône (id, item_name, item_name_plural, game_item_id, icon_url). */
     private function present(ItemIcon $icon): array
     {
         return [
             'id' => $icon->id,
             'item_name' => $icon->item_name,
+            'item_name_plural' => $icon->item_name_plural,
             'game_item_id' => $icon->game_item_id,
             'icon_url' => $icon->iconUrl(),
         ];

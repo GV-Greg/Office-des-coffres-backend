@@ -27,6 +27,49 @@ class ItemIcon extends Model
         return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $name)));
     }
 
+    /**
+     * Règles de forme des deux noms d'un item (singulier `item_name`, pluriel `item_name_plural`),
+     * partagées par la page Blade et l'API admin. Un nom — singulier OU pluriel — n'appartient qu'à
+     * un seul item : sans cela « Kilos de minerai de fer » pourrait désigner deux icônes. Le pluriel
+     * est facultatif et doit différer du singulier (un item invariable n'en déclare pas).
+     *
+     * @param  string|null  $singular  le singulier de la ligne (saisi, ou déjà enregistré pour une correction)
+     * @return array<string, array<int, mixed>>
+     */
+    public static function nameRules(?int $ignoreId = null, ?string $singular = null): array
+    {
+        $taken = function (string $attribute, mixed $value, \Closure $fail) use ($ignoreId): void {
+            if (! is_string($value) || $value === '') {
+                return;
+            }
+            $exists = static::query()
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->where(fn ($q) => $q->where('item_name', $value)->orWhere('item_name_plural', $value))
+                ->exists();
+            if ($exists) {
+                $fail(__('item_icons.name_taken'));
+            }
+        };
+
+        $differs = function (string $attribute, mixed $value, \Closure $fail) use ($singular): void {
+            if (is_string($value) && $singular !== null
+                && self::normalizeName($value) === self::normalizeName($singular)) {
+                $fail(__('item_icons.plural_same'));
+            }
+        };
+
+        return [
+            'item_name' => ['required', 'string', 'max:150', $taken],
+            'item_name_plural' => ['nullable', 'string', 'max:150', $taken, $differs],
+        ];
+    }
+
+    /** Les noms sous lesquels l'item se retrouve : son singulier et, s'il existe, son pluriel. */
+    public function names(): array
+    {
+        return array_values(array_filter([$this->item_name, $this->item_name_plural]));
+    }
+
     /** URL publique de l'icône sur le CDN Celsius. */
     public function iconUrl(): string
     {

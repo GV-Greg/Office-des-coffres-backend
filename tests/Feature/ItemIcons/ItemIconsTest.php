@@ -34,7 +34,7 @@ test('l\'URL de l\'icône est construite à la volée sur le CDN de Celsius', fu
 
 test('la table ne stocke aucune URL ni image', function () {
     expect(Schema::getColumnListing('item_icons'))
-        ->toEqualCanonicalizing(['id', 'item_name', 'game_item_id', 'created_at', 'updated_at']);
+        ->toEqualCanonicalizing(['id', 'item_name', 'item_name_plural', 'game_item_id', 'created_at', 'updated_at']);
 });
 
 test('normalizeName ignore la casse et les espaces superflus, mais pas les accents', function () {
@@ -227,6 +227,104 @@ test('page admin : la recherche filtre la liste', function () {
         ->assertOk()
         ->assertSee('Sacs de maïs')
         ->assertDontSee('Miches de pain');
+});
+
+// ─── Singulier et pluriel (décision de Greg, 16/11/2026) ─────────────────────
+
+test('lecture publique : une ligne se retrouve sous son singulier ET sous son pluriel', function () {
+    ItemIcon::create(['item_name' => 'Kilo de minerai de fer', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76]);
+
+    $this->getJson('/api/v1/item-icons?'.http_build_query(['names' => ['Kilo de minerai de fer', 'Kilos de minerai de fer', 'kilos DE minerai de  fer']]))
+        ->assertOk()
+        ->assertExactJson(['success' => true, 'icons' => [
+            'Kilo de minerai de fer' => 76,
+            'Kilos de minerai de fer' => 76,
+            'kilos DE minerai de  fer' => 76,
+        ]]);
+});
+
+test('lecture publique : sans pluriel déclaré, seul le singulier correspond', function () {
+    ItemIcon::create(['item_name' => 'Kilo de minerai de fer', 'game_item_id' => 76]);
+
+    $this->getJson('/api/v1/item-icons?'.http_build_query(['names' => ['Kilos de minerai de fer']]))
+        ->assertOk()
+        ->assertExactJson(['success' => true, 'icons' => []]);
+});
+
+test('API admin : le pluriel se saisit à la création, se corrige et se retire', function () {
+    Passport::actingAs(iconsAdmin());
+
+    $id = $this->postJson('/api/v1/admin/item-icons', [
+        'item_name' => 'Kilo de minerai de fer', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76,
+    ])->assertCreated()->assertJsonPath('icon.item_name_plural', 'Kilos de minerai de fer')->json('icon.id');
+
+    $this->putJson("/api/v1/admin/item-icons/{$id}", ['game_item_id' => 76, 'item_name_plural' => 'Kilos de fer'])
+        ->assertOk()->assertJsonPath('icon.item_name_plural', 'Kilos de fer');
+
+    // Absent = inchangé.
+    $this->putJson("/api/v1/admin/item-icons/{$id}", ['game_item_id' => 76])
+        ->assertOk()->assertJsonPath('icon.item_name_plural', 'Kilos de fer');
+
+    // Vide = retiré.
+    $this->putJson("/api/v1/admin/item-icons/{$id}", ['game_item_id' => 76, 'item_name_plural' => ''])
+        ->assertOk()->assertJsonPath('icon.item_name_plural', null);
+    expect(ItemIcon::find($id)->item_name_plural)->toBeNull();
+});
+
+test('un nom — singulier OU pluriel — n\'appartient qu\'à un seul item', function () {
+    Passport::actingAs(iconsAdmin());
+    $a = ItemIcon::create(['item_name' => 'Kilo de minerai de fer', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76]);
+
+    // Le pluriel d'un nouvel item ne peut pas reprendre le singulier ni le pluriel d'un autre.
+    $this->postJson('/api/v1/admin/item-icons', ['item_name' => 'Autre', 'item_name_plural' => 'Kilo de minerai de fer', 'game_item_id' => 1])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name_plural']);
+    $this->postJson('/api/v1/admin/item-icons', ['item_name' => 'Autre', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 1])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name_plural']);
+    // Le singulier d'un nouvel item ne peut pas reprendre le pluriel d'un autre.
+    $this->postJson('/api/v1/admin/item-icons', ['item_name' => 'Kilos de minerai de fer', 'game_item_id' => 1])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name']);
+
+    // Corriger le pluriel vers le nom d'un autre item est refusé, vers le sien est permis.
+    $b = ItemIcon::create(['item_name' => 'Sac de maïs', 'game_item_id' => 2]);
+    $this->putJson("/api/v1/admin/item-icons/{$b->id}", ['game_item_id' => 2, 'item_name_plural' => 'Kilo de minerai de fer'])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name_plural']);
+    $this->putJson("/api/v1/admin/item-icons/{$a->id}", ['game_item_id' => 76, 'item_name_plural' => 'Kilos de minerai de fer'])->assertOk();
+
+    expect(ItemIcon::count())->toBe(2);
+});
+
+test('le pluriel doit différer du singulier', function () {
+    Passport::actingAs(iconsAdmin());
+
+    $this->postJson('/api/v1/admin/item-icons', ['item_name' => 'Fer', 'item_name_plural' => ' fer ', 'game_item_id' => 3])
+        ->assertStatus(422)->assertJsonValidationErrors(['item_name_plural']);
+    expect(ItemIcon::count())->toBe(0);
+});
+
+test('page admin : le pluriel s\'associe, s\'affiche, se retrouve par la recherche et se corrige', function () {
+    $admin = iconsAdmin();
+
+    $this->actingAs($admin)
+        ->post('/item-icons', ['item_name' => 'Kilo de minerai de fer', 'item_name_plural' => 'Kilos de minerai de fer', 'game_item_id' => 76])
+        ->assertSessionHas('status', __('item_icons.created'));
+    $icon = ItemIcon::firstOrFail();
+    expect($icon->item_name_plural)->toBe('Kilos de minerai de fer');
+
+    $this->actingAs($admin)->get('/item-icons?search=Kilos')
+        ->assertOk()
+        ->assertSee('Kilo de minerai de fer')
+        ->assertSee('Kilos de minerai de fer');
+
+    $this->actingAs($admin)
+        ->patch("/item-icons/{$icon->id}", ['game_item_id' => 76, 'item_name_plural' => ''])
+        ->assertSessionHas('status', __('item_icons.updated'));
+    expect($icon->fresh()->item_name_plural)->toBeNull();
+
+    // Un pluriel qui reprend le nom d'un autre item est refusé avec un message.
+    ItemIcon::create(['item_name' => 'Sac de maïs', 'game_item_id' => 2]);
+    $this->actingAs($admin)
+        ->patch("/item-icons/{$icon->id}", ['game_item_id' => 76, 'item_name_plural' => 'Sac de maïs'])
+        ->assertSessionHasErrors(['item_name_plural']);
 });
 
 // ─── Garde-fous de la vue ────────────────────────────────────────────────────
