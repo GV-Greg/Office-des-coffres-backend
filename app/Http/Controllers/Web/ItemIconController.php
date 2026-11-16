@@ -20,7 +20,9 @@ class ItemIconController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $icons = ItemIcon::query()
-            ->when($search !== '', fn ($q) => $q->where('item_name', 'like', "%{$search}%"))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('item_name', 'like', "%{$search}%")
+                ->orWhere('item_name_plural', 'like', "%{$search}%")))
             ->orderBy('item_name')
             ->paginate(50)
             ->withQueryString();
@@ -31,11 +33,11 @@ class ItemIconController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'item_name'    => ['required', 'string', 'max:150', 'unique:item_icons,item_name'],
+            ...ItemIcon::nameRules(singular: (string) $request->input('item_name')),
             'game_item_id' => ['required', 'integer', 'min:1', 'unique:item_icons,game_item_id'],
         ]);
 
-        ItemIcon::create($request->only('item_name', 'game_item_id'));
+        ItemIcon::create($request->only('item_name', 'item_name_plural', 'game_item_id'));
 
         return back()->with('status', __('item_icons.created'));
     }
@@ -43,13 +45,19 @@ class ItemIconController extends Controller
     public function update(Request $request, ItemIcon $icon): RedirectResponse
     {
         $request->validate([
+            ...ItemIcon::nameRules(
+                $icon->id,
+                (string) $request->input('item_name', $icon->item_name),
+                $request->has('item_name_plural') ? null : $icon->item_name_plural,
+                partial: true,
+            ),
             'game_item_id' => [
                 'required', 'integer', 'min:1',
-                'unique:item_icons,game_item_id,' . $icon->id,
+                'unique:item_icons,game_item_id,'.$icon->id,
             ],
         ]);
 
-        $icon->update($request->only('game_item_id'));
+        $icon->update($request->only('item_name', 'item_name_plural', 'game_item_id'));
 
         return back()->with('status', __('item_icons.updated'));
     }

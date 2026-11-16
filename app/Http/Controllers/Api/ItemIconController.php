@@ -20,7 +20,9 @@ class ItemIconController extends Controller
         $search = trim((string) $request->query('search', ''));
 
         $icons = ItemIcon::query()
-            ->when($search !== '', fn ($q) => $q->where('item_name', 'like', "%{$search}%"))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('item_name', 'like', "%{$search}%")
+                ->orWhere('item_name_plural', 'like', "%{$search}%")))
             ->orderBy('item_name')
             ->paginate(50);
 
@@ -29,17 +31,17 @@ class ItemIconController extends Controller
             'icons' => $icons->map(fn (ItemIcon $icon) => $this->present($icon)),
             'meta' => [
                 'current_page' => $icons->currentPage(),
-                'last_page'    => $icons->lastPage(),
-                'total'        => $icons->total(),
+                'last_page' => $icons->lastPage(),
+                'total' => $icons->total(),
             ],
         ]);
     }
 
-    /** Crée une association item_name → game_item_id. (admin) */
+    /** Crée une association item_name (+ pluriel facultatif) → game_item_id. (admin) */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'item_name'    => ['required', 'string', 'max:150', 'unique:item_icons,item_name'],
+            ...ItemIcon::nameRules(singular: (string) $request->input('item_name')),
             'game_item_id' => ['required', 'integer', 'min:1', 'unique:item_icons,game_item_id'],
         ]);
 
@@ -48,13 +50,22 @@ class ItemIconController extends Controller
         return response()->json(['success' => true, 'icon' => $this->present($icon)], 201);
     }
 
-    /** Corrige le game_item_id d'une association existante. (admin) */
+    /**
+     * Corrige une association existante : `item_name` (singulier), `item_name_plural` (absent = inchangé,
+     * vide = retiré) et `game_item_id`. (admin)
+     */
     public function update(Request $request, ItemIcon $icon): JsonResponse
     {
         $validated = $request->validate([
+            ...ItemIcon::nameRules(
+                $icon->id,
+                (string) $request->input('item_name', $icon->item_name),
+                $request->has('item_name_plural') ? null : $icon->item_name_plural,
+                partial: true,
+            ),
             'game_item_id' => [
                 'required', 'integer', 'min:1',
-                'unique:item_icons,game_item_id,' . $icon->id,
+                'unique:item_icons,game_item_id,'.$icon->id,
             ],
         ]);
 
@@ -75,34 +86,51 @@ class ItemIconController extends Controller
      * Résout les icônes d'une liste de noms d'items. (public, sans authentification)
      *
      * GET /api/v1/item-icons?names[]=Miches+de+pain&names[]=Sacs+de+maïs
-     * → { "Miches de pain": 50, "Sacs de maïs": 52 }
+     * → { "success": true, "icons": { "Miches de pain": 50, "Sacs de maïs": 52 } }
      *
-     * Seuls les items ayant une association sont inclus dans la réponse.
+     * Seuls les items ayant une association sont inclus. 🔴 Chaque clé est le nom **tel que demandé**
+     * (jamais celui enregistré) : le site retrouve ainsi ses propres noms dans la réponse, quelle que
+     * soit la casse de son collage. Le rapprochement se fait en PHP (`ItemIcon::normalizeName`) sur
+     * tout le référentiel, quelques centaines de lignes : un seul résultat, identique sur SQLite et
+     * MariaDB.
      */
     public function lookup(Request $request): JsonResponse
     {
         $request->validate([
-            'names'   => ['required', 'array', 'max:200'],
+            'names' => ['required', 'array', 'max:200'],
             'names.*' => ['required', 'string', 'max:150'],
         ]);
 
-        $names = $request->input('names', []);
+        // Chaque ligne se retrouve sous son singulier ET sous son pluriel : le jeu écrit « 1 Kilo… » mais « 2 Kilos… ».
+        $index = ItemIcon::query()
+            ->get(['item_name', 'item_name_plural', 'game_item_id'])
+            ->flatMap(fn (ItemIcon $icon) => collect($icon->names())
+                ->mapWithKeys(fn (string $name) => [ItemIcon::normalizeName($name) => $icon->game_item_id]));
 
-        $map = ItemIcon::query()
-            ->whereIn('item_name', $names)
-            ->pluck('game_item_id', 'item_name');
+        $map = [];
+        foreach (array_unique($request->input('names', [])) as $name) {
+            $key = ItemIcon::normalizeName($name);
+            if ($index->has($key)) {
+                $map[$name] = $index[$key];
+            }
+        }
 
-        return response()->json(['success' => true, 'icons' => $map]);
+        // (object) : `{}` et non `[]` quand rien ne correspond.
+        // Cache 24 h imposé par le brief (13/11/2026) : donnée de référence publique qui ne bouge presque jamais.
+        return response()
+            ->json(['success' => true, 'icons' => (object) $map])
+            ->header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
     }
 
-    /** Représentation JSON d'une icône (id, item_name, game_item_id, icon_url). */
+    /** Représentation JSON d'une icône (id, item_name, item_name_plural, game_item_id, icon_url). */
     private function present(ItemIcon $icon): array
     {
         return [
-            'id'           => $icon->id,
-            'item_name'    => $icon->item_name,
+            'id' => $icon->id,
+            'item_name' => $icon->item_name,
+            'item_name_plural' => $icon->item_name_plural,
             'game_item_id' => $icon->game_item_id,
-            'icon_url'     => $icon->iconUrl(),
+            'icon_url' => $icon->iconUrl(),
         ];
     }
 }
