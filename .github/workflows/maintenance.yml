@@ -1,0 +1,38 @@
+name: Maintenance
+
+# Ferme ou rouvre l'Office à la main (brief admin/content/brief-mode-maintenance.md, 18/11/2026).
+#
+# Usage pour essayer une mise à jour AVANT d'ouvrir au public :
+#   1. lancer ce workflow, action « down » ;
+#   2. merger / déployer : le déploiement voit l'Office fermé et le LAISSE fermé ;
+#   3. essayer la nouvelle version par le bypass (voir docs/ARCHITECTURE.md, « Mode maintenance ») ;
+#   4. relancer ce workflow, action « up ».
+#
+# Pas de SSH : scripts/maintenance.sh dépose ou retire par FTP le fichier que `artisan down` écrit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "down = fermer l'Office, up = le rouvrir"
+        required: true
+        type: choice
+        options:
+          - down
+          - up
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Appliquer l'action demandée
+        env:
+          FTP_SERVER: ${{ secrets.FTP_BACK_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_BACK_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_BACK_PASSWORD }}
+          MAINTENANCE_SECRET: ${{ secrets.MAINTENANCE_SECRET }}
+          ACTION: ${{ inputs.action }}
+        run: ./scripts/maintenance.sh "$ACTION"
