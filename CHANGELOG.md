@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-18] — PR #89 (Mode maintenance : l'Office se ferme pendant le déploiement)
+
+### Added
+- **Mode maintenance** (brief `brief-mode-maintenance.md`, décisions de Greg du 18/11/2026) : `scripts/maintenance.sh` dépose/retire `storage/framework/down` **par FTP** (le déploiement n'a pas de SSH). `deploy.yml` ferme l'Office juste avant l'envoi et le rouvre avant les sondes ; un envoi en échec le **laisse fermé** ; un Office **déjà fermé** le reste (essai d'une mise à jour par le bypass avant d'ouvrir). Nouveau workflow `maintenance.yml` (`workflow_dispatch`, `down` / `up`).
+- **API en maintenance** : 503 JSON `{success: false, message: "maintenance", retry_after: 300}` + `Retry-After`, avec en-têtes CORS. Le site des joueurs affiche alors sa page de maintenance (front #126).
+- **Bypass du site des joueurs** : `PreventRequestsDuringMaintenance` accepte aussi le secret dans l'en-tête `X-Maintenance-Bypass` (le cookie natif `/{secret}` reste pour le panneau Blade).
+- 12 tests (`Feature/Maintenance/MaintenanceModeTest`) ; section « Mode maintenance » de `docs/ARCHITECTURE.md`.
+
+### Deploy notes
+- Secret GitHub **`MAINTENANCE_SECRET`** (créé le 18/11/2026). Aucune route ajoutée, aucun `config/*.php`, aucune clé `.env`, aucune migration : rien à lancer en SSH.
+
 ## [2026-11-17] — PR #87 (Notifications admin : un email aux comptes admin à chaque geste qui les attend)
 
 ### Added
