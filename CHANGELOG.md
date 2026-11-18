@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-19] — PR #95 (Accès administrateur sur la page 503 du panneau Blade)
+
+### Added
+- **Accès administrateur sur la page 503 du panneau d'administration** (le secret de maintenance avait été perdu pendant la mise en ligne de Laravel 13) : `resources/views/errors/503.blade.php` remplace la page standard de Laravel. **Pendant une maintenance seulement**, un lien « Accès administrateur » déplie un champ masqué ; le navigateur ouvre `/{secret}`, l'adresse que Laravel reconnaît pour poser le cookie de contournement. Le secret n'est jamais écrit dans la page ; un secret faux ramène sur la même page. Un 503 d'une autre origine n'a pas de formulaire ; l'API reste en JSON.
+- Pour relire le secret actif en SSH : `grep -o '"secret":"[^"]*"' storage/framework/down` (documenté dans `docs/ARCHITECTURE.md`). 4 tests (867).
+
+### Deploy notes
+- Une vue Blade : déploiement FTP seul, **rien à lancer en SSH** (aucune route, aucun `config/*.php`, aucune migration). `php artisan view:clear` seulement si l'ancienne page 503 s'affichait encore lors d'une prochaine maintenance.
+
 ## [2026-11-18] — PR #94 (Migration vers Laravel 13, PHP 8.4, Pest 4 et Passport 13.12)
 
 ### Changed
