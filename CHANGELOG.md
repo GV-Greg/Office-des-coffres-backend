@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-18] — PR #90 (Correctif : deploy.yml invalide depuis le mode maintenance)
+
+### Fixed
+- **`deploy.yml` n'était pas du YAML valide** depuis #89 : deux `run: echo "…"` portaient un `: ` non protégé (« mapping values are not allowed here », ligne 123), GitHub rejetait le workflow sans lancer aucun job — aucun déploiement n'est parti au merge de #89. Passés en bloc littéral (`run: |`).
+- Un test (`Feature/Maintenance/MaintenanceModeTest`) lit désormais `deploy.yml`, `maintenance.yml` et `tests.yml` comme du YAML et vérifie les étapes de maintenance de `deploy.yml`.
+
+### Deploy notes
+- Le merge de cette PR est le **premier déploiement avec le mode maintenance** : l'API répond 503 pendant l'envoi FTP puis rouvre avant les sondes. Aucune route, aucun `config/*.php`, aucune migration.
+
 ## [2026-11-18] — PR #89 (Mode maintenance : l'Office se ferme pendant le déploiement)
 
 ### Added

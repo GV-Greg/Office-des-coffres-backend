@@ -6,6 +6,7 @@
 // mécanisme (`maintenanceMode()->activate`) et on le retire après chaque test.
 
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
+use Symfony\Component\Yaml\Yaml;
 
 const MAINTENANCE_SECRET = 'secret-de-test-0123456789';
 
@@ -138,4 +139,19 @@ test('le déploiement ferme l\'Office avant l\'envoi et le rouvre après', funct
 
     // Un Office déjà fermé reste fermé : les sondes (200 attendu) sont alors ignorées.
     expect($deploy)->toContain("steps.maintenance.outputs.mode != 'held'");
+});
+
+// Incident du 18/11/2026 (back #89) : un `: ` non protégé dans un `run: echo "…"` rendait deploy.yml
+// invalide — GitHub rejette alors le workflow sans lancer aucun job, et plus aucun push sur main ne
+// se déploie. Ce que la CI ne voit pas, ce test le voit.
+test('les workflows se lisent comme du YAML valide, avec les étapes de maintenance', function () {
+    foreach (['deploy', 'maintenance', 'tests'] as $name) {
+        $workflow = Yaml::parseFile(base_path(".github/workflows/{$name}.yml"));
+
+        expect($workflow)->toBeArray()->toHaveKey('jobs');
+    }
+
+    $steps = collect(Yaml::parseFile(base_path('.github/workflows/deploy.yml'))['jobs']['build-and-deploy']['steps'])->pluck('name');
+
+    expect($steps->all())->toContain('Fermer l\'Office (mode maintenance)', 'Rouvrir l\'Office', 'Deploy files via FTP');
 });
