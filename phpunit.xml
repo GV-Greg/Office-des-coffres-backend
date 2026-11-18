@@ -18,6 +18,10 @@
         </include>
     </source>
     <php>
+        <!-- La suite tourne dans UN seul processus et la mémoire monte avec le nombre de tests : à 128 Mo (défaut
+             du conteneur) le test d'export PDF (dompdf) dépassait la limite en fin de suite, une fois les
+             annonces ajoutées (18/11/2026). Un dépassement est fatal : il masque tout résultat. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCharacterController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
 use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
@@ -24,6 +25,9 @@ Route::prefix('v1')->group(function () {
     // Icônes des items — lecture publique (brief admin/content/brief-icones-items.md).
     // ⚠️ Routes ajoutées : route:cache en prod.
     Route::get('item-icons', [ItemIconController::class, 'lookup']);
+
+// Annonce du site en cours (bandeau de l'accueil, 18/11/2026) — publique. ⚠️ Route ajoutée : route:cache en prod.
+Route::get('announcements/current', [AnnouncementController::class, 'current']);
 
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])

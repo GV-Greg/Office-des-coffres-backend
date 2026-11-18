@@ -137,6 +137,7 @@ l'ADR de bascule.
 `GET characters/{character}/mine-registry` renvoie aussi `prices: {write, read}` (province ou `null`).
 
 | GET | `item-icons?names[]=…` | `Api\ItemIconController@lookup` | public — icônes d'items, voir « Icônes des items » |
+| GET | `announcements/current` | `Api\AnnouncementController@current` | public — l'annonce du site en cours (bandeau de l'accueil), voir « Annonces du site » |
 | GET/POST | `admin/item-icons` | `Api\ItemIconController@index/store` | `auth:api`, `role:admin` |
 | PUT/DELETE | `admin/item-icons/{icon}` | `Api\ItemIconController@update/destroy` | `auth:api`, `role:admin` — le PUT ne corrige que `game_item_id` |
 
@@ -148,6 +149,7 @@ l'ADR de bascule.
 | GET | `users` | `users` | `Web\DashboardController@users` | `auth,verified,role:admin` |
 | DELETE | `users/{user}` | `users.destroy` | `Web\DashboardController@destroyUser` | `auth,verified,role:admin` |
 | PATCH | `characters/{character}/validate` | `characters.validate` | `Web\DashboardController@toggleValidation` | `auth,verified,role:admin` |
+| GET/POST/PUT/PATCH/DELETE | `announcements` | `announcements.*` | `Web\AnnouncementController` | `auth,verified,role:admin` — annonces du site : liste, création, modification, retirer/remettre, suppression |
 | GET/POST/PATCH/DELETE | `item-icons` | `item-icons.*` | `Web\ItemIconController` | `auth,verified,role:admin` — référentiel des icônes (liste + recherche, ajout avec aperçu, correction de l'ID, retrait) |
 | GET/POST | `mandates/…` | `mandates.*` | `Web\MandateAdminController` (5 pages dont « Historique », 15 gestes) | `auth,verified,role:admin` |
 | GET/PATCH/DELETE | `/profile` | `profile.*` | `ProfileController` | `auth,verified` (self-service admin, pas un outil de gestion d'autres users) |
@@ -675,6 +677,24 @@ Brief `admin/content/brief-mode-maintenance.md` (Cowork, 11/11/2026) ; décision
 - **Bypass** : le cookie natif (`/{secret}`, panneau Blade) reste. Pour le **site des joueurs** (autre origine, jetons Bearer, aucun cookie envoyé), `App\Http\Middleware\PreventRequestsDuringMaintenance` (remplace celui de Laravel dans `bootstrap/app.php`) accepte aussi le secret dans l'en-tête **`X-Maintenance-Bypass`** (`hash_equals`, jamais un en-tête vide ni un fichier sans secret). Côté site : `/maintenance/<secret>` (frontend, `docs/ARCHITECTURE.md`).
 - Tests : `Feature/Maintenance/MaintenanceModeTest` (503 JSON, CORS, bypass, secret invalide, fichier produit par le script accepté par Laravel, ordre des étapes de `deploy.yml`).
 - ⚠️ **Prod, avant le premier déploiement** : créer le secret `MAINTENANCE_SECRET` (GitHub → Settings → Secrets, backend) ; aucune commande SSH, aucune route ajoutée.
+
+## Annonces du site (18/11/2026, `feat/announcements`, non mergée)
+
+Demande de Greg du 18/11/2026 : **annoncer une maintenance à l'avance**, le message **défile de droite à gauche** sur l'accueil de l'application (`/app/`). Ce lot est le **backend** ; le bandeau (frontend) vient ensuite. Décisions de Greg : saisie par une page d'administration, message FR/EN + échéance + visibilité, une échéance **précise OU en période** (« maintenance prévue cette semaine »).
+
+| Pièce | Rôle |
+|---|---|
+| `site_announcements` | `message_fr` / `message_en` (500 car. : une ligne qui défile), `schedule_type` (`exact` \| `period` \| null), `maintenance_starts_at` / `maintenance_ends_at`, `visible_from` / `visible_until`, `is_active` (retrait manuel). **Dates en UTC**, saisies et relues à Paris. **Hors taxinomie des données utilisateur** : texte de l'administrateur, aucun lien vers un compte (comme `item_icons`) |
+| `App\Models\SiteAnnouncement` | `current()` (la seule annonce servie), `scopeVisibleAt`, `renderMessage()` / `whenPhrase()`, conversions Paris ↔ UTC |
+| `Web\AnnouncementController` + `resources/views/announcements/*` | page `/announcements` (rôle `admin`) : liste avec état (affichée / programmée / terminée / retirée), création, modification, retirer-remettre, suppression |
+| `Api\AnnouncementController` | `GET /api/v1/announcements/current` — **publique** (le bandeau s'affiche aussi sans compte), `Cache-Control: public, max-age=60` |
+
+- **Échéance** : `exact` = un début (date + heure) et, si l'on veut, une fin ; `period` = des **jours** (du 1er à 00:00 au dernier à 23:59:59, heure de Paris ; un seul jour par défaut) ; rien = pas de date.
+- **Marqueur `{quand}` / `{when}`** dans le message (l'un ou l'autre, dans les deux langues) : remplacé par l'API, dans la langue du message, par « le 24 novembre à 22 h 00 », « le 24 novembre de 22 h 00 à 23 h 00 », « du 24 novembre à 22 h 00 au 25 novembre à 02 h 00 », « le 24 novembre », « du 30 novembre au 2 décembre », et — pour une période qui est EXACTEMENT la semaine en cours (lundi-dimanche, Paris) ou la suivante — **« cette semaine » / « la semaine prochaine »** (« this week » / « next week »). Textes dans `lang/{fr,en}/announcements.php` (`when.*`) ; sans marqueur ou sans échéance, le message part tel quel.
+- **Visibilité** : l'annonce est servie de `visible_from` (vide : tout de suite) à `visible_until` ; à défaut jusqu'à la **fin** de la maintenance ; à défaut jusqu'à son **début** (une fois la maintenance commencée le site est fermé, plus rien à annoncer) ; sans aucune échéance, jusqu'au retrait manuel. **Une seule annonce à la fois** : la maintenance la plus proche d'abord, une annonce sans date en dernier, puis la plus récente.
+- **Contrat de l'API** : `{success, announcement: null | {id, message: {fr, en} (marqueur déjà remplacé), schedule: {type, starts_at, ends_at} (UTC, Zulu), visible_until}}` — `visible_until` est la fin effective, pour que le site retire le bandeau sans rappeler l'API.
+- Tests : `Feature/Announcements/AnnouncementsTest` (API, rendu FR/EN, visibilité, ordre, administration, droits).
+- ⚠️ **Prod** : `php artisan migrate` (1 migration) et `php artisan route:cache` (6 routes web + 1 route API) ; aucun `config/*.php`, aucune clé `.env`, aucun paquet. Pas de texte légal : aucune donnée de joueur.
 
 ## Tests
 

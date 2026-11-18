@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\AnimAdminController;
+use App\Http\Controllers\Web\AnnouncementController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ItemIconController;
 use App\Http\Controllers\Web\MandateAdminController;
@@ -72,6 +73,17 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::post('item-icons', [ItemIconController::class, 'store'])->name('item-icons.store');
     Route::patch('item-icons/{icon}', [ItemIconController::class, 'update'])->where('icon', '[0-9]+')->name('item-icons.update');
     Route::delete('item-icons/{icon}', [ItemIconController::class, 'destroy'])->where('icon', '[0-9]+')->name('item-icons.destroy');
+
+    // Annonces du site (18/11/2026) : prévenir d'une maintenance, le bandeau défile sur l'accueil de l'application.
+    // ⚠️ Routes ajoutées : route:cache en prod.
+    Route::prefix('announcements')->name('announcements.')->controller(AnnouncementController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('{announcement}/edit', 'edit')->where('announcement', '[0-9]+')->name('edit');
+        Route::put('{announcement}', 'update')->where('announcement', '[0-9]+')->name('update');
+        Route::patch('{announcement}/toggle', 'toggle')->where('announcement', '[0-9]+')->name('toggle');
+        Route::delete('{announcement}', 'destroy')->where('announcement', '[0-9]+')->name('destroy');
+    });
 
     // Animation (admin/modules/animation/brief-coffres-scelles.md ; tour 12 du fil) : types d'activité, surveillance des
     // activités récentes et recours de l'administration pour les activités SANS COMPTE seulement (clore, retirer avec
