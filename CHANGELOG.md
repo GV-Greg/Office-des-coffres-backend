@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-18] — PR #91 (Annonces du site : prévenir d'une maintenance à l'avance)
+
+### Added
+- **Annonces du site** (demande de Greg du 18/11/2026) : table `site_announcements` (message FR/EN, échéance **précise OU en période** — « cette semaine » —, fenêtre de visibilité, retrait manuel ; dates en UTC, saisies à Paris), `GET /api/v1/announcements/current` (publique, `max-age=60`) qui sert **une seule annonce** (la maintenance la plus proche) et remplace `{quand}` / `{when}` par la date ou la période dans la langue du message (« le 24 novembre à 22 h 00 », « cette semaine », « la semaine prochaine »…), page d'administration `/announcements` (rôle `admin` : créer, modifier, retirer/remettre, supprimer).
+- Visibilité : de `visible_from` à `visible_until` ; à défaut jusqu'à la fin de la maintenance, puis jusqu'à son début.
+- 29 tests (`Feature/Announcements/AnnouncementsTest`) ; sections « Annonces du site » de `docs/ARCHITECTURE.md` et du README.
+
+### Changed
+- `phpunit.xml` : `memory_limit` 512M (la suite, dans un seul processus, dépassait 128 Mo au test d'export PDF).
+
+### Deploy notes
+- ⚠️ **`php artisan migrate`** (1 migration) et **`php artisan route:cache`** (6 routes web + 1 route API) en SSH après le déploiement : sans `route:cache`, `GET /api/v1/announcements/current` reste en 404. Sonde : elle doit répondre 200 `{"success":true,"announcement":null}`. Aucun `config/*.php`, aucune clé `.env`, aucun paquet.
+
 ## [2026-11-18] — PR #90 (Correctif : deploy.yml invalide depuis le mode maintenance)
 
 ### Fixed
