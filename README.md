@@ -40,6 +40,14 @@ Déploiement automatique via **GitHub Actions** sur push `main` :
 1. Build des assets Vite (`npm run build`)
 2. Transfert FTP vers `odc-admin.creacube.be` (O2Switch) — `vendor/` exclu
 
+**Mode maintenance** (18/11/2026) : le déploiement **ferme l'Office** (l'API répond 503 `maintenance`, le site des
+joueurs affiche sa page) juste avant l'envoi FTP et le **rouvre** juste après — sans SSH, `scripts/maintenance.sh`
+dépose/retire `storage/framework/down` par FTP. Il exige le secret GitHub **`MAINTENANCE_SECRET`** (16 caractères
+minimum, `[A-Za-z0-9_-]`) : absent, le déploiement part sans maintenance, avec un avertissement. Un Office **déjà
+fermé** à l'arrivée le **reste** (pour essayer une mise à jour avant d'ouvrir) : workflow **Maintenance**
+(`workflow_dispatch`, `down` puis `up`). Un envoi en échec laisse l'Office fermé. Bypass : `/{secret}` sur l'API
+(panneau Blade) et `/maintenance/{secret}` sur le site des joueurs. Détail : `docs/ARCHITECTURE.md`.
+
 Après chaque déploiement, lancer manuellement en SSH :
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -174,6 +182,7 @@ Préfixe : `/api/v1/`
 | POST | `/characters` | Oui | Crée un personnage (pseudo + ville obligatoires) |
 | PATCH | `/characters/{id}` | Oui | Change la ville d'un personnage (le sien uniquement, 404 sinon) — repasse `is_validated` à `false` et `pending_residence_change` à `true` |
 | GET | `/map` | Non | Arbre royaumes → provinces → villes (sélecteur de ville) |
+| GET | `/announcements/current` | Non | Annonce du site en cours (maintenance à venir), FR et EN, `{quand}` déjà remplacé — bandeau de l'accueil ; `announcement: null` s'il n'y en a pas |
 
 Un compte peut avoir plusieurs personnages, chacun validé individuellement via le dashboard
 admin (`characters.validate`) — la connexion n'est plus bloquée par un personnage non validé,
@@ -189,6 +198,7 @@ seul l'email doit être vérifié.
 | GET | `/users` | rôle `admin` | Tous les comptes, recherche par email ou pseudo de personnage, colonnes email vérifié + personnage(s) |
 | DELETE | `/users/{user}` | rôle `admin` | Supprimer un utilisateur |
 | PATCH | `/characters/{character}/validate` | rôle `admin` | Bascule `is_validated` |
+| GET/POST/PUT/PATCH/DELETE | `/announcements` | rôle `admin` | Annonces du site : créer (date précise ou période, visibilité), modifier, retirer/remettre, supprimer |
 | GET/PATCH | `/profile` | connecté | Profil de l'admin connecté |
 
 `dashboard`, `users`, `users.destroy` et `characters.validate` nécessitent le rôle Spatie
@@ -217,6 +227,7 @@ docker exec odc-backend php artisan tinker --execute="
 | `users` | Comptes utilisateurs |
 | `characters` | Personnages liés aux utilisateurs (`city_id` obligatoire à la création, `pending_residence_change` distingue "en attente : nouveau" de "en attente : changement de résidence") |
 | `rk_kingdoms` / `rk_provinces` / `rk_cities` | Géographie du jeu (seedées via `MapSeeder`) |
+| `site_announcements` | Annonces du site (maintenance à venir) : message FR/EN, échéance précise ou en période, visibilité. Aucun lien vers un compte |
 | `roles` / `permissions` | RBAC Spatie |
 | `model_has_roles` / `model_has_permissions` / `role_has_permissions` | Pivots Spatie |
 
