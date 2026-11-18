@@ -20,6 +20,7 @@
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
+        "laravel/boost": "^2.10",
         "laravel/breeze": "^2.3",
         "laravel/pint": "^1.18",
         "laravel/sail": "^1.43",

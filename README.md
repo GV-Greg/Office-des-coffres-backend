@@ -94,6 +94,13 @@ retourner 4).
 
 ### Développement local
 
+**Laravel Boost** (18/11/2026, `laravel/boost` en `require-dev` : absent de la prod, `composer install --no-dev` l'ignore) — serveur MCP
+de Laravel pour les assistants de code (schéma de la base, journaux, documentation, dernière erreur…). PHP n'existe que dans le
+conteneur : le serveur se déclare donc **par Docker**, pas par `php artisan boost:mcp` seul :
+`claude mcp add -s local -t stdio laravel-boost -- docker exec -i odc-backend php artisan boost:mcp` (conteneur `odc-backend` démarré).
+`boost.json` ne retient que le volet MCP (`php artisan boost:install --mcp`) : ni fichier de consignes (`CLAUDE.md`, `AGENTS.md`),
+ni skills dans le dépôt.
+
 Via Docker (`docker-compose.dev.yml` à la racine du workspace, conteneurs `odc-backend` +
 `odc-db`) — PHP/Composer ne sont généralement pas installés sur l'hôte :
 
