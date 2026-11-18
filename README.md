@@ -48,13 +48,25 @@ fermé** à l'arrivée le **reste** (pour essayer une mise à jour avant d'ouvri
 (`workflow_dispatch`, `down` puis `up`). Un envoi en échec laisse l'Office fermé. Bypass : `/{secret}` sur l'API
 (panneau Blade) et `/maintenance/{secret}` sur le site des joueurs. Détail : `docs/ARCHITECTURE.md`.
 
-Après chaque déploiement, lancer manuellement en SSH :
+Après chaque déploiement, lancer manuellement en SSH (PHP 8.2 en prod) :
 ```bash
-composer install --no-dev --optimize-autoloader
+cd /home/kywq6025/sites/odc/back
+composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-sodium
 php artisan migrate
-php artisan config:clear
+php artisan config:cache
+php artisan route:cache
 php artisan view:clear
 ```
+- **`vendor/` n'est jamais déployé par FTP** : toute modification de `composer.lock` — **y compris chaque montée Dependabot**
+  (ex. `laravel/framework` 12.71.0, resté inactif en prod du 17 au 18/11/2026) — reste sans effet tant que ce
+  `composer install` n'est pas relancé. `--ignore-platform-req=ext-sodium` : l'extension est absente de l'hébergement
+  mutualisé (Passport signe en RSA/OpenSSL, sans impact).
+- **La configuration et les routes sont en cache** : une modification d'un `config/*.php` ou du `.env`, ou une **route
+  ajoutée**, reste sans effet (route en **404**) jusqu'à `config:cache` / `route:cache`. Un NOUVEAU fichier `config/*.php`
+  est absent du cache (`config('x.y')` vaut `null`) : voir `CLAUDE.md`, « Pièges de prod ».
+- **Vérifier** : `composer show | grep -E "^(laravel/framework|monolog/monolog) "` à comparer à `composer.lock`
+  (`composer show` n'accepte qu'un paquet à la fois sans `grep`), puis une sonde `curl` sur `/api/v1/map` (200) et sur une
+  route protégée en JSON (`-H "Accept: application/json"`, 401 attendu sans jeton, jamais 404).
 
 **Une seule fois** (première mise en place de Passport, ou si les clés/le client OAuth doivent
 être régénérés) — génère les clés + le client OAuth et les écrit dans `.env` sans jamais afficher
