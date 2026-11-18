@@ -370,4 +370,4 @@ email au changement de mot de passe (mentionnée dans le brief, hors scope back 
 - **`Js::from`** garde les accents (`JSON_UNESCAPED_UNICODE`) : un test des icônes d'items attendait `\u00e7` ; l'apostrophe, elle, reste échappée.
 - **Sans impact vérifié** : aucun `DELETE` avec `JOIN`, aucun `upsert`, aucun écouteur `JobAttempted`/`QueueBusy`, aucun préfixe de cache ni nom de cookie codé en dur,
   le middleware de maintenance de l'application (méthode `hasValidBypassCookie` surchargée) existe toujours dans Laravel 13.
-- **Vérifié** : 863 tests verts, cycle réel de connexion Passport sur l'API locale avec de vraies clés RSA (connexion, profil, renouvellement du jeton, déconnexion).
+- **Vérifié** : suite complète verte (863 tests à la date de la migration — le décompte courant vit dans le README), cycle réel de connexion Passport sur l'API locale avec de vraies clés RSA (connexion, profil, renouvellement du jeton, déconnexion).
