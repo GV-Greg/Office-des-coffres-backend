@@ -1,16 +1,19 @@
 <?php
 
+use App\Http\Middleware\PreventRequestsDuringMaintenance as AppPreventRequestsDuringMaintenance;
 use App\Http\Middleware\RecordLastSeen;
 use App\Support\AnimApiErrors;
 use App\Support\MandateApiErrors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use Spatie\Permission\Middleware\RoleMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);
+
+        // Mode maintenance : même middleware que Laravel, plus le laissez-passer par en-tête
+        // que présente le site des joueurs (voir la classe).
+        $middleware->replace(PreventRequestsDuringMaintenance::class, AppPreventRequestsDuringMaintenance::class);
 
         // Limiteur 'api' (AppServiceProvider) : défini sans ce branchement, il ne gardait rien.
         $middleware->throttleApi();
@@ -51,6 +58,22 @@ return Application::configure(basePath: dirname(__DIR__))
         // restent signalées.
         $exceptions->dontReportWhen(fn (Throwable $e) => $e instanceof OAuthServerException
             && $e->getErrorType() === 'access_denied');
+
+        // Mode maintenance : l'API répond en JSON, pas en page HTML — le site des joueurs
+        // reconnaît `message: "maintenance"` et affiche sa propre page (brief du 11/11/2026).
+        // `Retry-After` reste porté par les en-têtes (php artisan down --retry=…). L'HTML
+        // standard de Laravel est gardé pour le panneau Blade, jamais ouvert au public.
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if ($e->getStatusCode() !== 503 || ! app()->isDownForMaintenance() || ! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'maintenance',
+                'retry_after' => (int) ($e->getHeaders()['Retry-After'] ?? 0) ?: 300,
+            ], 503, $e->getHeaders());
+        });
 
         // 429 de l'API au format des autres erreurs (le front affiche `message` tel quel) et en
         // français. Le corps `success: false` distingue aussi ce 429 de celui qu'O2Switch

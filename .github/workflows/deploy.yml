@@ -31,6 +31,34 @@ jobs:
       - name: Build Vite assets
         run: npm ci && npm run build
 
+      # Mode maintenance (brief admin/content/brief-mode-maintenance.md, 18/11/2026) : l'Office est
+      # fermé au moment où le premier fichier part, le temps de l'envoi. Fermé APRÈS les tests et la
+      # construction des assets — la fermeture ne dure que ce que dure l'envoi. Pas de SSH ici :
+      # scripts/maintenance.sh dépose/retire par FTP le fichier que `artisan down` écrirait.
+      #   - déjà fermé à l'arrivée (workflow « Maintenance », action down) : l'Office RESTE fermé, pour
+      #     que l'administrateur essaie la nouvelle version par le bypass avant de rouvrir ;
+      #   - MAINTENANCE_SECRET absent : déploiement sans maintenance, avec un avertissement.
+      - name: Fermer l'Office (mode maintenance)
+        id: maintenance
+        env:
+          FTP_SERVER: ${{ secrets.FTP_BACK_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_BACK_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_BACK_PASSWORD }}
+          MAINTENANCE_SECRET: ${{ secrets.MAINTENANCE_SECRET }}
+        run: |
+          if [ -z "$MAINTENANCE_SECRET" ]; then
+            echo "::warning::MAINTENANCE_SECRET absent : déploiement SANS mode maintenance."
+            echo "mode=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$(./scripts/maintenance.sh status)" = "closed" ]; then
+            echo "::notice::L'Office était déjà fermé : il le restera. Rouvrir avec le workflow « Maintenance » (action up)."
+            echo "mode=held" >> "$GITHUB_OUTPUT"
+          else
+            ./scripts/maintenance.sh down
+            echo "mode=auto" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -79,12 +107,32 @@ jobs:
             tailwind.config.js
             vite.config.js
 
+      # Rouvre dès que les fichiers sont en place, AVANT les sondes ci-dessous (elles ont besoin d'un
+      # site ouvert). Un envoi en échec ne passe jamais ici : l'Office reste fermé plutôt que d'être
+      # servi à moitié mis à jour (voir l'étape suivante).
+      - name: Rouvrir l'Office
+        if: steps.maintenance.outputs.mode == 'auto'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_BACK_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_BACK_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_BACK_PASSWORD }}
+        run: ./scripts/maintenance.sh up
+
+      - name: L'Office reste fermé (envoi en échec)
+        if: failure() && steps.maintenance.outputs.mode == 'auto'
+        run: echo "::error::Le déploiement a échoué : l'Office reste EN MAINTENANCE. Corriger puis relancer le déploiement, ou rouvrir avec le workflow « Maintenance » (action up)."
+
+      - name: Office laissé fermé (sondes ignorées)
+        if: steps.maintenance.outputs.mode == 'held'
+        run: echo "::notice::Fichiers déployés, Office toujours en maintenance. Les sondes (origine canonique, CORS) n'ont pas été lancées : un site fermé y répond 503. Essayer par le bypass, puis rouvrir avec le workflow « Maintenance » (action up)."
+
       # Origine canonique (voir public/.htaccess) : les trois autres variantes doivent rediriger
       # vers https://odc-admin.creacube.be en gardant chemin et paramètres — sans quoi la page de
       # connexion admin redevient servable en clair. 301 ou 302 acceptés (302 le temps de
       # vérifier la règle en prod, 301 ensuite). La variante canonique doit répondre 200 sans
       # redirection — une boucle échouerait ici.
       - name: Vérifier la redirection vers l'origine canonique
+        if: steps.maintenance.outputs.mode != 'held'
         run: |
           CANONICAL="https://odc-admin.creacube.be"
           PROBE="/login?verif=1"
@@ -121,6 +169,7 @@ jobs:
       # absent pour un tiers. Les deux sont corrects — seuls « * » et l'écho de l'origine tierce
       # sont des échecs. Espacé et réessayé : O2Switch répond parfois 429 aux rafales.
       - name: Vérifier la restriction CORS de l'API
+        if: steps.maintenance.outputs.mode != 'held'
         run: |
           API="https://odc-admin.creacube.be/api/v1/map"
           OFFICE="https://officedescoffres.creacube.be"

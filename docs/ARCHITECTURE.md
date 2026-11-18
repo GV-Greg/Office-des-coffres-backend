@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 12)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 13/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 18/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Deux usages distincts cohabitent dans ce repo :
@@ -663,6 +663,18 @@ Brief `admin/content/brief-icones-items.md`, fil `admin/echanges/icones-items/`.
 - La vue Blade passe ses chaînes françaises dans JavaScript par **`@js()`** (apostrophes : « Retirer l'icône » rompait le `confirm('…')`, le bouton Supprimer partait sans confirmation) et lit l'URL du CDN dans `ItemIcon::CDN_URL_PATTERN`. Garde-fous : `Feature/ItemIcons/ItemIconsTest`.
 - **Pas d'autocomplete du nom** : la table `inventory_items` du brief n'existe pas (les inventaires sont des textes chiffrés, jamais décomposés).
 - **Décision de Greg (13/11/2026) pour la phase 2 (frontend)** : **aucun aperçu des icônes dans l'interface**, seulement le `[img]` de l'export — un aperçu ferait charger le CDN de Celsius par le navigateur du joueur (adresse IP transmise), ce que `/legal/privacy` §6 exclut.
+
+## Mode maintenance (18/11/2026, `feat/maintenance-mode`, non mergée)
+
+Brief `admin/content/brief-mode-maintenance.md` (Cowork, 11/11/2026) ; décisions de Greg du 18/11/2026. Un **seul interrupteur** ferme l'API et, par elle, le site des joueurs.
+
+- **Pas de SSH au déploiement** : `php artisan down` n'écrit qu'un fichier JSON, `storage/framework/down`, que Laravel lit à chaque requête. `scripts/maintenance.sh` (`down` / `up` / `status` / `payload`) le dépose ou le retire **par FTP** (curl, mêmes identifiants que l'action de déploiement). `storage/framework/**` étant exclu de l'envoi, le fichier n'est ni écrasé ni gardé par un déploiement.
+- **`deploy.yml`** : l'Office est fermé juste avant l'envoi FTP (après tests et construction des assets) et rouvert juste après, **avant** les sondes (origine canonique, CORS : elles attendent un site ouvert). Un envoi en échec **laisse l'Office fermé** plutôt que servi à moitié mis à jour (étape qui le dit, Discord signale l'échec). 🔴 **Un Office déjà fermé à l'arrivée reste fermé** (mode `held`, sondes ignorées) : c'est ainsi qu'on essaie une mise à jour avant d'ouvrir. **`maintenance.yml`** (`workflow_dispatch`, action `down` / `up`) ferme et rouvre à la main : down → déployer → essayer par le bypass → up.
+- 🔴 **Secret** : secret GitHub **`MAINTENANCE_SECRET`** (16 caractères minimum, `[A-Za-z0-9_-]` : il entre tel quel dans le JSON et dans une URL, le script refuse le reste). Absent : le déploiement part **sans** maintenance, avec un avertissement. Aucune clé `.env`, aucun `config/*.php`.
+- **API** : 503 JSON `{success: false, message: "maintenance", retry_after: 300}` + `Retry-After` (`bootstrap/app.php`, uniquement `api/*` en maintenance ; le panneau Blade garde la page 503 de Laravel). `HandleCors` passe **avant** le middleware de maintenance : le 503 et le préflight portent leurs en-têtes CORS (sans eux le navigateur ne verrait qu'une erreur réseau) — figé par test.
+- **Bypass** : le cookie natif (`/{secret}`, panneau Blade) reste. Pour le **site des joueurs** (autre origine, jetons Bearer, aucun cookie envoyé), `App\Http\Middleware\PreventRequestsDuringMaintenance` (remplace celui de Laravel dans `bootstrap/app.php`) accepte aussi le secret dans l'en-tête **`X-Maintenance-Bypass`** (`hash_equals`, jamais un en-tête vide ni un fichier sans secret). Côté site : `/maintenance/<secret>` (frontend, `docs/ARCHITECTURE.md`).
+- Tests : `Feature/Maintenance/MaintenanceModeTest` (503 JSON, CORS, bypass, secret invalide, fichier produit par le script accepté par Laravel, ordre des étapes de `deploy.yml`).
+- ⚠️ **Prod, avant le premier déploiement** : créer le secret `MAINTENANCE_SECRET` (GitHub → Settings → Secrets, backend) ; aucune commande SSH, aucune route ajoutée.
 
 ## Tests
 
