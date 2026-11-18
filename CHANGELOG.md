@@ -7,6 +7,22 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-18] — PR #94 (Migration vers Laravel 13, PHP 8.4, Pest 4 et Passport 13.12)
+
+### Changed
+- **Laravel 12.71 → 13.43.0**, `laravel/tinker` 2 → 3.2, **Pest 3 → 4.7** (PHPUnit 11 → 12 : `pest-plugin-laravel` 3 ne supportait pas Laravel 13), **Passport 13.7 → 13.12** (`phpseclib` 3 → 4.0.3, seulement tiré par Passport). Migration suivie avec la commande `upgrade-laravel-v13` de Laravel Boost (brief `brief-laravel13.md`, Phase 2).
+- **PHP 8.4 partout** : `composer.json` `^8.4`, `Dockerfile.dev`, CI (`tests.yml`, deux tâches) — la même version que la prod (8.4.27 depuis le 18/11/2026).
+- `config/session.php` : `serialization` = `json` (défaut de Laravel 13) ; `config/cache.php` : `serializable_classes` = `false` (aucun objet PHP en cache : audit de back #93).
+- `ItemIconsTest` : `Js::from` garde les accents en Laravel 13 ; l'apostrophe reste échappée.
+
+### Removed
+- `app/Http/Middleware/VerifyCsrfToken.php` : reste inutilisé du squelette Laravel 10 (le middleware s'appelle désormais `PreventRequestForgery`).
+
+### Deploy notes
+- ⚠️ **Mise en ligne sous maintenance** : workflow « Maintenance » `down`, merge, puis **en SSH** `composer install --no-dev --optimize-autoloader` (sans `--ignore-platform-req=ext-sodium` : `sodium` est présente en PHP 8.4), `php artisan config:cache` (deux `config/*.php` modifiés) et `php artisan route:cache`, essai par le bypass, puis « Maintenance » `up`. Pas de `migrate`.
+- **Les sessions du panneau d'administration Blade sont invalidées une fois** (`session.serialization` = `json`) : l'administrateur se reconnecte. L'API joueurs n'est pas touchée (jetons Passport).
+- Vérifier : `composer show | grep -E "^(laravel/framework|laravel/passport|phpseclib/phpseclib) "` → 13.43.0, 13.12.0, 4.0.3.
+
 ## [2026-11-18] — PR #91 (Annonces du site : prévenir d'une maintenance à l'avance)
 
 ### Added
