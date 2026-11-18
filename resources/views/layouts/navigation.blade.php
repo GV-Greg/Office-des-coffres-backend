@@ -14,6 +14,10 @@
                             <i class="fa-solid fa-image mr-1"></i>
                             {{ __('item_icons.title') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
+                            <i class="fa-solid fa-bullhorn mr-1"></i>
+                            {{ __('announcements.title') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -51,6 +55,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('item-icons.index')" :active="request()->routeIs('item-icons.*')">
                     {{ __('item_icons.title') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
+                    {{ __('announcements.title') }}
                 </x-responsive-nav-link>
             @endif
         </div>
