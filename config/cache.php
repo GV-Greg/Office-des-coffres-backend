@@ -108,4 +108,20 @@ return [
 
     'prefix' => env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_cache_'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Serializable Classes
+    |--------------------------------------------------------------------------
+    |
+    | Laravel 13 refuse de désérialiser des objets PHP lus dans le cache (défense
+    | contre les chaînes de gadgets si APP_KEY fuit). `false` : aucun objet n'est
+    | autorisé. ODC ne met en cache que des chaînes et des tableaux de valeurs
+    | simples (MapTree, PurgeAccounts, MandateHeartbeat, AuthController — audit du
+    | 18/11/2026, PR chore/laravel-boost) : toute classe ajoutée ici doit être
+    | une décision, pas un contournement.
+    |
+    */
+
+    'serializable_classes' => false,
+
 ];

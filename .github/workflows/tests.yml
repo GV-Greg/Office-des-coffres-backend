@@ -25,7 +25,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: "8.4"
           extensions: mbstring, dom, fileinfo, mysql, sqlite3, bcmath, intl, pcntl, zip, gd
           coverage: none
 
@@ -103,7 +103,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: "8.4"
           extensions: mbstring, dom, fileinfo, pdo_mysql, bcmath, intl, zip
           coverage: none
 

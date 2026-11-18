@@ -5,16 +5,16 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "andreiio/blade-remix-icon": "^3.9",
         "barryvdh/laravel-dompdf": "^3.1",
         "codeat3/blade-game-icons": "^1.6",
         "davidhsianturi/blade-bootstrap-icons": "^2.2",
         "fakerphp/faker": "^1.23",
         "guzzlehttp/guzzle": "^7.9",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^13.0",
         "laravel/passport": "^13.7",
-        "laravel/tinker": "^2.10",
+        "laravel/tinker": "^3.0",
         "realrashid/sweet-alert": "^7.3",
         "spatie/laravel-permission": "^6.0"
     },
@@ -26,8 +26,8 @@
         "laravel/sail": "^1.43",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
-        "pestphp/pest": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0",
         "spatie/laravel-ignition": "^2.8"
     },
     "autoload": {
