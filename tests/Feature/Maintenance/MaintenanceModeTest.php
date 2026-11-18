@@ -6,6 +6,7 @@
 // mécanisme (`maintenanceMode()->activate`) et on le retire après chaque test.
 
 use App\Http\Middleware\PreventRequestsDuringMaintenance;
+use Illuminate\Support\Facades\Route;
 use Symfony\Component\Yaml\Yaml;
 
 const MAINTENANCE_SECRET = 'secret-de-test-0123456789';
@@ -154,4 +155,46 @@ test('les workflows se lisent comme du YAML valide, avec les étapes de maintena
     $steps = collect(Yaml::parseFile(base_path('.github/workflows/deploy.yml'))['jobs']['build-and-deploy']['steps'])->pluck('name');
 
     expect($steps->all())->toContain('Fermer l\'Office (mode maintenance)', 'Rouvrir l\'Office', 'Deploy files via FTP');
+});
+
+// Accès administrateur sur la page 503 du panneau Blade (Greg, 18/11/2026).
+test('pendant une maintenance, la page 503 du panneau propose l\'accès administrateur', function () {
+    closeTheOffice();
+
+    $response = $this->get('/login');
+
+    $response->assertStatus(503)
+        ->assertSee('Maintenance en cours')
+        ->assertSee('Accès administrateur')
+        ->assertSee('Secret de maintenance')
+        // Le secret n'est écrit nulle part dans la page : le navigateur l'ajoute à l'adresse.
+        ->assertDontSee(MAINTENANCE_SECRET);
+    expect($response->headers->get('Content-Type'))->toContain('text/html');
+});
+
+test('un 503 qui n\'est pas une maintenance n\'a ni formulaire ni secret à saisir', function () {
+    Route::get('/_503-hors-maintenance', fn () => abort(503));
+
+    $this->get('/_503-hors-maintenance')
+        ->assertStatus(503)
+        ->assertSee('Service indisponible')
+        ->assertDontSee('Accès administrateur')
+        ->assertDontSee('maintenance-bypass');
+});
+
+test('l\'adresse /{secret} saisie dans le formulaire pose le cookie et ouvre le panneau', function () {
+    closeTheOffice();
+
+    $this->get('/'.MAINTENANCE_SECRET)->assertRedirect();
+
+    $cookie = collect($this->get('/'.MAINTENANCE_SECRET)->headers->getCookies())->first(fn ($c) => $c->getName() === 'laravel_maintenance');
+    expect($cookie)->not->toBeNull();
+
+    $this->withUnencryptedCookie('laravel_maintenance', $cookie->getValue())->get('/login')->assertOk();
+});
+
+test('la vue 503 n\'affecte pas l\'API : elle répond toujours en JSON', function () {
+    closeTheOffice();
+
+    $this->getJson('/api/v1/map')->assertStatus(503)->assertJson(['message' => 'maintenance']);
 });
