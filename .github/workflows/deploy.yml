@@ -120,11 +120,13 @@ jobs:
 
       - name: L'Office reste fermé (envoi en échec)
         if: failure() && steps.maintenance.outputs.mode == 'auto'
-        run: echo "::error::Le déploiement a échoué : l'Office reste EN MAINTENANCE. Corriger puis relancer le déploiement, ou rouvrir avec le workflow « Maintenance » (action up)."
+        run: |
+          echo "::error::Le déploiement a échoué : l'Office reste EN MAINTENANCE. Corriger puis relancer le déploiement, ou rouvrir avec le workflow « Maintenance » (action up)."
 
       - name: Office laissé fermé (sondes ignorées)
         if: steps.maintenance.outputs.mode == 'held'
-        run: echo "::notice::Fichiers déployés, Office toujours en maintenance. Les sondes (origine canonique, CORS) n'ont pas été lancées : un site fermé y répond 503. Essayer par le bypass, puis rouvrir avec le workflow « Maintenance » (action up)."
+        run: |
+          echo "::notice::Fichiers déployés, Office toujours en maintenance. Les sondes (origine canonique, CORS) n'ont pas été lancées : un site fermé y répond 503. Essayer par le bypass, puis rouvrir avec le workflow « Maintenance » (action up)."
 
       # Origine canonique (voir public/.htaccess) : les trois autres variantes doivent rediriger
       # vers https://odc-admin.creacube.be en gardant chemin et paramètres — sans quoi la page de
