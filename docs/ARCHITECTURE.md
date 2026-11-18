@@ -1,4 +1,4 @@
-# Architecture technique — Backend (Laravel 12)
+# Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
 > 18/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de

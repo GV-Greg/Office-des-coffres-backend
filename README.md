@@ -15,9 +15,10 @@ Dépôt frontend : [Office-des-coffres-vuejs](https://github.com/GV-Greg/Office-
 
 | Outil | Version | Rôle |
 |---|---|---|
-| PHP | 8.2 | Langage |
-| Laravel | 12.x | Framework |
-| Laravel Passport | 13.x | Authentification API (OAuth2 — access + refresh token, « Rester connecté ») |
+| PHP | 8.4 | Langage — 8.4.27 en prod depuis le 18/11/2026 (avant : 8.2), même version dans le conteneur de dev et en CI |
+| Laravel | 13.x | Framework — 12.71 → 13.43 le 18/11/2026 (`chore/laravel-13`) |
+| Pest | 4.x | Tests (PHPUnit 12) |
+| Laravel Passport | 13.12 | Authentification API (OAuth2 — access + refresh token, « Rester connecté ») |
 | Spatie Permission | 6.x | Gestion des rôles et permissions |
 | MariaDB | 11.4.13 | Base de données — même moteur en dev, en CI (job `migrations`) et en prod (relevé sur la prod O2Switch le 04/10/2026, `php artisan db:show`). Pilote Laravel : `mysql`, comme en prod |
 | Vite | 6.x | Build des assets Blade |
@@ -48,10 +49,10 @@ fermé** à l'arrivée le **reste** (pour essayer une mise à jour avant d'ouvri
 (`workflow_dispatch`, `down` puis `up`). Un envoi en échec laisse l'Office fermé. Bypass : `/{secret}` sur l'API
 (panneau Blade) et `/maintenance/{secret}` sur le site des joueurs. Détail : `docs/ARCHITECTURE.md`.
 
-Après chaque déploiement, lancer manuellement en SSH (PHP 8.2 en prod) :
+Après chaque déploiement, lancer manuellement en SSH (PHP 8.4 en prod) :
 ```bash
 cd /home/kywq6025/sites/odc/back
-composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-sodium
+composer install --no-dev --optimize-autoloader
 php artisan migrate
 php artisan config:cache
 php artisan route:cache
@@ -59,8 +60,8 @@ php artisan view:clear
 ```
 - **`vendor/` n'est jamais déployé par FTP** : toute modification de `composer.lock` — **y compris chaque montée Dependabot**
   (ex. `laravel/framework` 12.71.0, resté inactif en prod du 17 au 18/11/2026) — reste sans effet tant que ce
-  `composer install` n'est pas relancé. `--ignore-platform-req=ext-sodium` : l'extension est absente de l'hébergement
-  mutualisé (Passport signe en RSA/OpenSSL, sans impact).
+  `composer install` n'est pas relancé. Sous PHP 8.2 l'extension `sodium` manquait (d'où l'ancien drapeau
+  `--ignore-platform-req=ext-sodium`) ; **sous PHP 8.4 elle est présente** (vérifié en SSH le 18/11/2026) : le drapeau n'est plus nécessaire.
 - **La configuration et les routes sont en cache** : une modification d'un `config/*.php` ou du `.env`, ou une **route
   ajoutée**, reste sans effet (route en **404**) jusqu'à `config:cache` / `route:cache`. Un NOUVEAU fichier `config/*.php`
   est absent du cache (`config('x.y')` vaut `null`) : voir `CLAUDE.md`, « Pièges de prod ».

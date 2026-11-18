@@ -351,3 +351,23 @@ les personnages à ce niveau de détail — l'admin Blade liste et valide, il ne
 `users` : toute révocation passe par `$user->tokens()->…->each(fn($t) => $t->revoke())` avec suppression des refresh tokens associés
 (`RefreshToken::where('access_token_id', $token->id)->update(['revoked' => true])`). Amélioration future envisagée : notification
 email au changement de mot de passe (mentionnée dans le brief, hors scope back #75).
+
+---
+
+## Migration vers Laravel 13, PHP 8.4, Pest 4 (18/11/2026)
+
+**Décision** — Le backend passe de Laravel 12.71 à **13.43**, de PHP 8.2 à **8.4**, de Pest 3 à **4** (PHPUnit 11 → 12) et Passport 13.7 à **13.12**
+(`phpseclib` 3 → 4, seulement tiré par Passport). Brief `admin/content/brief-laravel13.md` ; migration suivie à la lettre de la commande
+`upgrade-laravel-v13` de Laravel Boost (invite MCP lue directement, sans installer de fichiers de consignes dans le dépôt).
+
+- **PHP 8.4 d'abord, en prod** : Greg a basculé o2switch avant le merge (8.4.27 vérifié en SSH). Laravel 13 et Pest 4 exigent PHP ≥ 8.3 ; `composer.json` exige `^8.4`.
+  Conteneur de dev (`Dockerfile.dev`) et CI (`tests.yml`, deux tâches) en 8.4 : la même version partout.
+- **Pest 4 obligatoire** : `pest-plugin-laravel` 3 ne supporte pas Laravel 13. Laravel 13 refusait de s'installer tant que Pest restait en 3.
+- **`session.serialization` = `json`** (défaut de Laravel 13) : les sessions du panneau d'administration Blade (guard `web`) sont invalidées **une fois** — l'administrateur
+  se reconnecte. L'API joueurs n'est pas touchée (jetons Passport).
+- **`cache.serializable_classes` = `false`** : audit du 18/11/2026 (PR chore/laravel-boost) — ODC ne met en cache que des chaînes et des tableaux de valeurs simples.
+- **`VerifyCsrfToken`** (classe de l'application, reste inutilisé du squelette Laravel 10, enregistré nulle part) **supprimée** : le middleware s'appelle désormais `PreventRequestForgery`.
+- **`Js::from`** garde les accents (`JSON_UNESCAPED_UNICODE`) : un test des icônes d'items attendait `\u00e7` ; l'apostrophe, elle, reste échappée.
+- **Sans impact vérifié** : aucun `DELETE` avec `JOIN`, aucun `upsert`, aucun écouteur `JobAttempted`/`QueueBusy`, aucun préfixe de cache ni nom de cookie codé en dur,
+  le middleware de maintenance de l'application (méthode `hasValidBypassCookie` surchargée) existe toujours dans Laravel 13.
+- **Vérifié** : 863 tests verts, cycle réel de connexion Passport sur l'API locale avec de vraies clés RSA (connexion, profil, renouvellement du jeton, déconnexion).

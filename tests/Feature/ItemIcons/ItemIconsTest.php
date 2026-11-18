@@ -393,7 +393,9 @@ test('la vue n\'injecte aucune chaîne française à apostrophe dans un JavaScri
     expect($html)
         // L'apostrophe est échappée en ' dans le JavaScript…
         ->toContain("confirm('Retirer l\\u0027")
-        ->toContain('Aper\\u00e7u de l\\u0027ic')
+        // Laravel 13 : Js::from garde les accents tels quels (JSON_UNESCAPED_UNICODE, guide de mise à jour) — « ç » n'est plus
+        // écrit \\u00e7, l'apostrophe reste, elle, échappée : c'est elle que ce garde-fou protège.
+        ->toContain('Aperçu de l\\u0027ic')
         // …et jamais brute ni en entité (qui redeviendrait une apostrophe dans l'attribut).
         ->not->toContain("Retirer l'icône")
         ->not->toContain('Retirer l&#039;')
