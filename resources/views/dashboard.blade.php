@@ -42,100 +42,81 @@
                 </div>
             @endif
 
-            {{-- 6 CARTES COMPTEURS --}}
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {{-- BANDEAU DE STATS : 6 cellules par domaine (3 × 2 sous lg avec filet gap-px, une ligne dès lg avec divide-x) --}}
+            <div class="shadow-sm rounded-lg overflow-hidden grid grid-cols-3 gap-px bg-gray-200 dark:bg-gray-600 lg:flex lg:gap-0 lg:divide-x lg:divide-gray-200 lg:dark:divide-gray-600">
 
                 {{-- Comptes --}}
-                <a href="{{ route('users') }}" class="block bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <x-ri-group-fill class="w-8 h-8 text-blue-400 shrink-0"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['users'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_users') }}</div>
-                        </div>
+                <a href="{{ route('users') }}" class="flex-1 p-4 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <x-ri-group-fill class="w-5 h-5 text-blue-400 shrink-0"/>
+                        <span class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['users']['total'] }}</span>
                     </div>
-                    @if($counts['users_unverified'] > 0)
-                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                            {{ trans_choice('dashboard.card_users_unverified', $counts['users_unverified'], ['count' => $counts['users_unverified']]) }}
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ __('dashboard.stat_users') }}</div>
+                    @if($counts['users']['unverified'] > 0)
+                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            {{ trans_choice('dashboard.stat_users_unverified', $counts['users']['unverified'], ['count' => $counts['users']['unverified']]) }}
                         </div>
                     @endif
                 </a>
 
                 {{-- Personnages --}}
-                <a href="{{ route('characters') }}" class="block bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <x-ri-user-fill class="w-8 h-8 text-green-400 shrink-0"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['characters'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_characters') }}</div>
-                        </div>
+                <a href="{{ route('characters') }}" class="flex-1 p-4 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <x-ri-user-fill class="w-5 h-5 text-green-400 shrink-0"/>
+                        <span class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['characters']['total'] }}</span>
                     </div>
-                    @if($counts['characters_pending'] > 0)
-                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                            {{ __('dashboard.card_characters_pending', ['count' => $counts['characters_pending']]) }}
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ __('dashboard.stat_characters') }}</div>
+                    @if($counts['characters']['pending'] > 0)
+                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            {{ __('dashboard.stat_characters_pending', ['count' => $counts['characters']['pending']]) }}
                         </div>
                     @endif
                 </a>
 
-                {{-- Mandats actifs --}}
-                <a href="{{ route('mandates.pending') }}" class="block bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <x-ri-user-star-fill class="w-8 h-8 text-indigo-400 shrink-0"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['mandates_running'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_mandates') }}</div>
-                        </div>
+                {{-- Mandats --}}
+                <a href="{{ route('mandates.pending') }}" class="flex-1 p-4 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <x-ri-user-star-fill class="w-5 h-5 text-indigo-400 shrink-0"/>
+                        <span class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['mandates']['running'] }}</span>
                     </div>
-                    @if($counts['mandates_pending'] > 0)
-                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                            {{ __('dashboard.card_mandates_pending', ['count' => $counts['mandates_pending']]) }}
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ __('dashboard.stat_mandates') }}</div>
+                    @if($counts['mandates']['pending'] > 0)
+                        <div class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            {{ __('dashboard.stat_mandates_pending', ['count' => $counts['mandates']['pending']]) }}
                         </div>
                     @endif
                 </a>
 
-                {{-- Relevés mines — non-cliquable --}}
-                <div class="bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 border border-dashed border-gray-300 dark:border-gray-600 cursor-default">
-                    <div class="flex items-center gap-3">
-                        <x-ri-file-list-3-fill class="w-8 h-8 text-amber-400 shrink-0"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['mine_reports_active'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_mine_reports') }}</div>
-                        </div>
+                {{-- Économie — non cliquable --}}
+                <div class="flex-1 p-4 bg-white dark:bg-gray-700 opacity-90 cursor-default">
+                    <div class="flex items-center gap-2">
+                        <x-ri-file-list-3-fill class="w-5 h-5 text-amber-400 shrink-0"/>
+                        <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ __('dashboard.stat_economy') }}</span>
                     </div>
-                    <div class="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        @if($counts['mine_report_latest'])
-                            {{ __('dashboard.card_mine_reports_latest', ['date' => \Carbon\Carbon::parse($counts['mine_report_latest'])->format('d/m/Y')]) }}
-                        @else
-                            {{ __('dashboard.card_mine_reports_none') }}
-                        @endif
-                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ trans_choice('dashboard.stat_economy_reports', $counts['economy']['reports'], ['count' => $counts['economy']['reports']]) }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ trans_choice('dashboard.stat_economy_provinces', $counts['economy']['provinces'], ['count' => $counts['economy']['provinces']]) }}</div>
+                    @if($counts['economy']['latest'])
+                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ __('dashboard.stat_economy_latest', ['date' => \Carbon\Carbon::parse($counts['economy']['latest'])->format('d/m')]) }}</div>
+                    @endif
                 </div>
 
-                {{-- Coffres scellés --}}
-                <a href="{{ route('anim.index') }}" class="block bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div class="flex items-center gap-3">
-                        <x-gameicon-chest class="w-8 h-8 text-teal-400 shrink-0 [&>path:first-child]:fill-transparent [&>path:last-child]:fill-current"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['secrets_open'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_secrets') }}</div>
-                        </div>
+                {{-- Animation --}}
+                <a href="{{ route('anim.index') }}" class="flex-1 p-4 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <x-gameicon-chest class="w-5 h-5 text-teal-400 shrink-0 [&>path:first-child]:fill-transparent [&>path:last-child]:fill-current"/>
+                        <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ __('dashboard.stat_animation') }}</span>
                     </div>
-                    @if($counts['secrets_found_week'] > 0)
-                        <div class="text-xs text-green-600 dark:text-green-400 mt-2">
-                            {{ trans_choice('dashboard.card_secrets_found', $counts['secrets_found_week'], ['count' => $counts['secrets_found_week']]) }}
-                        </div>
-                    @endif
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ trans_choice('dashboard.stat_animation_secrets', $counts['animation']['secrets'], ['count' => $counts['animation']['secrets']]) }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ trans_choice('dashboard.stat_animation_grids', $counts['animation']['grids'], ['count' => $counts['animation']['grids']]) }}</div>
                 </a>
 
-                {{-- Provinces avec prix — non-cliquable --}}
-                <div class="bg-white dark:bg-gray-700 shadow-sm rounded-lg p-4 border border-dashed border-gray-300 dark:border-gray-600 cursor-default">
-                    <div class="flex items-center gap-3">
-                        <x-ri-money-dollar-circle-fill class="w-8 h-8 text-amber-400 shrink-0"/>
-                        <div>
-                            <div class="text-3xl font-bold text-gray-800 dark:text-gray-100">{{ $counts['provinces_with_prices'] }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.card_prices') }}</div>
-                        </div>
+                {{-- Sécurité — réservée (module Douane), non cliquable --}}
+                <div class="flex-1 p-4 bg-white dark:bg-gray-700 opacity-90 cursor-default">
+                    <div class="flex items-center gap-2">
+                        <x-ri-shield-fill class="w-5 h-5 text-red-400 shrink-0"/>
+                        <span class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ __('dashboard.stat_security') }}</span>
                     </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ __('dashboard.stat_security_empty') }}</div>
                 </div>
 
             </div>

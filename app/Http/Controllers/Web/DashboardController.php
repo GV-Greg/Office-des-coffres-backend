@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AnimDecodeActivity;
 use App\Models\AnimDecodeProposal;
 use App\Models\AnimDecodeSecret;
+use App\Models\AnimRewardsGrid;
+use App\Models\AnimRewardsList;
 use App\Models\Character;
 use App\Models\CouncilMandate;
 use App\Models\Mandate;
@@ -15,7 +17,7 @@ use App\Models\ProvinceMinePrice;
 use App\Models\User;
 use App\Services\AccountDeletion;
 use App\Services\DecodeScoring;
-use App\Services\DecodeWorkflow;
+use App\Support\AnimKinds;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
@@ -28,21 +30,30 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
+        // Bandeau de stats : un groupe par cellule (Comptes, Personnages, Mandats, Économie, Animation ; Sécurité est réservée).
         $counts = [
-            'users'                => User::count(),
-            'users_unverified'     => User::whereNull('email_verified_at')->count(),
-            'characters'           => Character::count(),
-            'characters_pending'   => self::pendingCharactersCount(),
-            'mandates_running'     => MayorMandate::running()->count() + CouncilMandate::running()->count(),
-            'mandates_pending'     => MayorMandate::where('status', Mandate::PENDING)->count()
-                                    + CouncilMandate::where('status', Mandate::PENDING)->count(),
-            'mine_reports_active'  => MineReport::where('active', true)->count(),
-            'mine_report_latest'   => MineReport::where('active', true)->max('reported_at'),
-            'secrets_open'         => AnimDecodeSecret::where('status', false)->count(),
-            'secrets_found_week'   => AnimDecodeProposal::where('points', DecodeScoring::FOUND)
-                                        ->where('created_at', '>=', Carbon::now()->subWeek())
-                                        ->count(),
-            'provinces_with_prices' => ProvinceMinePrice::distinct()->count('province_id'),
+            'users' => [
+                'total'      => User::count(),
+                'unverified' => User::whereNull('email_verified_at')->count(),
+            ],
+            'characters' => [
+                'total'   => Character::count(),
+                'pending' => self::pendingCharactersCount(),
+            ],
+            'mandates' => [
+                'running' => MayorMandate::running()->count() + CouncilMandate::running()->count(),
+                'pending' => MayorMandate::where('status', Mandate::PENDING)->count()
+                           + CouncilMandate::where('status', Mandate::PENDING)->count(),
+            ],
+            'economy' => [
+                'reports'   => MineReport::where('active', true)->count(),
+                'provinces' => ProvinceMinePrice::distinct()->count('province_id'),
+                'latest'    => MineReport::where('active', true)->max('reported_at'),
+            ],
+            'animation' => [
+                'secrets' => AnimDecodeSecret::where('status', false)->count(),
+                'grids'   => AnimRewardsGrid::where('status', '!=', AnimRewardsGrid::CLOSED)->count(),
+            ],
         ];
 
         $expiringMandates   = $this->expiringMandates();
@@ -147,27 +158,42 @@ class DashboardController extends Controller
         return $mayors->concat($councils)->sortBy('expires')->values();
     }
 
-    /** Activités non closes dont la dernière action remonte à plus de 23 jours (7 j avant la fermeture à 30 j). */
+    /**
+     * Activités non closes (tous les types d'`AnimKinds` : Décode le code, Grille des lots) dont la dernière action remonte à plus de
+     * 23 jours (7 j avant la fermeture à 30 j, `anim:close-inactive`).
+     */
     private function inactiveActivities(): Collection
     {
-        $workflow = app(DecodeWorkflow::class);
+        $alerts = collect();
 
-        return AnimDecodeActivity::where('status', '!=', AnimDecodeActivity::CLOSED)
-            ->with(['character'])
-            ->get()
-            ->filter(fn ($a) => $workflow->lastActionAt($a)->lessThan(Carbon::now()->subDays(23)))
-            ->map(function ($a) use ($workflow) {
-                $daysGone = (int) $workflow->lastActionAt($a)->diffInDays(Carbon::now());
+        foreach (AnimKinds::all() as $kind) {
+            $model    = $kind['model'];
+            $workflow = app($kind['workflow']);
 
-                return [
-                    'name'      => $a->name,
-                    'organizer' => $a->is_anonymous
-                        ? ($a->organizer_name ?? '?')
-                        : ($a->character?->pseudo ?? __('dashboard.deleted_character')),
-                    'days_left' => AnimDecodeActivity::INACTIVITY_DAYS - $daysGone,
-                ];
-            })
-            ->values();
+            $model::where('status', '!=', $model::CLOSED)
+                ->with(['character'])
+                ->get()
+                ->filter(fn ($a) => $workflow->lastActionAt($a)->lessThan(Carbon::now()->subDays(23)))
+                ->each(function ($a) use ($workflow, $model, $alerts) {
+                    $daysGone = (int) $workflow->lastActionAt($a)->diffInDays(Carbon::now());
+
+                    $alerts->push([
+                        'name'      => $a->name,
+                        'organizer' => $this->organizerName($a),
+                        'days_left' => $model::INACTIVITY_DAYS - $daysGone,
+                    ]);
+                });
+        }
+
+        return $alerts->sortBy('days_left')->values();
+    }
+
+    /** Organisateur d'une activité d'Animation : nom libre (sans compte) ou pseudo du personnage. */
+    private function organizerName(AnimDecodeActivity|AnimRewardsGrid $activity): string
+    {
+        return $activity->is_anonymous
+            ? ($activity->organizer_name ?? '?')
+            : ($activity->character?->pseudo ?? __('dashboard.deleted_character'));
     }
 
     /** Les 20 événements les plus récents du site, toutes sources confondues. */
@@ -300,9 +326,7 @@ class DashboardController extends Controller
                 'color'     => 'text-teal-400',
                 'text'      => __('dashboard.event_activity_created', [
                     'name'      => $a->name,
-                    'organizer' => $a->is_anonymous
-                        ? ($a->organizer_name ?? '?')
-                        : ($a->character?->pseudo ?? __('dashboard.deleted_character')),
+                    'organizer' => $this->organizerName($a),
                 ]),
                 'url' => route('anim.index'),
             ]));
@@ -343,6 +367,61 @@ class DashboardController extends Controller
                 'text'      => __('dashboard.event_secret_found', [
                     'name'      => $p->secret?->activity?->name ?? '?',
                     'character' => $p->character_name ?? '?',
+                ]),
+                'url' => route('anim.index'),
+            ]));
+
+        // Grilles des lots : créée, tirée, clôturée. Le tirage mène directement à `confirmed` (jamais `drawed`) et pose
+        // `drawn_at` et `confirmed_at` ensemble : `drawn_at` suffit.
+        AnimRewardsGrid::with('character')
+            ->latest()->limit($limit)->get()
+            ->each(fn ($g) => $events->push([
+                'date'      => $g->created_at,
+                'icon'      => 'podium',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_grid_created', [
+                    'name'      => $g->name,
+                    'organizer' => $this->organizerName($g),
+                ]),
+                'url' => route('anim.index'),
+            ]));
+
+        AnimRewardsGrid::whereNotNull('drawn_at')
+            ->orderByDesc('drawn_at')->limit($limit)->get()
+            ->each(fn ($g) => $events->push([
+                'date'      => $g->drawn_at,
+                'icon'      => 'perspective-dice-six-faces-random',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_grid_drawn', ['name' => $g->name]),
+                'url'       => route('anim.index'),
+            ]));
+
+        AnimRewardsGrid::whereNotNull('closed_at')
+            ->orderByDesc('closed_at')->limit($limit)->get()
+            ->each(fn ($g) => $events->push([
+                'date'      => $g->closed_at,
+                'icon'      => 'checkered-flag',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_grid_closed', ['name' => $g->name]),
+                'url'       => route('anim.index'),
+            ]));
+
+        // Lots attribués (un nom de joueur posé sur la case), datés de `updated_at`
+        AnimRewardsList::whereNotNull('player')
+            ->with('grid')
+            ->orderByDesc('updated_at')->limit($limit)->get()
+            ->each(fn ($l) => $events->push([
+                'date'      => $l->updated_at,
+                'icon'      => 'trophy',
+                'icon_type' => 'game',
+                'color'     => 'text-teal-400',
+                'text'      => __('dashboard.event_prize_awarded', [
+                    'prize'  => $l->name,
+                    'winner' => $l->player,
+                    'grid'   => $l->grid?->name ?? '?',
                 ]),
                 'url' => route('anim.index'),
             ]));
