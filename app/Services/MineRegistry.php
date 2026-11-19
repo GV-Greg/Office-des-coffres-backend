@@ -6,6 +6,7 @@ use App\Exceptions\MandateRefusal;
 use App\Models\Character;
 use App\Models\MineReport;
 use App\Models\Province;
+use App\Support\MandateCalendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -50,7 +51,7 @@ class MineRegistry
         // toujours les 7 derniers jours du jeu, dont les heures datées du jour même du collage. Un collage
         // d'hier se date d'hier, et rattrape un jour manquant sans remplacer celui d'aujourd'hui.
         $today = self::reportDate($data['report']);
-        if ($today > Carbon::now('Europe/Paris')->toDateString()) {
+        if ($today > MandateCalendar::today()) {
             throw MandateRefusal::make('report', 'mines.api.mine_report_future');
         }
 
@@ -109,7 +110,7 @@ class MineRegistry
             }
         }
 
-        return $days ? max($days) : Carbon::now('Europe/Paris')->toDateString();
+        return $days ? max($days) : MandateCalendar::today();
     }
 
     /** R3 bis : identique → refus ; strictement moins → refus ; tout le reste → remplaçable. */

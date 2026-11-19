@@ -371,3 +371,27 @@ email au changement de mot de passe (mentionnée dans le brief, hors scope back 
 - **Sans impact vérifié** : aucun `DELETE` avec `JOIN`, aucun `upsert`, aucun écouteur `JobAttempted`/`QueueBusy`, aucun préfixe de cache ni nom de cookie codé en dur,
   le middleware de maintenance de l'application (méthode `hasValidBypassCookie` surchargée) existe toujours dans Laravel 13.
 - **Vérifié** : suite complète verte (863 tests à la date de la migration — le décompte courant vit dans le README), cycle réel de connexion Passport sur l'API locale avec de vraies clés RSA (connexion, profil, renouvellement du jeton, déconnexion).
+
+---
+
+## Le jour du jeu commence à 04:00 heure de Paris (20/11/2026)
+
+**Contexte** — Le jeu change de jour à **04:00 heure de Paris** (heure locale, toute l'année), pas à minuit. Constaté le 20/11/2026 avec le mandat n°5 de Buldo
+(Ventadour) : fin calculée à 00:00, donc « sorti de fonction » 4 h trop tôt, et le niveau « Ville » de l'inventaire disparu pendant la nuit. Source : **constat
+joueur (Greg, 20/11/2026)** ; aucune documentation officielle publique identifiée (recherche de Cowork). Fil `admin/echanges/mandats-heure-bascule/` ; remplace la
+réponse Q11 de `mandats-lot1` (« 00:00 heure de Paris »), qui ne connaissait pas la bascule.
+
+**Décision** — `MandateCalendar::GAME_DAY_STARTS_AT_HOUR = 4`, en **constante de classe** (jamais `config/*.php` : un fichier de config modifié ou ajouté n'est pas
+pris par le cache de configuration de la prod, incident du 04/10/2026).
+- `startOfGameDay($date)` = 04:00 Paris de ce jour ; `endOfGameDay` = 04:00 le lendemain ; `addGameDays` ajoute des jours au local Paris, donc **garde 04:00**,
+  changement d'heure compris ; `today()` = le jour du jeu en cours (avant 04:00, c'est encore la veille du calendrier).
+- Un mandat « commencé le 21/10 » entre en fonction le 21/10 à **04:00** et finit, pour 30 jours, le 20/11 à **04:00** (60 jours pour un conseiller). Les durées
+  annoncées aux joueurs ne changent pas : seul le point de départ.
+- Même jour du jeu pour les **prix** (`MandateAuthority::canEditPriceOn`, `MinePrices`), le **registre des mines** (`MineRegistry`) et le **registre des stocks de la
+  province** (`ProvinceInventoryRegistry`). Inchangés : les tâches planifiées (09:00 et 15:00 Paris), les durées « en jours » (délais de grâce), les affichages `d/m/Y`,
+  le `todayIso()` du frontend (semaine proposée au joueur, pas une contrainte métier).
+
+**Migration** `2026_11_20_000001_shift_mandate_instants_to_game_day_04h` — décale de **+4 h** les instants dont l'heure locale Paris est **exactement 00:00:00**
+(`mayor_mandates`, `council_mandates` : `valid_until`, `in_office_from`, `holds_until` ; `council_office_periods` et `office_history_archive` : `started_at`, `ended_at`).
+Une valeur posée à la main à une autre heure ne bouge pas ; rejouable sans effet. **`down()` est sans effet** : on ne peut pas distinguer une valeur d'origine à 04:00
+d'une valeur migrée. ⚠️ Prod : le déploiement ne lance pas les migrations — `php artisan migrate` à la main ; ni `route:cache` ni `config:cache` nécessaires.

@@ -8,6 +8,7 @@ use App\Models\CouncilMandate;
 use App\Models\MayorMandate;
 use App\Models\Province;
 use App\Models\ProvinceMinePrice;
+use App\Support\MandateCalendar;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -140,12 +141,10 @@ class MandateAuthority
      */
     public function canEditPriceOn(Character $character, Province $province, string $date): bool
     {
-        $timezone = config('mandates.timezone');
-        // Les bornes du jour de Paris sont ramenées en UTC : la base stocke en UTC et le query builder formate un Carbon
-        // tel quel, sans conversion — sans cela, la comparaison glisse de 1 à 2 heures (constaté le 16/10/2026).
-        $paris = Carbon::parse($date, $timezone)->startOfDay();
-        $dayStart = $paris->copy()->utc();
-        $dayEnd = $paris->copy()->addDay()->utc();
+        // Le jour du jeu va de 04:00 à 04:00 (heure de Paris) : bornes ramenées en UTC, car la base stocke en UTC et le query builder
+        // formate un Carbon tel quel, sans conversion — sans cela, la comparaison glisse de 1 à 2 heures (constaté le 16/10/2026).
+        $dayStart = MandateCalendar::startOfGameDay($date);
+        $dayEnd = MandateCalendar::endOfGameDay($date);
         $limit = Carbon::now()->subDays((int) config('mandates.price_edit_grace_days'));
 
         return CouncilMandate::query()

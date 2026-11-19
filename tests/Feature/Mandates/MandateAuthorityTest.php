@@ -23,20 +23,59 @@ afterEach(fn () => Carbon::setTestNow());
 test('la fin nominale compte 30 jours fixes pour un maire, sans effet de fin de mois', function () {
     // 31/01 + 30 jours = 02/03 (2026 n'est pas bissextile), et non « le 31/02 » ni le 28/02.
     expect(MandateCalendar::validUntil('mayor', '2026-01-31')->setTimezone('Europe/Paris')->format('Y-m-d H:i'))
-        ->toBe('2026-03-02 00:00');
+        ->toBe('2026-03-02 04:00');
 });
 
 test('la fin nominale compte 60 jours pour un conseiller', function () {
     expect(MandateCalendar::validUntil('council', '2026-01-31')->setTimezone('Europe/Paris')->format('Y-m-d H:i'))
-        ->toBe('2026-04-01 00:00');
+        ->toBe('2026-04-01 04:00');
 });
 
-test('un mandat qui traverse le passage à l\'heure d\'été finit à 00:00 heure de Paris', function () {
-    // Passage à l'heure d'été le 29/03/2026 : la fin reste à minuit, jour civil, sans décalage d'une heure.
+test('un mandat qui traverse le passage à l\'heure d\'été finit à 04:00 heure de Paris', function () {
+    // Passage à l'heure d'été le 29/03/2026 : la fin reste à 04:00 (heure du jeu), jour civil, sans décalage d'une heure en heure locale.
     $end = MandateCalendar::validUntil('mayor', '2026-03-15');
 
-    expect($end->copy()->setTimezone('Europe/Paris')->format('Y-m-d H:i'))->toBe('2026-04-14 00:00')
-        ->and($end->format('Y-m-d H:i'))->toBe('2026-04-13 22:00'); // stocké en UTC
+    expect($end->copy()->setTimezone('Europe/Paris')->format('Y-m-d H:i'))->toBe('2026-04-14 04:00')
+        ->and($end->format('Y-m-d H:i'))->toBe('2026-04-14 02:00'); // stocké en UTC (CEST = UTC+2)
+
+    // Le début, lui, est à 04:00 heure d'hiver (CET = UTC+1) : 03:00 UTC.
+    expect(MandateCalendar::startOfGameDay('2026-03-15')->format('Y-m-d H:i'))->toBe('2026-03-15 03:00');
+});
+
+test('le jour du jeu commence à 04:00 heure de Paris : bornes, durée et jour en cours', function () {
+    expect(MandateCalendar::GAME_DAY_STARTS_AT_HOUR)->toBe(4)
+        ->and(MandateCalendar::startOfGameDay('2026-11-20')->setTimezone('Europe/Paris')->format('Y-m-d H:i'))->toBe('2026-11-20 04:00')
+        ->and(MandateCalendar::endOfGameDay('2026-11-20')->setTimezone('Europe/Paris')->format('Y-m-d H:i'))->toBe('2026-11-21 04:00');
+
+    // Avant 04:00, on est encore la veille du calendrier ; à 04:00, le nouveau jour commence.
+    atGameTime('2026-11-20 03:59');
+    expect(MandateCalendar::today())->toBe('2026-11-19');
+    atGameTime('2026-11-20 04:00');
+    expect(MandateCalendar::today())->toBe('2026-11-20');
+    atGameTime('2026-11-20 23:59');
+    expect(MandateCalendar::today())->toBe('2026-11-20');
+});
+
+test('un maire reste en fonction jusqu\'à 04:00 le jour de la fin, et entre en fonction à 04:00 le jour du début (cas de Buldo, 20/11/2026)', function () {
+    $player = mandatePlayer($this->map['cityA']);
+    atGameTime('2026-10-21 12:00');
+    approvedMayor($player, $this->map['cityA'], '2026-10-21');
+
+    // Début : le 21/10 à 04:00, pas à minuit.
+    atGameTime('2026-10-21 03:59');
+    expect($this->authority->activeMayorMandate($player))->toBeNull();
+    atGameTime('2026-10-21 04:00');
+    expect($this->authority->activeMayorMandate($player))->not->toBeNull();
+
+    // Fin : 30 jours plus tard, le 20/11 à 04:00 — encore maire à 00:11 et à 03:59, plus à 04:00.
+    atGameTime('2026-11-20 00:11');
+    expect($this->authority->activeMayorMandate($player))->not->toBeNull()
+        ->and($this->authority->inventoryCity($player)?->id)->toBe($this->map['cityA']->id);
+    atGameTime('2026-11-20 03:59');
+    expect($this->authority->activeMayorMandate($player))->not->toBeNull();
+    atGameTime('2026-11-20 04:00');
+    expect($this->authority->activeMayorMandate($player))->toBeNull()
+        ->and($this->authority->inventoryCity($player))->toBeNull();
 });
 
 test('les durées viennent de config/mandates.php', function () {

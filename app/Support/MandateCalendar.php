@@ -6,30 +6,46 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
- * Dates des mandats. Toutes les durées sont des JOURS CIVILS du fuseau du jeu (config
- * mandates.timezone) : on part de 00:00 de ce fuseau, on ajoute des jours (addDays, jamais
- * addMonth), puis on stocke en UTC. Un changement d'heure au milieu du mandat ne décale donc la
- * fin ni d'une heure ni d'un jour.
+ * Dates des mandats. Toutes les durées sont des JOURS DU JEU, dans le fuseau du jeu (config
+ * mandates.timezone) : le jeu change de jour à 04:00 heure de Paris, pas à minuit (constat de Greg,
+ * 20/11/2026 ; fil mandats-heure-bascule, validé par Cowork). On part donc de 04:00 de ce fuseau, on
+ * ajoute des jours (addDays, jamais addMonth), puis on stocke en UTC. Un changement d'heure au milieu
+ * du mandat ne décale donc la fin ni d'une heure ni d'un jour : elle reste à 04:00 heure de Paris.
+ * Un mandat « commencé le 21/10 » entre en fonction le 21/10 à 04:00 et, pour 30 jours, finit le 20/11
+ * à 04:00.
+ *
+ * 🔴 L'heure de bascule est une CONSTANTE, jamais une clé de `config/*.php` : un fichier de config
+ * modifié ou ajouté n'est pas pris par le cache de configuration de la prod (incident du 04/10/2026).
  */
 class MandateCalendar
 {
+    /** Heure (locale du jeu) à laquelle le jeu change de jour. */
+    public const GAME_DAY_STARTS_AT_HOUR = 4;
+
     public static function timezone(): string
     {
         return config('mandates.timezone');
     }
 
-    /** 00:00, heure du jeu, du jour donné — en UTC. */
+    /** Début du jour du jeu donné (04:00, heure du jeu) — en UTC. */
     public static function startOfGameDay(CarbonInterface|string $date): Carbon
     {
         $day = $date instanceof CarbonInterface ? $date->format('Y-m-d') : $date;
 
-        return Carbon::createFromFormat('Y-m-d', $day, self::timezone())->startOfDay()->utc();
+        return Carbon::createFromFormat('Y-m-d', $day, self::timezone())
+            ->startOfDay()->setTime(self::GAME_DAY_STARTS_AT_HOUR, 0)->utc();
     }
 
-    /** Date du jour dans le fuseau du jeu, au format Y-m-d. */
+    /** Fin du jour du jeu donné = début du suivant (04:00 le lendemain) — en UTC. */
+    public static function endOfGameDay(CarbonInterface|string $date): Carbon
+    {
+        return self::addGameDays(self::startOfGameDay($date), 1);
+    }
+
+    /** Le jour du jeu EN COURS, au format Y-m-d : avant 04:00, c'est encore la veille du calendrier. */
     public static function today(): string
     {
-        return Carbon::now(self::timezone())->format('Y-m-d');
+        return Carbon::now(self::timezone())->subHours(self::GAME_DAY_STARTS_AT_HOUR)->format('Y-m-d');
     }
 
     /** Ajoute des jours civils du fuseau du jeu à un instant stocké en UTC. */

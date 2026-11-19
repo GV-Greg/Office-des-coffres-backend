@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 18/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 20/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
@@ -162,7 +162,7 @@ Spéc. `admin/content/brief-mandats.md` ; **arbitrages** : `admin/echanges/manda
 |---|---|
 | `MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice`, `canManageMines` / `canReadMines` (province du **poste**), `canManagePrices` / `canReadPrices`, `inventoryCity` / `INVENTORY_PROVINCE_OFFICES` |
 | `MandateWorkflow` | tous les gestes, seul écrivain de `holds_until` |
-| `MandateCalendar` | jours civils `Europe/Paris`, `addDays` jamais `addMonth`, stockés UTC |
+| `MandateCalendar` | **jour du jeu : 04:00 Paris** (constante `GAME_DAY_STARTS_AT_HOUR`, jamais en config), `addDays` jamais `addMonth`, stockés UTC ; `today()` = jour du jeu en cours ; suivi aussi par les prix, `MineRegistry` et `ProvinceInventoryRegistry` |
 | `MandateLabels` | libellés FR/EN ; motif sans libellé → **code**, jamais clé brute |
 | `MandateDecision` | email bilingue, synchrone, jamais la note |
 
