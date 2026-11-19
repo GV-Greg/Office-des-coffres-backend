@@ -3,19 +3,22 @@
 return [
     'title' => 'Tableau de bord',
 
-    // Cartes compteurs
-    'card_users'                 => 'Comptes',
-    'card_users_unverified'      => ':count non vérifié|:count non vérifiés',
-    'card_characters'            => 'Personnages',
-    'card_characters_pending'    => ':count à valider',
-    'card_mandates'              => 'Mandats actifs',
-    'card_mandates_pending'      => ':count en attente',
-    'card_mine_reports'          => 'Relevés mines',
-    'card_mine_reports_latest'   => 'dernier le :date',
-    'card_mine_reports_none'     => 'aucun relevé actif',
-    'card_secrets'               => 'Coffres scellés',
-    'card_secrets_found'         => ':count ouvert cette semaine|:count ouverts cette semaine',
-    'card_prices'                => 'Provinces avec prix',
+    // Bandeau de stats
+    'stat_users'              => 'Comptes',
+    'stat_users_unverified'   => ':count non vérifié|:count non vérifiés',
+    'stat_characters'         => 'Personnages',
+    'stat_characters_pending' => ':count à valider',
+    'stat_mandates'           => 'Mandats',
+    'stat_mandates_pending'   => ':count en attente',
+    'stat_economy'            => 'Économie',
+    'stat_economy_reports'    => ':count relevé|:count relevés',
+    'stat_economy_provinces'  => ':count province|:count provinces',
+    'stat_economy_latest'     => 'dern. :date',
+    'stat_animation'          => 'Animation',
+    'stat_animation_secrets'  => ':count coffre|:count coffres',
+    'stat_animation_grids'    => ':count grille|:count grilles',
+    'stat_security'           => 'Sécurité',
+    'stat_security_empty'     => '—',
 
     // Alertes
     'alert_expiring_title'   => 'Mandats expirant dans 7 jours',
@@ -43,6 +46,10 @@ return [
     'event_activity_launched'  => 'Activité lancée : « :name »',
     'event_activity_closed'    => 'Activité clôturée : « :name »',
     'event_secret_found'       => 'Coffre percé : « :name » par :character',
+    'event_grid_created'       => 'Grille créée : « :name » par :organizer',
+    'event_grid_drawn'         => 'Grille tirée : « :name »',
+    'event_grid_closed'        => 'Grille clôturée : « :name »',
+    'event_prize_awarded'      => 'Lot attribué : :prize → :winner (« :grid »)',
 
     // Divers
     'deleted_character' => 'personnage supprimé',

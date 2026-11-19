@@ -6,6 +6,7 @@ use App\Models\MineReport;
 use App\Models\Province;
 use App\Models\User;
 use App\Services\DecodeWorkflow;
+use App\Services\RewardsGridWorkflow;
 use Illuminate\Support\Carbon;
 
 /*
@@ -17,17 +18,17 @@ afterEach(fn () => Carbon::setTestNow());
 
 // ─── Cartes de compteurs ────────────────────────────────────────────────────────────────────────
 
-test('le tableau de bord affiche les 6 étiquettes de compteurs', function () {
+test('le tableau de bord affiche les 6 cellules du bandeau de stats', function () {
     $admin = mandateAdmin();
 
     $this->actingAs($admin)->get('/dashboard')
         ->assertOk()
         ->assertSee('Comptes')
         ->assertSee('Personnages')
-        ->assertSee('Mandats actifs')
-        ->assertSee('Relevés mines')
-        ->assertSee('Coffres scellés')
-        ->assertSee('Provinces avec prix');
+        ->assertSee('Mandats')
+        ->assertSee('Économie')
+        ->assertSee('Animation')
+        ->assertSee('Sécurité');
 });
 
 test('le compteur de comptes non vérifiés s\'affiche en ambre si > 0', function () {
@@ -48,7 +49,7 @@ test('le compteur de personnages en attente s\'affiche si > 0', function () {
         ->assertSee('à valider');
 });
 
-test('le compteur de relevés mines actifs est correct', function () {
+test('la cellule Économie affiche les relevés actifs et la date du dernier', function () {
     $admin = mandateAdmin();
     $province = Province::factory()->create();
     MineReport::create([
@@ -60,10 +61,10 @@ test('le compteur de relevés mines actifs est correct', function () {
         'active'       => true,
     ]);
 
-    // La vue se charge sans erreur et affiche le libellé
     $this->actingAs($admin)->get('/dashboard')
         ->assertOk()
-        ->assertSee('Relevés mines');
+        ->assertSee('1 relevé')
+        ->assertSee('dern. 20/10');
 });
 
 // ─── Alerte mandats expirants ───────────────────────────────────────────────────────────────────
@@ -206,4 +207,78 @@ test('le fil est vide si aucun événement n\'existe', function () {
     $this->actingAs($admin)->get('/dashboard')
         ->assertOk()
         ->assertSee('Activité récente');
+});
+
+// ─── Grille des lots ────────────────────────────────────────────────────────────────────────────
+
+/** Une grille 3×3 privée, remplie, tirée, avec un lot attribué à « Gagnant-Test ». */
+function dashboardDrawnGrid(string $name = 'Grille Dashboard'): array
+{
+    $map = mandateMap();
+    activateRewardsType();
+    $type     = AnimActivityType::where('key', 'rewards')->firstOrFail();
+    $workflow = app(RewardsGridWorkflow::class);
+    $orga     = mandatePlayer($map['cityA']);
+    $grid     = $workflow->create($orga, $type, [
+        'slug' => 'grille-dashboard', 'name' => $name, 'width' => 3, 'height' => 3, 'province_id' => $map['provinceA']->id,
+    ]);
+    $workflow->addLots($orga, $grid, array_map(fn ($i) => "Lot $i", range(1, 9)));
+    $grid = $workflow->draw($orga, $grid->refresh());
+    $lot  = $grid->lots()->first();
+    $workflow->assign($orga, $grid, $lot, 'Gagnant-Test');
+
+    return [$workflow, $orga, $grid->refresh(), $lot];
+}
+
+test('la cellule Animation compte les grilles non closes', function () {
+    $admin = mandateAdmin();
+    dashboardDrawnGrid();
+
+    $this->actingAs($admin)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('1 grille')
+        ->assertSee('0 coffre');
+});
+
+test('une grille close ne compte plus dans la cellule Animation', function () {
+    $admin = mandateAdmin();
+    [$workflow, $orga, $grid] = dashboardDrawnGrid();
+    $workflow->close($orga, $grid);
+
+    $response = $this->actingAs($admin)->get('/dashboard')->assertOk();
+
+    expect($response->viewData('counts')['animation']['grids'])->toBe(0);
+});
+
+test('le fil d\'activité affiche la création, le tirage, l\'attribution et la clôture d\'une grille', function () {
+    $admin = mandateAdmin();
+    [$workflow, $orga, $grid, $lot] = dashboardDrawnGrid('Grille des Fêtes');
+    $workflow->close($orga, $grid);
+
+    $this->actingAs($admin)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Grille créée : « Grille des Fêtes » par '.$orga->pseudo, false)
+        ->assertSee('Grille tirée : « Grille des Fêtes »', false)
+        ->assertSee('Grille clôturée : « Grille des Fêtes »', false)
+        ->assertSee($lot->name.' → Gagnant-Test', false);
+});
+
+test('l\'alerte d\'inactivité couvre aussi les grilles des lots', function () {
+    $admin = mandateAdmin();
+    $map   = mandateMap();
+    activateRewardsType();
+    $type     = AnimActivityType::where('key', 'rewards')->firstOrFail();
+    $workflow = app(RewardsGridWorkflow::class);
+
+    atGameTime(Carbon::now()->subDays(24)->toDateTimeString());
+    $orga = mandatePlayer($map['cityA']);
+    $workflow->create($orga, $type, [
+        'slug' => 'vieille-grille', 'name' => 'Vieille Grille', 'width' => 3, 'height' => 3, 'province_id' => $map['provinceA']->id,
+    ]);
+    Carbon::setTestNow();
+
+    $this->actingAs($admin)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Activités proches de la fermeture automatique')
+        ->assertSee('Vieille Grille');
 });
