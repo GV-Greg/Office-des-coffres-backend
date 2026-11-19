@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-19] — PR #96 (Grille des lots dans le dashboard et bandeau de stats compact)
+
+### Added
+- **Fil d'activité du dashboard** : quatre événements de la Grille des lots — grille créée, tirée (`drawn_at` ; le tirage mène directement à `confirmed`), clôturée, et lot attribué (`player` renseigné, daté de `updated_at`). Approximation assumée : marquer un lot « remis » (`is_taken`) peut le faire remonter dans le fil. 4 tests (871).
+
+### Changed
+- **Alerte d'inactivité** : elle boucle sur `AnimKinds` et couvre désormais les grilles des lots. `anim:close-inactive` les fermait déjà à 30 jours, mais le dashboard n'avertissait que pour Décode. `organizerName()` factorise le calcul de l'organisateur.
+- **Cartes compteurs → bandeau de stats** : 6 cellules par domaine (Comptes, Personnages, Mandats, Économie, Animation, Sécurité réservée au module Douane). `$counts` est regroupé par domaine ; clés `card_*` remplacées par `stat_*`. Les sous-textes « ouverts cette semaine » (coffres) et « lots attribués cette semaine » disparaissent avec les cartes. Filets entre cellules : `divide-x` dès `lg`, `gap-px` en dessous.
+
+### Deploy notes
+- Aucune migration, aucune route, aucun `config/*.php`, aucun paquet : déploiement FTP seul, **rien à lancer en SSH**. Les nouvelles classes Tailwind sont compilées par `npm run build` dans `deploy.yml`.
+
 ## [2026-11-19] — PR #95 (Accès administrateur sur la page 503 du panneau Blade)
 
 ### Added
