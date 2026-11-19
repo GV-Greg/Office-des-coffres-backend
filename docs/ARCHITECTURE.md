@@ -4,712 +4,277 @@
 > 18/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
-Deux usages distincts cohabitent dans ce repo :
-1. **API REST** (`/api/v1/*`, Passport — access token 1 h + refresh token 30 j/12h selon
-   « Rester connecté », voir `docs/DECISIONS.md`) — consommée par le frontend Vue, utilisateurs
-   publics du jeu.
-2. **Admin Blade** (`web.php`) — panneau d'administration de Greg, session-based (`web` guard).
-
-Ces deux mondes ont chacun leur propre flux de vérification d'email, indépendants l'un de
-l'autre : Breeze/Blade (session, `verification.verify`) pour les comptes admin, et un second
-flux API (`verification.verify.api`, voir plus bas) pour les comptes joueurs. Les comptes Blade
-admin n'ont pas de `Character`.
+Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
+mutualisé O2Switch (cPanel, déploiement FTP via GitHub Actions).
 
 ## Modèles & relations
 
-| Modèle | Table | Champs notables | Relations |
-|---|---|---|---|
-| `User` | `users` | `email`, `pending_email` (nullable, changement en attente de confirmation — back #75), `password` (pas de `name`), `last_seen_at`, `deletion_notice_sent_at` (voir « Dernier passage ») | `hasMany(Character)` — **un compte peut avoir plusieurs personnages** |
-| `Character` | `characters` | `user_id`, `pseudo` (unique via validation app, pas contrainte DB), `city_id` (obligatoire à la création), `is_validated` (bool, défaut `false`), `pending_residence_change` (bool — distingue « nouveau personnage » d'un « changement de résidence » à revalider) | `belongsTo(User)`, `belongsTo(City)` |
-| `Kingdom` | `rk_kingdoms` | `kingdom_name` | `hasMany(Province)` |
-| `Province` | `rk_provinces` | `province_name` | `belongsTo(Kingdom)`, `hasMany(City)` |
-| `City` | `rk_cities` | `city_name`, `is_capital` | `belongsTo(Province)`, `hasMany(Character)` ⚠️ bug : FK déclarée `'user_id'` au lieu de `'city_id'` — relation cassée, non utilisée actuellement |
-| `Role`/`Permission` | Spatie | — | extensions vides de Spatie Permission |
-| `CouncilOffice` | `council_offices` | `key`, `position` — **aucun libellé en base** | les 10 postes titrés, semés par migration (voir « Mandats ») |
-| `MayorMandate` | `mayor_mandates` | `status`, dates nominales et effectives, motif | `belongsTo(Character)`, `belongsTo(City)` |
-| `CouncilMandate` | `council_mandates` | idem + `pending_office_id`, `office_requested_at` | `belongsTo(Character)`, `belongsTo(Province)`, `hasMany(CouncilOfficePeriod)` |
-| `CouncilOfficePeriod` | `council_office_periods` | `started_at`, `ended_at`, `end_reason` | `belongsTo(CouncilMandate)`, `belongsTo(CouncilOffice)` |
-| `MineReport` | `mine_reports` | axes en clair (`province_id`, `reported_at`, `character_id` **nullable**, `office_key`), `payload` **chiffré** (`EncryptedModuleData`), `active` (1 / NULL), `replaced_by_id`, `replaced_at` | `belongsTo(Province)`, `belongsTo(Character)`, `replacedBy()` — Registre des mines, voir plus bas |
-| `ProvinceMinePrice` | `province_mine_prices` | `province_id`, `effective_from` (date, unique par province), 5 prix + `hourly_rate` en `decimal(10,2)`, `created_by_character_id` / `updated_by_character_id` (**personnages**, `nullOnDelete`) | `belongsTo(Province)`, `belongsTo(Character)` ×2 — prix des mines par période, voir plus bas |
-| `ItemIcon` | `item_icons` | `item_name` (unique, **insensible à la casse et aux accents** côté MariaDB), `game_item_id` (unique) — **aucune image ni URL stockée**, l'URL du CDN de Celsius est construite par `iconUrl()` depuis `ItemIcon::CDN_URL_PATTERN` | aucune — référentiel hors taxinomie des données utilisateur (aucun lien vers un compte), voir « Icônes des items » |
-| `Team` | — | — | **mort** : pas de migration, teams désactivé (`config/permission.php`) |
+`User` → hasMany `Character` (cascade SQL) → hasMany `CouncilMandate` (cascade). `Kingdom` →
+hasMany `Province` → hasMany `City`. `CouncilMandate` → hasMany `CouncilOfficePeriod` (cascade).
+`AnimDecodeActivity` → hasMany `AnimDecodeSecret` → hasMany `AnimDecodeProposal` (cascades).
+`AnimRewardsGrid` → hasMany `AnimRewardsList` (cascade). `MineReport` → belongsTo `Province`,
+`Character` (nullable). `ProvinceMinePrice` → belongsTo `Province`, `Character` (nullable).
+`SiteAnnouncement` — aucune FK vers un compte.
 
-**Cookies/consentement : aucun stockage backend.** Pas de modèle, migration ou colonne liée aux
-cookies — tout le consentement RGPD vit côté frontend (localStorage, voir
-`admin/strategies/cookies.md`). Un futur palier "données de jeu liées au compte" (ex. future
-liste rouge du module Douane) nécessiterait une vraie table, hors scope actuel.
+## Schéma de la base
 
-## Schéma DB (migrations, dans l'ordre)
+| Table | Rôle | Catégorie |
+|---|---|---|
+| `users` | email, password, `pending_email`, `last_seen_at`, `deletion_notice_sent_at` | A |
+| `characters` | pseudo, `city_id`, `is_validated`, `pending_residence_change` | A |
+| `council_mandates` | mandat mayoral ou de conseiller | A |
+| `council_office_periods` | titre de poste, période | A |
+| `office_history_archive` | survit à la suppression (pseudo texte, lieu texte+id, titre clé) | D |
+| `mine_reports` | relevé des mines (`active` 1/NULL), payload chiffré, `character_id` nullable | C |
+| `province_mine_prices` | prix par province et date d'effet, `character_id` nullable | C |
+| `character_inventory_settings` | réglages + dernier inventaire collé, chiffré | A |
+| `city_inventory_settings` | idem ville, `updated_by_character_id` nullable | C |
+| `province_inventory_settings` | réglages province, `updated_by_character_id` nullable | C |
+| `province_inventory_snapshots` | historique collages commissaire commerce, chiffré, `active` 1/NULL | C |
+| `anim_activity_types` | référentiel (`key`, `is_active`) | — |
+| `anim_decode_activities` | activité Décode (privée ou sans compte), slug unique, lieu obligatoire | A (privé) / hors taxinomie (sans compte) |
+| `anim_decode_secrets` | coffre, `code` chiffré | suit l'activité |
+| `anim_decode_proposals` | proposition, `character_name` texte libre | suit l'activité |
+| `anim_rewards_grids` | grille des lots, slug unique, lieu obligatoire | A (privé) / hors taxinomie (sans compte) |
+| `anim_rewards_lists` | lots de la grille | suit la grille |
+| `item_icons` | nom → `game_item_id` Celsius Online | hors taxinomie |
+| `policy_notifications` | anti double envoi politique | hors taxinomie |
+| `site_announcements` | message FR/EN + échéance + visibilité | hors taxinomie |
 
-1. `users`, `password_reset_tokens`, `failed_jobs` — scaffolding standard
-2. Tables Passport (`oauth_clients`, `oauth_auth_codes`, `oauth_access_tokens`,
-   `oauth_refresh_tokens`, `oauth_device_codes`) — stubs par défaut, pas de personnalisation
-3. `rk_kingdoms` → `rk_provinces` (FK cascade) → `rk_cities` (FK cascade, `is_capital` bool)
-4. `characters` (`user_id` FK cascade, `city_id` FK cascade nullable, `is_validated` bool, puis
-   `pending_residence_change` bool ajouté par une migration ultérieure)
-5. Tables Spatie Permission v6 (`permissions`, `roles`, `model_has_*`, `role_has_permissions`) — mode non-teams, migration depuis un ancien Laratrust (drop des tables `permission_user`/`permission_role`/`role_user` en préambule)
+**Catégories RGPD** : A = portante (cascade), B = pas utilisée, C = communautaire (nullOnDelete), D = archive pseudonymisée.
 
-6. Mandats (03/10/2026) : `council_offices`, puis `mayor_mandates` + `council_mandates` +
-   `council_office_periods`, puis une migration qui **appelle le seeder idempotent**
-   `CouncilOfficeSeeder` (voir « Mandats »)
+## Origine canonique
 
-7. `users.last_seen_at` + `deletion_notice_sent_at` (04/10/2026, voir « Dernier passage »), puis
-   `policy_notifications` (voir « Notification des modifications de la politique »)
-
-8. `mine_reports` (08/10/2026, Registre des mines PR 1a) — **aucune écriture applicative encore** :
-   l'API (PR 1b) attend le texte de la politique en ligne et `policy:notify`.
-
-9. `users.pending_email` (29/10/2026, back #75) — colonne `string` nullable, stocke la nouvelle adresse
-   en attente de confirmation avant application (voir « Changement d'email » dans Routes).
-
-Pas de table `sessions`/`cache` (drivers `file`).
-
-**Journaux applicatifs** (04/10/2026) : canal `stack` → `daily`, **180 jours** écrits en dur dans
-`config/logging.php` — durée promise par `/legal/privacy` §5 (12 mois maximum), figée par
-`Feature/Enforcement/LoggingRetentionTest`. ⚠️ Toute modification de cette durée oblige à relire la
-politique, et reste sans effet en prod avant `php artisan config:cache`. 🔴 **La rotation ne suffit
-pas** : Monolog garde les 180 derniers *fichiers*, pas jours, et ne purge qu'à la naissance d'un
-fichier — en `LOG_LEVEL=error`, des journaux de plus d'un an survivraient. **`logs:prune`**
-(planifiée à 09:00 Paris, heartbeat `logs`) efface par la date du nom de fichier : c'est elle, la
-garantie (`Feature/Policy/PruneLogsTest`). L'ancien `laravel.log`
-n'est plus écrit, ni effacé par la rotation : à supprimer à la main. Les journaux d'accès serveur
-appartiennent à O2Switch (cPanel), hors de ce dépôt.
-
-## Origine canonique (`public/.htaccess`)
-
-Tout passe par `https://odc-admin.creacube.be` : `www` et `http://` redirigent (301 depuis
-le 01/10/2026, après une phase en 302), chemin et paramètres conservés, `/.well-known/` exclu — le panneau
-admin et l'API répondaient sous quatre variantes, dont deux en clair (29/09/2026). Règle placée
-avant la redirection des slashs finaux (une 301) et le front controller. Un `POST` en `http://`
-échoue volontairement (rejoué en `GET` → 405) plutôt que d'être rejoué en https : le mot de passe
-serait déjà parti en clair. Pas de HSTS. Garde-fous : `Unit/Enforcement/HtaccessCanonicalOriginTest`
-et l'étape « origine canonique » de `deploy.yml`, qui sonde les quatre variantes en prod.
+API : `CANONICAL_ORIGIN` (`.env`, une seule valeur, le domaine `https://` sans slash final).
+`VerifyCanonicalOrigin` (groupe `api`) : vérifie `Origin` **ou** `Referer` contre la valeur
+configurée ; 403 si aucun ne correspond. ⚠️ Le middleware **lit le header brut**, pas la config
+CORS — CORS autorise le préflight, l'origine canonique autorise la requête réelle. Sonde prod
+dans `deploy.yml`.
 
 ## Routes
 
-### `routes/api.php` (préfixe `/api/v1`)
+### API (`/api/v1`)
 
-| Méthode | URI | Contrôleur | Middleware |
-|---|---|---|---|
-| POST | `auth/register` | `Api\AuthController@register` | public, `throttle:register` (5/min/IP) |
-| POST | `auth/login` | `Api\AuthController@login` | public, `throttle:login` (5/min par email+IP, 30/min par IP) |
-| POST | `auth/resend-verification` | `Api\AuthController@resendVerification` | public, `throttle:6,1` |
-| GET | `auth/verify-email/{id}/{hash}` | `Api\AuthController@verifyEmail` | `signed` (nommée `verification.verify.api`) — JSON si appelée par la page `/verify-email` du site, redirection sinon |
-| POST | `auth/refresh` | `Api\AuthController@refresh` | public (le `refresh_token` fait foi), `throttle:refresh` (20/min/IP) |
-| POST | `auth/logout` | `Api\AuthController@logout` | `auth:api` |
-| GET | `auth/me` | `Api\AuthController@me` | `auth:api` |
-| DELETE | `auth/account` | `Api\AuthController@destroyAccount` | `auth:api` — suppression self-service (art. 17 RGPD) |
-| GET | `auth/account/export` | `Api\AuthController@exportAccount` | `auth:api`, `throttle:6,1` — export JSON daté (art. 20 RGPD) : compte, personnages + résidence en noms, mandats + statut effectif en noms ; pas de password ni d'identifiants internes (voir `docs/DECISIONS.md`) |
-| PATCH | `auth/account/email` | `Api\AuthController@updateEmail` | `auth:api`, `throttle:6,1` — stocke `pending_email`, envoie `VerifyEmailChange` à la nouvelle adresse |
-| GET | `auth/account/email/verify/{id}/{hash}` | `Api\AuthController@confirmEmailChange` | `signed`, `throttle:6,1` (nommée `account.email.verify`) — applique `pending_email`, notifie l'ancienne adresse, révoque tous les tokens |
-| PATCH | `auth/account/password` | `Api\AuthController@updatePassword` | `auth:api`, `throttle:6,1` — hash + `remember_token`, révoque tous les tokens sauf le courant |
-| PATCH | `admin/characters/{character}/pseudo` | `Api\AdminCharacterController@updatePseudo` | `auth:api`, `role:admin` — correction du pseudo sur demande du joueur |
-| GET | `characters` | `Api\CharacterController@index` | `auth:api` |
-| POST | `characters` | `Api\CharacterController@store` | `auth:api` |
-| PATCH | `characters/{character}` | `Api\CharacterController@update` | `auth:api` — changement de résidence |
-| GET | `map` | `Api\MapController@index` | public — arbre royaumes→provinces→villes, pour les sélecteurs de ville |
-| GET | `characters/{character}/province` | `Api\ProvinceHistoryController@show` | `auth:api` — « Ma province » : historique des postes de la province de **résidence** |
-
-**Plancher de toute l'API** : `throttleApi()` (`bootstrap/app.php`) applique le limiteur `api`
-(60/min par utilisateur Passport, sinon par IP) à tout `/api/*`. Limiteurs déclarés dans
-`AppServiceProvider` ; 429 rendu en JSON français (`success: false`) par `bootstrap/app.php`.
-⚠️ Le limiteur `api` a existé des mois **sans être branché** — une déclaration ne prouve rien,
-c'est `RateLimitTest.php` qui fait foi.
-
-`auth:api` = guard **Passport** (`config/auth.php`), plus Sanctum — voir `docs/DECISIONS.md` pour
-l'ADR de bascule.
-
-| GET | `council-offices` | `Api\MandateController@offices` | public — les 10 postes titrés (`key`) |
-| GET | `mandates` | `Api\MandateController@index` | `auth:api` — mandats de tous les personnages du compte, statut effectif |
-| POST | `characters/{character}/mandates` | `Api\MandateController@store` | `auth:api`, `throttle:6,1` |
-| POST | `mandates/{level}/{id}/renew` | `Api\MandateController@renew` | `auth:api`, `throttle:6,1` |
-| POST | `mandates/council/{id}/office` | `Api\MandateController@declareOffice` | `auth:api`, `throttle:6,1` — « Déclarer mon poste » |
-| DELETE | `mandates/{level}/{id}` | `Api\MandateController@destroy` | `auth:api` — sa propre demande en attente |
-| GET | `characters/{character}/mine-registry/reports` | `Api\MineReportController@reports` | `auth:api` — Registre des mines, **lecture** (commissaire aux mines, bailli, commissaire au commerce, dirigeant) : relevés déchiffrés sans le texte brut, mandat du lecteur, prédécesseur ; 403 sinon |
-| GET | `characters/{character}/mine-registry` | `Api\MineReportController@access` | `auth:api` — Registre des mines : `{write, read}` = province (id, nom) où le personnage peut écrire / lire, ou `null` |
-| POST | `characters/{character}/mine-reports` | `Api\MineReportController@store` | `auth:api`, `throttle:6,1` — Registre des mines, écriture (voir plus bas) |
-
-| GET | `provinces/{province}/mine-prices` | `Api\MinePriceController@index` | `auth:api` — tous les jeux de prix, `effective_from` décroissant, avec `editable` par jeu ; trois postes + dirigeant, 403 sinon |
-| GET | `provinces/{province}/mine-prices/current` | `Api\MinePriceController@current` | `auth:api` — le jeu en vigueur aujourd'hui, ou `null` |
-| POST | `provinces/{province}/mine-prices` | `Api\MinePriceController@store` | `auth:api`, `throttle:10,1` — trois postes seulement |
-| PUT | `provinces/{province}/mine-prices/{price}` | `Api\MinePriceController@update` | `auth:api`, `throttle:10,1` — poste tenu à la date d'effet, grâce de 7 jours ; **pas de DELETE** |
-
-`GET characters/{character}/mine-registry` renvoie aussi `prices: {write, read}` (province ou `null`).
-
-| GET | `item-icons?names[]=…` | `Api\ItemIconController@lookup` | public — icônes d'items, voir « Icônes des items » |
-| GET | `announcements/current` | `Api\AnnouncementController@current` | public — l'annonce du site en cours (bandeau de l'accueil), voir « Annonces du site » |
-| GET/POST | `admin/item-icons` | `Api\ItemIconController@index/store` | `auth:api`, `role:admin` |
-| PUT/DELETE | `admin/item-icons/{icon}` | `Api\ItemIconController@update/destroy` | `auth:api`, `role:admin` — le PUT ne corrige que `game_item_id` |
-
-### `routes/web.php` (admin Blade)
-
-| Méthode | URI | Nom | Contrôleur | Middleware |
+| Verbe | Chemin | Contrôleur | Auth | Notes |
 |---|---|---|---|---|
-| GET | `dashboard` | `dashboard` | `Web\DashboardController@index` | `auth,verified,role:admin` |
-| GET | `users` | `users` | `Web\DashboardController@users` | `auth,verified,role:admin` |
-| DELETE | `users/{user}` | `users.destroy` | `Web\DashboardController@destroyUser` | `auth,verified,role:admin` |
-| PATCH | `characters/{character}/validate` | `characters.validate` | `Web\DashboardController@toggleValidation` | `auth,verified,role:admin` |
-| GET/POST/PUT/PATCH/DELETE | `announcements` | `announcements.*` | `Web\AnnouncementController` | `auth,verified,role:admin` — annonces du site : liste, création, modification, retirer/remettre, suppression |
-| GET/POST/PATCH/DELETE | `item-icons` | `item-icons.*` | `Web\ItemIconController` | `auth,verified,role:admin` — référentiel des icônes (liste + recherche, ajout avec aperçu, correction de l'ID, retrait) |
-| GET/POST | `mandates/…` | `mandates.*` | `Web\MandateAdminController` (5 pages dont « Historique », 15 gestes) | `auth,verified,role:admin` |
-| GET/PATCH/DELETE | `/profile` | `profile.*` | `ProfileController` | `auth,verified` (self-service admin, pas un outil de gestion d'autres users) |
+| POST | `auth/register` | AuthController@register | — | email+password, envoie vérification |
+| GET | `auth/verify-email/{id}/{hash}` | AuthController@verifyEmail | signé | marque vérifié, token, redirige FRONTEND_URL |
+| POST | `auth/resend-verification` | AuthController@resendVerification | — | |
+| POST | `auth/login` | AuthController@login | — | par **email**, 403 si non vérifié |
+| POST | `auth/refresh` | AuthController@refresh | — | renouvelle access+refresh |
+| POST | `auth/logout` | AuthController@logout | api | révoque token courant+refresh |
+| GET | `auth/me` | AuthController@me | api | renvoie `user.characters` |
+| POST | `auth/update-email` | AuthController@updateEmail | api | stocke `pending_email`, envoie vérification |
+| GET | `account/email/verify/{id}/{hash}` | AuthController@confirmEmailChange | signé | applique, notifie ancienne, révoque tous tokens |
+| PUT | `auth/password` | AuthController@updatePassword | api | vérifie actuel, révoque sauf courant |
+| DELETE | `auth/account` | AuthController@destroyAccount | api | art. 17, exige mot de passe |
+| GET | `auth/export` | AuthController@exportAccount | api | art. 20 RGPD, JSON |
+| GET | `characters` | CharacterController@index | api | personnages du compte |
+| POST | `characters` | CharacterController@store | api | pseudo + city_id |
+| PUT | `characters/{id}` | CharacterController@update | api | changement de ville → revalidation |
+| PUT | `admin/characters/{id}/pseudo` | AdminCharacterController@updatePseudo | api, role:admin | |
+| GET | `map` | MapController@index | — | arbre complet, cache `MapTree` 7j |
+| GET/POST/PUT/DELETE | `characters/{id}/mandates`, `mandates/*`, `council-offices` | MandateController | api (sauf GET offices) | voir « Mandats » |
+| POST | `characters/{id}/mine-reports` | MineReportController@store | api | voir « Registre des mines » |
+| GET | `characters/{id}/mine-registry` | MineRegistryController@index | api | lecture registre |
+| GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
+| GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
+| GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
+| GET/POST | `characters/{id}/inventory/province` | InventoryController | api | historique province |
+| GET | `characters/{id}/inventory-scopes` | InventoryController | api | niveaux accessibles |
+| POST | `characters/{id}/inventory-settings/personal/copy` | InventoryController | api | copie entre persos même compte |
+| GET | `anim/activity-types` | AnimController | — | types actifs |
+| GET | `anim/decode-activities/{slug}` | DecodeController | — | page publique |
+| GET | `anim/decode-slug` | DecodeController | — | aperçu et dispo |
+| POST | `anim/decode-manage` | DecodeController | — | création sans compte |
+| POST | `anim/decode-manage/{slug}/*` | DecodeController | — | gestion sans compte (mot de passe dans le corps) |
+| GET/POST/DELETE | `characters/{id}/decode-activities`, `decode-activities/{id}/*` | DecodeController | api | mode privé |
+| — | `anim/rewards-*`, `characters/{id}/rewards-grids`, `rewards-grids/{id}/*` | RewardsGridController | mixte | même schéma que Décode |
+| GET | `item-icons` | ItemIconController | — | `?names[]=…` (200 max), cache 24h |
+| GET/POST/PUT/DELETE | `admin/item-icons` | ItemIconController | api, role:admin | |
+| GET | `announcements/current` | AnnouncementController | — | annonce en cours, cache 60s |
 
-`routes/auth.php` : scaffolding Breeze standard (register/login/logout Blade, reset password,
-vérification email) — **non modifié**, guard `web`, sans lien avec l'API.
+### Web (panneau d'administration Blade, `role:admin`)
+
+`/dashboard` (personnages, toggleValidation), `/users` (liste, recherche, suppression), mandats (`/mandates/*`), `/anim` (surveillance, recours sans compte), `/item-icons`, `/announcements`.
 
 ## Contrôleurs
 
-- `Api\AuthController` — `register` (crée uniquement le `User`, envoie l'email de vérification),
-  `verifyEmail` (valide le lien signé, marque l'email vérifié, émet un token d'accès Passport via
-  le grant `personal_access` — pas de refresh token à cette étape, pas de mot de passe disponible
-  dans ce flux —, **redirige vers `FRONTEND_URL`**), `resendVerification`, `login` (par **email**,
-  pas pseudo — bloque avec 403 "Email non vérifié." si
-  `! hasVerifiedEmail()`, puis émet le couple access+refresh token via le grant `password` de
-  Passport — voir `docs/DECISIONS.md`), `refresh` (renouvelle le couple de tokens à partir d'un
-  refresh token valide), `logout` (révoque l'access token courant et son refresh token associé),
-  `me`, `destroyAccount` (suppression self-service : exige le mot de passe courant en plus du
-  jeton, supprime le `User` — personnages en cascade —, les jetons d'accès Passport et leurs
-  refresh tokens, le tout en transaction ; les tables OAuth n'ayant pas de FK vers `users`, elles
-  ne se videraient pas seules). `exportAccount` (export art. 20 RGPD : JSON daté via
-  `App\Services\AccountExport`, `Content-Disposition: attachment`, `Cache-Control: no-store` ;
-  un module ajoute sa section dans le service sans toucher au contrôleur). `login`/`me` renvoient `user.characters` (liste, pas un
-  pseudo/statut unique).
-  **Changement d'email** (back #75, 30/10/2026) : `updateEmail` (vérifie le mot de passe actuel, stocke
-  la nouvelle adresse dans `users.pending_email`, envoie `VerifyEmailChange` — pattern
-  verify-before-apply : l'email actuel ne change qu'après confirmation),
-  `confirmEmailChange` (lien signé `account.email.verify` — vérifie `sha1(pending_email)`, applique le
-  changement, envoie `EmailChanged` via `Notification::route()` à l'**ancienne** adresse, révoque
-  **tous** les tokens OAuth).
-  **Changement de mot de passe** : `updatePassword` (vérifie le mot de passe actuel, met à jour le
-  hash, régénère `remember_token`, révoque tous les tokens **sauf le courant** — le joueur reste
-  connecté dans son navigateur).
-- `Api\AdminCharacterController` — `updatePseudo` (correction du pseudo d'un personnage par un admin,
-  `role:admin`). Pas de formulaire Blade — la route API sert aux corrections ponctuelles sur demande
-  du joueur (erreur à l'inscription).
-- `Api\CharacterController` — `store` (crée un personnage pour l'utilisateur connecté, pseudo +
-  ville obligatoires), `index` (liste les personnages du compte connecté), `update` (changement de
-  ville de résidence : repasse `is_validated` à `false` et lève `pending_residence_change`, le
-  personnage doit être revalidé depuis le dashboard admin).
-- `Api\MapController` — `index`, arbre `Kingdom::with(['provinces.cities'])`, public, pas de
-  pagination (~300 villes, volume géré en un seul payload pour un sélecteur cascade côté front).
-  **Mis en cache** par `App\Support\MapTree` (store par défaut, TTL 7 jours) : le cache porte
-  le tableau, pas la réponse HTTP. ⚠️ Il survit au déploiement : sa clé
-  (`api.map.tree.<empreinte>`) est empreintée sur `MapTree.php` et les trois modèles, et un test
-  de forme garde le reste (colonne ajoutée par migration → `cache:clear` en prod). Vidé par le trait `Models\Concerns\FlushesMapTree`
-  (`saved`/`deleted`) sur `Kingdom`/`Province`/`City` — aucun écran admin n'écrit ces tables,
-  seul `MapSeeder` ; le TTL couvre les écritures hors Eloquent (SQL direct, `update()` de masse).
-- `Web\DashboardController` — `index` (liste personnages paginée, eager-load
-  `user`/`city.province.kingdom`), `toggleValidation`, `users` (liste **tous** les users, avec
-  recherche), `destroyUser`.
-- `Web\MapController` — **mort** : vue `map.list` référencée mais inexistante (voir « Finitions
-  transversales » dans `roadmap.md`).
-  Sans lien avec `Api\MapController` (nouveau, actif, JSON).
-- `ProfileController` + `Auth/*` — scaffolding Breeze, non modifié.
-
-- `Api\MandateController` / `Web\MandateAdminController` — mandats, voir la section « Mandats ».
-  Ils ne valident que la forme : toutes les règles vivent dans `App\Services\MandateWorkflow`.
+- `Api\AuthController` — `register`, `verifyEmail` (token + redirige `FRONTEND_URL`), `login` (par **email**, 403 si non vérifié, couple access+refresh via grant `password`), `refresh`, `logout`, `me` (renvoie `user.characters`), `destroyAccount`, `exportAccount` (art. 20), `updateEmail`/`confirmEmailChange` (back #75, verify-before-apply), `updatePassword` (révoque sauf courant).
+- `Api\CharacterController` — `store`, `index`, `update` (changement de ville → `is_validated = false`).
+- `Api\MapController` — arbre complet, **cache `MapTree`** (store par défaut, TTL 7j, clé empreintée). ⚠️ Survit au déploiement : `cache:clear` si migration. Vidé par `FlushesMapTree` sur Kingdom/Province/City.
+- `Api\MandateController` / `Web\MandateAdminController` — voir « Mandats ».
+- `Web\DashboardController` — personnages paginés, `toggleValidation`, `users` (recherche email OU pseudo), `destroyUser`.
 
 ## Middleware & rôles
 
-- Un seul middleware maison : `RecordLastSeen` (groupes `api` et `web`, voir « Dernier passage »).
-- `bootstrap/app.php` enregistre l'alias `role` → `Spatie\Permission\Middleware\RoleMiddleware`.
-- **Un seul rôle Spatie : `admin`**, seedé via `UserSeeder` sur `SEEDER_SUPER_ADMIN_EMAIL`. Aucune
-  permission Spatie créée (uniquement le rôle, vérifié via `role:admin` ou `hasRole('admin')` côté
-  Blade).
+- `RecordLastSeen` (groupes `api` et `web`). Un seul middleware maison.
+- **Un seul rôle Spatie : `admin`**, seedé via `UserSeeder`. Aucune permission Spatie.
 
-## Dernier passage (`last_seen_at`, 04/10/2026)
+## Dernier passage (`last_seen_at`)
 
-Mesure de l'inactivité promise par `/legal/privacy` §5 (brief `admin/content/brief-politique-promesses.md`,
-fil `admin/echanges/politique-promesses`). **« Connexion » = toute requête authentifiée**, API comme
-panneau Blade.
+`App\Support\LastSeen` : au plus une écriture/jour, hors Eloquent. Remet `deletion_notice_sent_at` à null. Écriture dans `terminate()`. ⚠️ `register`, `verifyEmail`, `login`, `refresh` hors `auth:api` : ces routes appellent `LastSeen::markForRequest()`. Une nouvelle route publique qui authentifie doit faire de même. Lignes existantes remplies à la date de migration, jamais à `created_at`.
 
-- `App\Support\LastSeen` est le **seul écrivain** : au plus une écriture par jour, gardée par une
-  lecture du modèle déjà chargé ; un passage remet `deletion_notice_sent_at` à `null` (préavis
-  annulé, pas suspendu). Écriture hors Eloquent : `updated_at` ne bouge pas.
-- `App\Http\Middleware\RecordLastSeen` écrit dans `terminate()`, **après la réponse**.
-- ⚠️ `register`, `verifyEmail`, `login` et `refresh` sont **hors du groupe `auth:api`** : le
-  middleware ne les voit pas seul, elles désignent le compte par `LastSeen::markForRequest()`.
-  Une nouvelle route publique qui authentifie doit faire de même.
-- Lignes existantes remplies **à la date de la migration**, jamais à `created_at` : le compteur
-  part du jour où on sait compter.
+## Notification politique (§10)
 
-## Notification des modifications de la politique (§10, 04/10/2026)
+`resources/policy/changelog.php` (source unique) → `php artisan policy:notify` (lancée **à la main**). Emails bilingues, **aucun lien de désinscription**. `policy_notifications` anti double envoi. 🔴 **Un seul email par jour** (Greg) : sans argument, regroupe toutes les entrées non envoyées du jour de Paris. ⚠️ N'ajouter une entrée substantielle qu'une fois le texte **en ligne**.
 
-`/legal/privacy` §10 promet que toute modification substantielle est notifiée par email (brief
-`admin/content/brief-politique-promesses.md` §4, fil `admin/echanges/politique-promesses`, Q5-Q6).
+## Purge des comptes (`accounts:purge`)
 
-| Pièce | Rôle |
-|---|---|
-| `resources/policy/changelog.php` | **source unique** du journal (aucune copie dans `admin/`) : date, résumé FR/EN, `substantial`, `decided_by` |
-| `App\Support\PolicyChangelog` | lecture + contrôle de forme d'une entrée |
-| `php artisan policy:notify [id…] [--day=AAAA-MM-JJ]` | lancée **à la main** par Greg, jamais planifiée ; refuse une entrée inconnue, mal formée, non substantielle ou déjà envoyée ; comptes **vérifiés** seulement ; affiche le nombre de destinataires et demande confirmation (`--force` pour s'en passer) |
-| `App\Notifications\PolicyUpdated` | email bilingue FR puis EN, lien vers `/legal/privacy`, **aucun lien de désinscription** (information légale) |
-| `policy_notifications` | une ligne par entrée envoyée (anti double envoi). **Hors taxinomie** des données utilisateur tant qu'elle ne porte aucun lien vers un compte — une colonne par destinataire rouvrirait la question |
+Préavis puis suppression (`/legal/privacy` §5). Planifiée 09:00 Paris, heartbeat `accounts`.
+- Vérifié inactif : préavis à 335j, suppression à 365j **et** ≥ 30j après préavis.
+- Non confirmé : rappel à J+23 (nouveau lien signé), suppression à J+30 **et** ≥ 7j après rappel.
+- 🔴 **Aucune suppression sans avis enregistré** (`AccountPurge::delete()` → `LogicException`).
+- ⚠️ `last_seen_at` **nul** → jamais prévenable ni supprimable. Ne jamais `COALESCE`.
+- Mandat en cours → non supprimé (signalé sur `/dashboard`).
+- 🔴 **Config absente → la purge ne fait rien** (`assertConfigured()`). `accounts.enforce` = `false` impose simulation.
+- Suppression via `AccountDeletion::deleteUser()` (efface traces sans FK : OAuth, `password_reset_tokens`).
 
-⚠️ N'ajouter une entrée substantielle au journal qu'une fois le texte **en ligne** : l'email renvoie
-à la page. « Substantielle » est une décision humaine, jamais déduite d'un diff.
+## Gabarit des emails
 
-🔴 **Un seul email par jour** (Greg, 16/10/2026) : sans argument, `policy:notify` regroupe **toutes** les entrées substantielles
-non envoyées du jour (Paris) en un email unique (un paragraphe FR puis EN par entrée) et note une ligne par entrée dans
-`policy_notifications`. `--day=AAAA-MM-JJ` choisit un autre jour ; des ids désignent des entrées précises (même jour exigé). Un
-second envoi le même jour est refusé sans `--again`.
-
-## Purge des comptes (`accounts:purge`, 04/10/2026)
-
-Préavis puis suppression promis par `/legal/privacy` §5 (brief `admin/content/brief-politique-promesses.md`
-§2, fil `admin/echanges/politique-promesses`). Planifiée à 09:00 Paris, heartbeat `accounts`.
-
-| Chemin | Avis (`deletion_notice_sent_at`) | Suppression |
-|---|---|---|
-| Compte vérifié inactif (`last_seen_at`) | préavis à 335 j (11 mois), `InactiveAccountNotice` | à 365 j **et** ≥ 30 j après le préavis |
-| Compte jamais confirmé (`created_at`) | rappel à J+23, `UnverifiedAccountReminder` (nouveau lien signé, valable jusqu'à la suppression) | à J+30 **et** ≥ 7 j après le rappel |
-
-- Règles dans `App\Services\AccountPurge`, durées dans `config/accounts.php`. 🔴 **Aucune suppression
-  sans avis enregistré** : `AccountPurge::delete()` lève une `LogicException`, quel que soit
-  l'appelant. Un avis n'est enregistré qu'une fois l'email parti ; un passage l'annule (`LastSeen`).
-- ⚠️ Un `last_seen_at` **nul** ne rend jamais un compte prévenable ni supprimable — ne jamais écrire
-  `COALESCE(last_seen_at, created_at)`.
-- Un compte dont un personnage tient un mandat **en cours** n'est pas supprimé : signalé dans la
-  sortie et sur `/dashboard` (`accounts._purge_blocked`, cache `accounts.purge.blocked`).
-- 🔴 **Config absente ou incohérente → la purge ne fait rien** (`AccountPurge::assertConfigured()`,
-  aucune durée par défaut, pas de heartbeat). Incident du 04/10/2026 : config en cache d'avant
-  `config/accounts.php`, durées à `null` = 0 jour, tout compte vérifié « à prévenir, suppression
-  aujourd'hui » — seule la simulation imposée a évité l'envoi. Même garde sur `logs:prune`.
-- 🔴 **`accounts.enforce`** : `false` impose la simulation. Passé à `true` le 04/10/2026, une fois le
-  texte (1 an, comptes non confirmés) en ligne (front #79) ; `AccountPurgeTest` lie ce réglage à
-  l'entrée substantielle du journal de la politique. Une règle ne s'applique qu'après que le texte la dit.
-- La suppression passe par `AccountDeletion::deleteUser()`, qui efface désormais les traces sans
-  clé étrangère (jetons OAuth, `password_reset_tokens`) pour **tous** les chemins — avant le
-  04/10/2026, seul le chemin API le faisait.
-
-## Gabarit des emails (04/10/2026)
-
-Tous les emails passent par `resources/views/vendor/{mail,notifications}` (publiés depuis Laravel),
-habillés selon `CHARTE-GRAPHIQUE.md` : fond `slate-800`, logo PNG servi par le **site des joueurs**
-(`app.frontend_url` + `/images/email/logo-horizontal.png`, fichier dans `frontend/public/` ; Gmail
-n'affiche pas le SVG), carte claire à liseré orange, bouton orange
-(plancher `#c2410c`), pied « outil non officiel » bilingue. Thème : `vendor/mail/html/themes/default.css`
-(inliné par Laravel, contrastes calculés en tête). Écarts voulus avec l'original : aucun titre par
-défaut (« Bonjour ! »), `———` rendu en filet entre français et anglais, signature sur plusieurs
-lignes, ligne d'aide bilingue (`lang/{fr,en}/mail.php`). **Tous les emails des joueurs sont
-bilingues, français puis anglais**, signés « Ludiquement, » / « Playfully, » (Greg). 🔴 **Aucun lien
-ni image vers le domaine de l'administration** (`odc-admin`) : dans un email de joueur, il ressemble
-à de l'hameçonnage (Greg, 05/10/2026). Les **liens de confirmation d'email** pointent vers
-`/verify-email` du site (`App\Support\EmailVerificationLink`, seul générateur), qui rappelle
-`auth/verify-email/{id}/{hash}` **en JSON** avec les paramètres signés ; la signature reste
-calculée sur `APP_URL` (⚠️ les tâches planifiées n'ont pas de requête pour le déduire). En
-navigation directe, l'API redirige encore, pour les liens envoyés avant le 05/10/2026. La
-**version texte** (`vendor/mail/text/message.blade.php`) reprend le même contenu. Garde-fou :
-`Feature/Mail/EmailLayoutTest` (HTML et texte).
+Fond `slate-800`, logo PNG du **site des joueurs**, carte claire liseré orange, pied bilingue. 🔴 **Aucun lien vers le domaine d'administration** (hameçonnage). Liens de confirmation via `App\Support\EmailVerificationLink` → `/verify-email` du site. ⚠️ Les tâches planifiées n'ont pas de requête pour déduire `APP_URL`. Version texte : `vendor/mail/text/message.blade.php`. Tests : `EmailLayoutTest`.
 
 ## Notifications d'administration (17/11/2026)
 
-Un email aux comptes `admin` quand un joueur fait un geste qui attend l'administrateur (brief `admin/content/brief-notifications-admin.md`, fil `admin/echanges/notifications-admin`, arbitrages de Greg du 17/11/2026). **Pas une donnée joueur de plus** : la boîte du destinataire reçoit déjà ces noms de personnages et de lieux par le panneau d'administration.
-
-| Geste | Quand | Sujet |
-|---|---|---|
-| Compte | à la **confirmation** de l'adresse (première fois seulement), pas à l'inscription : un faux compte non confirmé n'écrit à personne | Nouveau compte confirmé |
-| Personnage | `POST characters` réussi | Nouveau personnage créé |
-| Poste | `POST characters/{id}/mandates` réussi | Nouvelle demande de poste |
-| Renouvellement | `POST mandates/{level}/{id}/renew` réussi | Nouvelle demande de renouvellement |
-
-| Pièce | Rôle |
-|---|---|
-| `App\Services\AdminNotifier` | **seul émetteur** : une méthode par geste (`accountConfirmed`, `characterCreated`, `mandateRequested`), appelée par `AuthController::verifyEmail`, `CharacterController::store` et `MandateController::store/renew`. Un nouvel événement (suppression de compte…) = une méthode de plus, sans toucher le reste. **Pas d'événements Laravel** : le projet n'en a aucun, trois appels ne justifient pas la couche |
-| `App\Notifications\AdminEventNotice` | l'email (sujet, lignes, bouton, signature du récapitulatif des mandats) ; **français seul** : l'interface d'administration n'a pas de bascule de langue. Textes dans `lang/fr/admin_notices.php` |
-
-- **Destinataires** : `User::role('admin', 'web')`, comme le récapitulatif quotidien — **aucune clé `.env`, aucun `config/*.php`**. 🔴 **Le garde `web` s'écrit en clair** : le rôle est créé sous `web` (`UserSeeder`), mais une requête `auth:api` fait de `api` le garde par défaut, où `role('admin')` lève `RoleDoesNotExist` — et personne ne serait jamais prévenu, en silence (attrapé par `AdminNotificationsTest`, jeton API simulé).
-- 🔴 **Jamais l'adresse email d'un joueur dans le corps** (ni mot de passe, ni lien d'annonce) : un compte se désigne par son numéro et le total des comptes confirmés.
-- 🔴 **L'envoi ne bloque jamais le geste du joueur** : toute exception est attrapée et journalisée (`admin.notification_failed`, genre d'événement + classe de l'exception, **jamais son message**, qui peut contenir l'adresse). Précédent : « Server Error » muet à l'inscription, 09/10/2026.
-- Tests : `Feature/AdminNotifications/AdminNotificationsTest`.
+`App\Services\AdminNotifier` : un email aux `admin` quand un joueur confirme son compte, crée un personnage, ou demande un poste/renouvellement. 🔴 **Garde `web` en clair** (`role('admin', 'web')`, sinon `RoleDoesNotExist` en silence). 🔴 **Jamais l'email d'un joueur dans le corps**. 🔴 **L'envoi ne bloque jamais le geste du joueur** (exception attrapée, journalisée sans message). Tests : `AdminNotificationsTest`.
 
 ## Gestion des utilisateurs (admin)
 
-Tout vit dans `Web\DashboardController` + `users.blade.php` :
-- Liste **tous** les users, paginée (14), avec recherche (`?search=`) par email OU pseudo du
-  personnage
-  (`orWhereHas('characters', ...)`), `withQueryString()` pour garder le filtre à travers la
-  pagination.
-- Colonnes affichées : `id`, `email`, **personnage** (pseudo + badge validé/en attente, ou
-  "Aucun personnage"), date d'inscription, badge email vérifié.
-- Suppression = hard delete (pas de soft delete), cascade sur `characters` via FK.
-- Pas d'édition d'un autre user, pas de reset de mot de passe admin, pas de gestion de rôles
-  (un seul rôle existe).
-- Tests : `tests/Feature/DashboardTest.php` couvre les 4 routes admin (guest / non-admin / admin)
-  et la recherche de `/users`.
+`DashboardController` + `users.blade.php`. Liste paginée (14), recherche email OU pseudo. Hard delete (pas de soft delete). Pas d'édition, pas de reset password admin, pas de gestion de rôles. Tests : `DashboardTest`.
 
-## Inscription / vérification d'email (comptes joueurs)
+## Inscription / vérification d'email
 
-Flux en 3 étapes :
+1. `POST register` → crée User, envoie `VerifyApiEmail` (FR, lien signé). Pas de token.
+2. Clic lien → vérifie hash, `markEmailAsVerified()`, token Passport (personal_access, sans refresh), **redirige 302** vers `FRONTEND_URL/verify-email?token=…`. Connexion auto (décision Greg).
+3. Joueur crée personnage(s) via `POST characters`.
 
-1. **`POST /api/v1/auth/register`** — email + password + confirmation uniquement. Crée le
-   `User`, envoie `App\Notifications\VerifyApiEmail` (sous-classe de
-   `Illuminate\Auth\Notifications\VerifyEmail`, texte 100% français, lien signé vers
-   `verification.verify.api` au lieu de la route Blade). Pas de token émis à ce stade.
-2. **Clic sur le lien** → `GET auth/verify-email/{id}/{hash}` (signé, sans session) → contrôleur
-   vérifie `hash_equals(sha1($user->getEmailForVerification()), $hash)`, marque
-   `markEmailAsVerified()`, émet un access token Passport (grant `personal_access`, pas de refresh
-   token — pas de mot de passe disponible à cette étape du flux), **redirige (302)** vers
-   `config('app.frontend_url') . '/verify-email?token=...'` (ou `?error=invalid`). Connexion
-   automatique côté frontend à ce stade (décision Greg : pas de renvoi vers un formulaire de
-   login après confirmation) — l'utilisateur repassera par `login()` normalement une fois ce
-   jeton (sans refresh) expiré.
-3. Une fois connecté, le joueur est invité à créer un ou plusieurs personnages via
-   `POST /api/v1/characters` (pseudo + `city_id` obligatoires, `is_validated=false`).
-
-**`login()` bloque sur l'email non vérifié** (403, "Email non vérifié."), puis émet le couple
-access+refresh token Passport (grant `password`) — voir `docs/DECISIONS.md` pour l'architecture
-« Rester connecté » (durées, `remember_me`). La validation **par personnage**
-(`characters.validate`, dashboard admin) reste indépendante — elle ne bloque pas la connexion,
-seulement l'accès aux fonctionnalités liées à ce personnage précis côté frontend (à affiner au fil
-du développement des modules).
-
-**`FRONTEND_URL`** — clé `.env`/`config('app.frontend_url')`, nécessaire pour construire l'URL de
-redirection post-vérification.
-
-**Pas de code de compatibilité ascendante** pour les comptes inscrits avant ce flux — décision
-explicite de Greg (reprise à 0).
+`login()` bloque sur email non vérifié (403), puis émet access+refresh (grant `password`). Validation **par personnage** indépendante (ne bloque pas la connexion).
 
 ## Chiffrement des données de module
 
-Aucune table de module n'existe encore, mais le mécanisme est en place et testé — chiffrer après
-coup imposerait une migration de données sur des lignes de prod (ADR du 20/09/2026,
-`admin/strategies/donnees-utilisateur.md` §5).
+Mécanisme en place, aucune table de module existante encore. `MODULE_DATA_KEY` ≠ `APP_KEY` (rotation de `APP_KEY` = reconnexion, rotation sur données = illisibles). `EncryptedModuleData` cast (`:string` ou `:array`). `php artisan module-data:check` : lecture seule, vérifie chaque donnée chiffrée. ⚠️ **Chiffrer le contenu, jamais les axes** (indexation impossible avec IV aléatoire).
+
+## Mandats (lot 1)
+
+Spéc. `admin/content/brief-mandats.md` ; **arbitrages** : `admin/echanges/mandats-lot1/` (Q1-Q29).
 
 | Pièce | Rôle |
 |---|---|
-| `config/module_data.php` | `MODULE_DATA_KEY` + `MODULE_DATA_PREVIOUS_KEYS` (CSV) + cipher |
-| `App\Support\ModuleDataEncrypter` | `Encrypter` dédié, gère le préfixe `base64:` comme `APP_KEY` |
-| `App\Casts\EncryptedModuleData` | cast `:string` (défaut) ou `:array` pour un payload JSON |
-| `AppServiceProvider` | binding paresseux du chiffreur + `key:generate` désactivée en production |
-| `php artisan module-data:check` | lecture seule : forme de la clé et des clés antérieures, aller-retour, relecture de **chaque** donnée chiffrée (`ENCRYPTED_COLUMNS`). À lancer après tout changement de clé, après `config:cache`. Le chiffreur refuse lui-même une clé mal formée en la **nommant**, jamais en l'affichant (incident du 09/10/2026 : clé sans préfixe `base64:` → « Server Error » muet) |
+| `MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice`, `canManageMines` / `canReadMines` (province du **poste**), `canManagePrices` / `canReadPrices`, `inventoryCity` / `INVENTORY_PROVINCE_OFFICES` |
+| `MandateWorkflow` | tous les gestes, seul écrivain de `holds_until` |
+| `MandateCalendar` | jours civils `Europe/Paris`, `addDays` jamais `addMonth`, stockés UTC |
+| `MandateLabels` | libellés FR/EN ; motif sans libellé → **code**, jamais clé brute |
+| `MandateDecision` | email bilingue, synchrone, jamais la note |
 
-**La clé n'est jamais `APP_KEY`** : `key:generate` la fait tourner en routine, ce qui ne coûte
-qu'une reconnexion, alors que la même rotation sur des données de module les rendrait
-définitivement illisibles. `MODULE_DATA_PREVIOUS_KEYS` est le filet correspondant — clés essayées
-au déchiffrement, jamais au chiffrement.
+Règles clés :
+- **Une seule fin effective** : `holds_until`, écrite par `setHoldsUntil()` (avec `holds_until_set_by` + fin de période en un seul appel).
+- **Poste = période en vigueur** de `council_office_periods`. Période naît **fermée**. **Exclusivité** gardée par test `officeOverlaps()`.
+- **Début de période** (Greg, 16/10) : titre inscrit AVEC mandat en fonction → tenu depuis **entrée en fonction du mandat** (`OfficeStart`), sauf si un autre mandat l'a tenu dans l'intervalle. `mandates:realign-office-starts` (simulation par défaut).
+- Poste uniquement sur mandat **en fonction**. Gagner un poste le retire au détenteur. **Tous vidés** à l'élection d'un dirigeant.
+- Réponse négative de `MandateAuthority` = « l'Office ne connaît pas », pas « siège vacant ».
+- `character_id` en `cascadeOnDelete` (catégorie A).
+- ⚠️ Prod : déploiement ne lance pas les migrations ; 10 titres anglais **relevés en jeu** (Connétable = Sergeant, etc.).
 
-⚠️ **Chiffrer le contenu, jamais les axes.** `city_id`, `province_id`, `character_id`,
-`reported_at` restent en clair : une colonne chiffrée n'est ni indexable, ni triable, ni
-filtrable, l'IV aléatoire faisant échouer jusqu'à l'égalité. Filtrage en SQL, agrégation en PHP
-après déchiffrement — acceptable à l'échelle de cette communauté, rédhibitoire sur un gros volume.
+**Lot 2 — API joueur** (fil `mandats-lot2/`) : erreurs complètes (`MandateApiErrors` : `errors`, `codes`, `messages[champ] = {fr, en}`). `GET /mandates` renvoie `characters[].requestable`, libellés FR/EN sur chaque mandat. **Pas de `status_label`** : c'est une présentation frontend.
 
-## Mandats (lot 1, 03/10/2026)
+**Lot 3 — tâches planifiées** (09:00 Paris) :
+- `mandates:send-reminders` — 2j après fin effective, si renouvelable, jamais deux fois.
+- `mandates:verification-digest` — email/jour aux admin tant que file en retard (4j maire, 7j conseiller).
+- `mandates:purge-rejected` — `rejected` > 3 mois.
+- `mandates:status` — lecture seule.
+- `MandateHeartbeat` : dernier passage réussi en cache, alerte après 36h sur `/dashboard`.
 
-Qui a le droit d'écrire au titre d'un poste, pour les modules futurs. Spécification :
-`admin/content/brief-mandats.md` ; **arbitrages qui la complètent et parfois la contredisent** :
-`admin/echanges/mandats-lot1/` (Q1 à Q29), à lire avant toute modification.
+**Historique des postes** (fil `mandats-historique`) : `OfficeHistory` fusionne tables vivantes + `office_history_archive`. `AccountDeletion` = **porte unique** de suppression (archive, efface traces sans FK, supprime). ⚠️ `$user->delete()` ailleurs effacerait l'historique en silence (`AccountDeletionTest` le garde). `GameCalendar` : 2026→1474, **jumeau** de `gameCalendar.js` frontend.
 
-| Pièce | Rôle |
-|---|---|
-| `App\Services\MandateAuthority` | **seul point d'entrée des modules** : `activeMayorMandate`, `activeCouncilMandate`, `holdsCouncilOffice(Character, string $key)`, `canManageMines(Character): ?Province` (commissaire aux mines **ou** bailli ; la province du **poste**, jamais la résidence — fil `registre-mines`, R1), `canReadMines(Character): ?Province` (les mêmes **plus le commissaire au commerce et le dirigeant**, en lecture seule — Greg, 08/10 et 15/10/2026) — « maintenant » seulement, aucun paramètre de date |
-| `App\Services\MandateWorkflow` | **tous** les gestes (joueur et admin) ; seul écrivain de `holds_until` |
-| `App\Support\MandateCalendar` | jours civils `Europe/Paris` (`addDays`, jamais `addMonth`), stockés en UTC |
-| `App\Support\MandateLabels` | libellés FR/EN ; un motif sans libellé s'affiche par son **code**, jamais par la clé brute |
-| `App\Notifications\MandateDecision` | email **toujours bilingue, français puis anglais**, synchrone, jamais la note |
-| `config/mandates.php` | durées (30 / 60 j), prolongation (2 j), seuils, codes de motifs |
+**Registre des mines — PR 1a** (brief `brief-registre-mines.md`, fil `registre-mines`) : table `mine_reports`. Axes en clair, payload chiffré. 🔴 **Ajout seul** : un relevé ne se supprime jamais, se remplace (`active` 1/NULL, index unique `(province_id, reported_at, active)` ignore NULL). `character_id` en **nullOnDelete, catégorie C**.
 
-Règles qui tiennent l'ensemble :
-- **Une seule fin effective** : l'autorité court de `in_office_from` à `holds_until`, quel que soit
-  le statut. Échéance, prolongation, passation et révocation écrivent toutes `holds_until`, par
-  `MandateWorkflow::setHoldsUntil()`, qui écrit **dans le même appel** `holds_until_set_by` et la fin
-  de la période de poste en cours. `valid_until` (fin nominale) ne bouge qu'avec une correction de
-  `started_at`.
-- **Le poste détenu est la période en vigueur** de `council_office_periods` — il n'y a pas de
-  `council_office_id` sur le mandat. Une période naît **fermée** à la fin du mandat
-  (`end_reason = fin_du_mandat`), n'est jamais rouverte ni réécrite. **Exclusivité** dans une
-  province : impossible à exprimer en MySQL, gardée par le test `officeOverlaps()` de
-  `MandateOfficeTest` — seul garde-fou.
-- **Début d'une période de poste** (Greg, 16/10/2026) : la **validation du poste ou du mandat** ne compte jamais dans la date à
-  laquelle le personnage occupe le poste. Un titre inscrit AVEC un mandat déjà en fonction est tenu depuis l'**entrée en
-  fonction du mandat** (`App\Support\OfficeStart`) ; une nomination faite après coup (`setOffice`, déclaration validée)
-  commence à sa date. Seule réserve : l'exclusivité du poste — si un autre mandat l'a tenu dans l'intervalle, le début reste la
-  date de la validation. `php artisan mandates:realign-office-starts` (simulation par défaut, `--force`) recale les postes déjà
-  inscrits (premières périodes nées à la validation du mandat) ; idempotente.
-- Un poste ne se pose que sur un mandat **en fonction**. Le gagner le retire à son détenteur, à la
-  même seconde. **Tous les postes sont vidés à l'élection d'un dirigeant** (passation ou démission
-  du comte) : une province sans aucune autorité de poste est un **état légitime**.
-- **Une réponse négative de `MandateAuthority` veut dire « l'Office ne connaît pas »**, pas « le
-  siège est vacant » : seuls les mandats déclarés par les joueurs sont connus.
-- `character_id` en `cascadeOnDelete` (catégorie A, **portante** pour l'anonymisation §2-C) ; les
-  périodes suivent par `council_mandate_id`.
-- **Langue** : `lang/fr/mandates.php` complet (email, API, admin) ; `lang/en/mandates.php` limité à
-  ce qui part en anglais (l'email). Les pages Blade des mandats n'ont aucun texte en dur. Les pages
-  Blade antérieures restent à reprendre (passe de traduction à part).
-- ⚠️ **Prod** : le déploiement ne lance pas les migrations ; celle qui sème les 10 postes appelle
-  le seeder idempotent (couplage voulu, commenté). Les 10 titres anglais sont **relevés en jeu**
-  (Connétable = Sergeant, Prévôt des maréchaux = Constable) : jamais traduits.
+**Registre des mines — PR 1b** : `MineRegistry` seul écrivain. Province du **poste**. Date = dernier jour des données du relevé. 409 si même province/jour sans `confirm_replace`. 🔴 **R3 bis** : refus si analysé identique ou strictement moins (comparaison par `facts()`). `mines:redate` pour les relevés pré-10/10.
 
-**Lot 2 — contrat de l'API joueur** (fil `admin/echanges/mandats-lot2/`) :
-- **Toute réponse d'erreur** des routes des mandats est complète (`App\Support\MandateApiErrors`,
-  branché dans `bootstrap/app.php`) : une 422 porte `errors` (inchangé), `codes` et
-  `messages[champ] = {fr, en}` — refus métier (`App\Exceptions\MandateRefusal`, code déduit de la
-  clé `mandates.api.<code>`) comme validation de forme (`validation.<règle>`, noms de champs dans
-  `lang/{fr,en}/validation.php`) ; un 404 ou un 429 porte `code` et `messages` au premier niveau.
-  `messages.fr` est toujours la chaîne d'`errors`. Les refus d'administration ont un code `admin.…`
-  que l'API **refuse d'émettre** (500). Aucune table code → texte côté frontend.
-- `GET /mandates` renvoie aussi `characters[].requestable.{mayor,council} = {can_request,
-  blocked_by}` (la règle de la demande, exposée telle quelle) et, sur chaque mandat, les libellés
-  `{fr, en}` des titres, motifs et causes de fin ; `GET /council-offices` sert les titres avec leur
-  `label`. **Pas de `status_label`** : un statut est une présentation du frontend.
+**Registre — PR 4a, lecture** : `MineRegistryReader` sert les **faits** (sans texte brut). Mi-mandat/fin = `in_office_from` du lecteur + 30/60j. **Prédécesseur** = relevés d'**autres** dans les 30j avant le début.
 
-**Lot 3 — tâches planifiées** (`routes/console.php`, chaque jour à 09:00 Paris ; fil
-`admin/echanges/mandats-lot3/`) :
+**Prix des mines** (lot 2, brief `brief-prix-registre.md`) : `MinePrices` seul écrivain. `PRICE_OFFICES` (commerce, mines, bailli — tous égaux, dirigeant lit seul). Autorisation : mandat **approuvé** dont la fenêtre recouvre le jour de Paris, et fin < 7j grâce. Prix futur ou hors période refusé. `mines:prices-digest` 15:00 Paris (un email par occupant, pas ses propres changements). ⚠️ Prod : `route:cache`, `config:cache`.
 
-| Commande | Effet |
-|---|---|
-| `mandates:send-reminders` | rappel bilingue au joueur **2 jours après la fin effective** de son mandat, tant qu'il est renouvelable (avant, l'élection est en cours) ; jamais deux fois (`reminder_sent_at`), jamais si un renouvellement existe (en attente ou validé), jamais pour un révoqué, jamais à un maire dont la mairie a un successeur validé |
-| `mandates:verification-digest` | un email par jour aux comptes `admin` tant que la file de vérification a des lignes en retard (4 j maire, 7 j conseiller titré), chaque ligne avec son ancienneté ; file sans retard = aucun email |
-| `mandates:purge-rejected` | supprime les `rejected` de plus de 3 mois (`processed_at`) ; une demande en attente n'est **jamais** purgée |
-| `mandates:status` | lecture seule : dernier passage réussi de chaque tâche (mandats, `logs:prune`, `accounts:purge`) |
+## Animation — Décode le code (27/10/2026, refondue 28/10)
 
-`App\Support\MandateHeartbeat` : chaque tâche écrit en cache son dernier passage **réussi**, en fin
-d'exécution. Au-delà de 36 h, `/dashboard` (**le garde-fou**) et l'en-tête des pages Mandats (une
-commodité) affichent une alerte qui nomme la tâche. ⚠️ Rien ne tourne en prod sans la tâche cron
-`schedule:run` créée dans cPanel (voir `CLAUDE.md`, « Pièges de prod »).
+Brief `brief-coffres-scelles.md` ; **spéc. à jour : `admin/echanges/animation-coffres-scelles/12-synthese-cc.md`** (D1-D40). Organisateur scelle un coffre (5 chiffres), saisit les propositions, scoring Bulls-and-Cows.
 
-**Historique des postes** (fil `admin/echanges/mandats-historique`, 03/10/2026) :
+**Deux modes** (`is_anonymous`) : **Privé** (character_id, catégorie A, cascadeOnDelete, réouvrable) et **Sans compte** (slug + mot de passe, clôture définitive).
+
+🔴 **Autorisation PAR PROPRIÉTÉ** (premier module sans Spatie ni mandat). `DecodeActor` = personnage ou auteur sans compte. Refus **403** (`not_owner`).
 
 | Pièce | Rôle |
 |---|---|
-| `App\Services\OfficeHistory` | **la seule fonction de fusion** des deux sources : tables vivantes (personnages existants) + `office_history_archive` (personnages supprimés). Appelée par l'onglet Blade « Historique » **et** par l'API « Ma province ». Tri total (début, titre, ville, fin, pseudo) |
-| `office_history_archive` | ce qui **survit** à la suppression d'un compte (décision de Greg : l'information est publique en jeu). **Catégorie D**, aucune clé vers un compte ou un personnage : pseudo en texte, lieu en id **et** en texte, titre par sa clé. Écrite au moment de la suppression, jamais modifiée ensuite — un personnage est vivant **ou** archivé, jamais les deux |
-| `App\Services\AccountDeletion` | **la porte unique** de suppression d'un compte ou d'un personnage : archive, efface les traces sans FK (jetons OAuth, `password_reset_tokens`), puis supprime. ⚠️ La cascade SQL ne prévient aucun personnage : un `$user->delete()` écrit ailleurs effacerait l'historique en silence. `Enforcement/AccountDeletionTest` échoue sur toute suppression de `User`/`Character` hors de ce service, et vérifie les trois chemins réels (API, admin, profil Breeze) |
-| `App\Support\GameCalendar` | année du jeu côté serveur (2026 → 1474), pour les **emails** seulement — l'API n'envoie que des dates réelles. ⚠️ **Jumeau** de `src/modules/gameCalendar.js` (frontend) : `Unit/GameCalendarTwinTest` fige la table **et** des conversions, son jumeau frontend aussi |
+| `DecodeWorkflow` | seul écrivain (création, coffres, réouverture, clôture, suppression) |
+| `DecodeAccess` | preuve sans compte ; refus ne distingue pas slug inconnu/privé/close/mauvais mot de passe |
+| `DecodeClosing` | **la** clôture. Sans compte : photo figée + effacement (coffre non percé, propositions, description, mdp, IP, email, jeton) |
+| `DecodeScoring` | Bulls-and-Cows, trouvé (10) → **20** |
+| `DecodeSlug` | slug : lettres+tirets, **aucun chiffre**, 3-20 car., aucun mot réservé, jamais de suffixe auto (D27) |
+| `DecodePasswordReset` | lien à usage unique 24h, stocké haché, sans compte avec email confirmé → auto-demande, sinon admin émet et remet au pseudo en jeu |
+| `DecodeProposals` | saisie, propriétaire seul |
+| `DecodeActivityReader` | lecture publique et organisateur, deux sources (tables ou photo figée) |
+| `DecodeExporter` | BBCode français fixe, lien par slug |
+| `AnimMailer` + `Anim*` / `DecodeFinalReport` | **commun à toutes les activités sans compte** (`AnimKinds`). 4 emails bilingues : confirmation email, réinitialisation, avis mdp modifié, et (Décode seul) compte rendu de fin |
+| `DecodeIp` | HMAC-SHA256 (clé = `MODULE_DATA_KEY`), **nulle** pour IP privée/bouclage |
+| `DecodePassword` | 10 car., ≠ slug et pseudo |
+| `DecodeLinks` | liens vers le **site des joueurs**, jamais admin. Page publique : `/public/activite/decode/{slug}` |
+| `AnimApiErrors` | contrat d'erreur au patron de `MandateApiErrors`, périmètre propre |
 
-Emails : toujours adressés au **joueur**, le personnage nommé ; date réelle d'abord, date de jeu entre
-parenthèses (`:date (:date_jeu)`), sauf pour un acte de l'Office (`:date` seule). La famille de chaque
-chaîne datée est figée par `MandateLanguageTest`.
+🔴 **Le code du coffre en cours** n'est renvoyé à **personne** (le serveur tire la combinaison). Apparaît seulement une fois percé et dans le compte rendu de fin.
+- Suppression : privée close par organisateur ; sans compte par admin seulement.
+- Réouverture : privée seulement (refusée si autre activité active).
+- **Une seule activité non close par type et par personnage** (privé) ; **une seule par empreinte d'IP** (sans compte).
+- Page de résumé sans compte : 5 ans après clôture → suppression + libération slug.
 
-**Registre des mines — PR 1a, schéma seul (08/10/2026)** (brief `admin/content/brief-registre-mines.md`,
-fil `admin/echanges/registre-mines`) : table `mine_reports`, modèle `MineReport`. Axes en clair, payload
-chiffré (collage brut, relevé analysé, prix, taux). 🔴 **Ajout seul** : un relevé ne se supprime jamais, il
-se remplace ; « un seul relevé actif par province et par date » est tenu **par la base** — `active` = 1 en
-vigueur, NULL remplacé, index unique `(province_id, reported_at, active)` qui ignore les NULL (vérifié sur
-MariaDB et SQLite). Jamais `false` au lieu de NULL : deux remplacés du même jour se heurteraient.
-`character_id` en **nullOnDelete, catégorie C** : le relevé reste, le lien vers l'auteur est coupé par la
-base — « pseudonymisé », jamais « anonymisé ». Postes : `MineReport::OFFICES` = `MandateAuthority::MINE_OFFICES`.
+⚠️ **Prod** : `route:cache`, `migrate` (sème le type `decode`), `anim:*` via `schedule:run` cPanel, **aucun** nouveau `config/*.php`/`.env`, **mesurer `$request->ip()` derrière O2Switch**, **rien avant le texte légal**.
 
-**Registre des mines — PR 1b, écriture (08/10/2026)** : `POST characters/{character}/mine-reports`
-(`Api\MineReportController`, forme seulement) → **`App\Services\MineRegistry`, seul écrivain**.
-Autorisation `canManageMines()` (le dirigeant consulte mais n'écrit pas) ; province du **poste** ; date
-= **dernier jour présent dans les données** du relevé (`MineRegistry::reportDate()`, depuis le 10/10/2026 :
-un collage porte les 7 derniers jours du jeu, un ancien collage rattrape donc un jour sans remplacer celui du
-jour ; date future refusée, aucune date = jour de Paris) ; poste estampillé à l'écriture. Même province et
-même jour : **409** tant que `confirm_replace` n'est pas envoyé (la réponse nomme l'auteur remplacé),
-puis remplacement — l'ancien passe `active` NULL avec `replaced_by_id`. 🔴 **R3 bis** : refus (422) si le
-relevé **analysé** est identique, ou s'il en dit strictement moins — comparaison par
-`MineRegistry::facts()`, faits « chemin → valeur » clavetés sur le nœud, sans libellé de langue, nombres
-normalisés ; jamais sur le texte collé. Erreurs au contrat de `MandateApiErrors` (clés `mines.api.*`,
-`lang/{fr,en}/mines.php`). **`php artisan mines:redate`** (simulation par défaut, `--force` pour écrire) redate
-les relevés inscrits avant le 10/10/2026, tous datés du jour du collage, d'après leurs données, puis met en
-vigueur, par province et date, le plus récemment inscrit ; idempotente.
+## Animation — Grille des lots (10/11/2026, non mergée)
 
-**Registre des mines — PR 4a, lecture (09/10/2026)** : `App\Services\MineRegistryReader` sert les **faits**
-(relevés en vigueur et remplacés, déchiffrés, **sans le texte brut** ; estampilles ; `today` de Paris).
-Deux règles y vivent (fil `registre-mines`, R4) : mi-mandat / fin de mandat = `in_office_from` **du
-lecteur** + 30 / + 60 jours civils de Paris (`MandateAuthority::mineReaderMandate()`) ; **prédécesseur** =
-relevés en vigueur d'**autres** personnages dans les 30 jours avant ce début, groupés par auteur et poste
-(`first`, `last`, `count`) — des estampilles écrites, jamais « qui occupait le poste ». Les analyses (état
-du parc, niveaux, bilans) se calculent côté site avec le parseur qui a produit le relevé.
+Brief `brief-grille-des-lots.md`. Même modèle que Décode : **deux modes**, autorisation **par propriété** (catégorie A, cascadeOnDelete). `RewardsGridWorkflow` seul écrivain. Machine à états : `new → incomplete → filled → confirmed → closed` (🔴 **`drawed` jamais produit** : tirage → `confirmed` directement). Page publique qu'à partir du tirage.
 
-**Prix des mines par période — lot 2 (15/10/2026)** (brief `admin/content/brief-prix-registre.md`, décisions
-de Greg des 14 et 15/10) : table `province_mine_prices`, **catégorie C** (donnée communautaire de la province).
-`App\Services\MinePrices` est le seul écrivain (`getPriceForDate`, `getCurrentPrice`, `create`, `update`) ;
-un jeu de prix reste en vigueur jusqu'au suivant (pas de `effective_to`), et le frontend recalcule les bilans
-JOUR PAR JOUR avec `GET mine-prices`. Autorisation dans `MandateAuthority` : `PRICE_OFFICES` (commissaire au
-commerce, commissaire aux mines, bailli — **tous égaux**, le dirigeant lit seulement), `canManagePrices`,
-`canReadPrices`, `canEditPriceOn` / `canEditPrice` : mandat **approuvé** qui a connu l'un de ces postes et dont la fenêtre (entrée en fonction → fin effective) **recouvre le jour
-de Paris** de la date d'effet — la fenêtre du **mandat** et non la période de poste, qui ne naît qu'à la validation du poste dans
-l'Office (constaté en prod le 16/10) ; un mandat révoqué ne donne plus rien —, et fin du mandat
-datant de moins de `mandates.price_edit_grace_days` (7). Bornes du jour ramenées en UTC (la base stocke en UTC). Un prix daté du futur, ou antidaté hors de la période de
-l'auteur, est refusé : sans cela le verrou se contournerait en écrivant dans le passé d'un autre. Un relevé du
-Registre fige dans son `payload` les prix en vigueur à sa date (le joueur ne les saisit plus) ; sans table, il
-garde ceux que le client envoie. **Résumé quotidien** `mines:prices-digest` à 15:00 Paris
-(`mandates.price_digest_at`, heartbeat `prices`) : un email bilingue par occupant des trois postes, jamais pour
-ses propres changements, rien s'il n'y a pas de changement ; fenêtre = depuis le dernier passage réussi (24 h à
-défaut, 14 jours au plus). ⚠️ **Prod** : routes ajoutées → `route:cache` ; `config/mandates.php` modifié →
-`config:cache`.
+Ajout de lots : `name` (un lot) ou `names` (liste, ≤ 500). Dimensions : 3-20 par côté. Emails par `AnimMailer` (option A, « faire comme Décode »), **aucun compte rendu de fin**. `RewardsGridPasswordReset` jumelle de `DecodePasswordReset`.
 
-## Animation — Décode le code (27/10/2026, refondue le 28/10/2026)
+Tâches planifiées communes (`AnimKinds`) : `anim:close-inactive` (30j), `anim:purge-closed` (5 ans sans compte). Durées = **constantes** du modèle. 🔴 **Type `rewards` naît inactif** : activer depuis `/anim` après texte légal.
 
-Première activité du module Animation (brief `admin/modules/animation/brief-coffres-scelles.md` ; **spécification à jour :
-`admin/echanges/animation-coffres-scelles/12-synthese-cc.md`**, décisions D1 à D40 — le brief n'avait pas encore été révisé). Un
-organisateur scelle un coffre par une combinaison secrète de 5 chiffres, saisit les propositions reçues (forum, gazette, en jeu),
-chacune est notée ; quand un personnage trouve, le code est révélé avec son nom et un nouveau coffre est scellé.
+## Inventaires (11/11/2026, non mergée)
 
-**Deux modes dans les mêmes tables** (`anim_decode_activities.is_anonymous`) :
-- **Privé** : lié au personnage (`character_id`, **catégorie A, `cascadeOnDelete`** — D21 : la suppression du personnage ou du compte
-  emporte l'activité, ses coffres, ses propositions et sa page). Réouvrable, jamais supprimé automatiquement (D20).
-- **Sans compte** : aucune clé vers un compte. L'auteur se prouve par le **slug** (public) et un **mot de passe** qu'il a choisi (D10),
-  pseudo **obligatoire** (D12), email **facultatif** confirmé par lien (D23, D29). Clôture **définitive** (D19).
+Fils `inventaire-scopes/` et `inventaire-bilans/`. **Une table par niveau avec sa vraie FK** (pas de polymorphe). Niveau et propriétaire résolus **côté serveur** depuis le poste tenu maintenant (`InventorySettings::owner()`).
 
-🔴 **Autorisation PAR PROPRIÉTÉ, jamais par poste** (premier module du projet sans Spatie ni mandat). Les gestes de
-`DecodeWorkflow` reçoivent un **`DecodeActor`** : un personnage, ou un auteur sans compte qui vient de prouver son mot de passe
-(`DecodeAccess`). La vérification de propriété est la première ligne de chaque geste ; refus **403** (`not_owner`).
+Autorisation (`MandateAuthority`) : personnel = le personnage ; ville = **maire** ; province = **commissaire au commerce** seul écrit, dirigeant lit aussi. Commissaire aux mines/bailli : **aucun accès**.
 
 | Pièce | Rôle |
 |---|---|
-| `anim_activity_types` | référentiel (`key` = clé de traduction, `is_active`) ; `decode` semé par une migration qui appelle `AnimActivityTypeSeeder` (idempotent, ne réactive jamais un type désactivé) |
-| `anim_decode_activities` | l'activité (**ni description**, retirée le 28/10) ; **lieu obligatoire** (exigé par les deux routes de création : un seul de `kingdom_id`/`province_id`/`city_id`) ; **`slug` unique** (clé de recherche) ; `kingdom_id` OU `province_id` OU `city_id` (exclusion tenue par le Service) ; données du mode sans compte : `organizer_name`, `password_hash`, `creator_ip_hash`, `organizer_email` (chiffré), jeton de réinitialisation haché, `closing_snapshot` |
-| `anim_decode_secrets` | un coffre ; `code` **chiffré par `MODULE_DATA_KEY`** ; son numéro est son rang |
-| `anim_decode_proposals` | proposition ; **`character_name`** (nom du personnage, texte libre, aucune clé vers un compte) |
-| `App\Support\DecodeSlug` | **seule source des règles du slug** (D14) : lettres et tirets, **aucun chiffre**, 3 à 20 caractères, **aucun mot réservé** ; propose depuis un nom (accents retirés, chiffres retirés, coupé à 20) ; jamais de suffixe automatique (D27) |
-| `App\Services\DecodeScoring` | Bulls-and-Cows, service pur : position exacte 2, chiffre présent mais mal placé 1, plafond 10 ; trouvé (10) → enregistré **20** |
-| `App\Services\DecodeWorkflow` | seul écrivain des activités et des secrets (création privée et sans compte, coffres, réouverture privée, clôture, suppressions) |
-| `App\Services\DecodeAccess` | preuve d'auteur sans compte ; **le refus ne distingue pas** slug inconnu / activité privée / activité close / mot de passe faux (faux hachage comparé pour égaliser le temps) |
-| `App\Services\DecodeClosing` | **LA clôture**, quel qu'en soit le déclencheur. Privée : tout est gardé. Sans compte : dans une transaction, **photo figée** (nom, organisateur, lieu, codes trouvés + qui, classement final — D18) et **effacement** du coffre non percé, des propositions, de la description, du mot de passe, de l'empreinte d'IP, de l'email, du jeton ; le compte rendu complet part **après** la transaction (un échec d'envoi ne bloque jamais la clôture) |
-| `App\Services\DecodePasswordReset` | réinitialisation (D35, D36) : lien **à usage unique, 24 h, stocké haché**, l'auteur **choisit** son mot de passe (aucun mot de passe ne circule) ; avec un email confirmé l'auteur le demande lui-même, sinon l'administrateur du site émet le lien et le remet **au pseudo du personnage dans le jeu** |
-| `App\Services\DecodeProposals` | saisie d'une proposition — propriétaire seul |
-| `App\Services\DecodeActivityReader` | lecture publique **et** écran de l'organisateur, une seule forme, deux sources (tables, ou photo figée d'une activité sans compte close) |
-| `App\Services\DecodeExporter` | BBCode en **français fixe**, lien par slug |
-| `App\Services\AnimMailer` + `App\Notifications\Anim*` / `DecodeFinalReport` | **commun à toutes les activités sans compte** (Décode le code, Grille des lots : `AnimKinds` donne à chaque type son générateur de liens, son service de réinitialisation et s'il envoie un compte rendu) — quatre emails **bilingues, français puis anglais**, jamais de mot de passe : confirmation d'adresse (nomme le type, ne promet un compte rendu que s'il en existe un), lien de réinitialisation, avis « mot de passe modifié » (D37, après chaque changement), et — **Décode seulement** — compte rendu de fin (propositions comprises, D31) ; synchrones ; l'adresse n'est jamais journalisée (échec d'envoi : `anim.mail_failed`, type + identifiant + genre de message) |
-| `App\Support\DecodeIp` | empreinte HMAC-SHA256 de l'IP (clé = `MODULE_DATA_KEY`, aucune variable `.env` de plus) ; **nulle** pour une adresse privée/de bouclage/réservée (sinon « une seule activité par connexion » bloquerait tout le monde derrière un répartiteur mal configuré) |
-| `App\Support\DecodePassword` | règles du mot de passe imposées par le serveur : 10 caractères, différent du slug et du pseudo |
-| `App\Support\DecodeLinks` | liens des emails et de l'export, tous vers le **site des joueurs** (jamais le domaine d'administration) ; la page publique d'une activité est `/public/activite/decode/{slug}` (convention : `/public/` pour ce qui se partage) |
-| `App\Support\AnimApiErrors` | contrat d'erreur au patron de `MandateApiErrors` (qui porte la mécanique), périmètre propre ; clés `anim.api.*` |
+| `InventorySettingsDocument` | garde de forme : clés connues, slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko) |
+| `InventorySettings` | seul écrivain, **écriture à version** (409 `version_conflict`) |
+| `InventoryText` | dernier inventaire collé, chiffré, remplacé à chaque collage |
+| `ProvinceInventoryRegistry` | historique province (texte identique du jour = rien créé, auteur jamais nommé : `by_me`) |
 
-Routes (`/api/v1`) — **aucune route fixe ne voisine `{slug}`** (aucun mot réservé, D14) :
-- publiques : `anim/activity-types`, `anim/decode-activities/{slug}` (les deux modes, jamais le code d'un coffre scellé),
-  `anim/decode-slug` (aperçu et disponibilité, `throttle:anim-slug`) ;
-- sans compte (aucun jeton, mot de passe dans le **corps**) : `POST anim/decode-manage` (création, `throttle:anim-create`),
-  `POST anim/decode-manage/{slug}/{open,secrets,secrets/{secret}/proposals,close,export/rules,export/results,reset-complete}`
-  (`throttle:anim-access` : 5 essais/min par slug et par IP, comptés que le slug existe ou non), `…/reset-request`
-  (`throttle:anim-reset`, **même réponse 202** dans tous les cas), `GET anim/decode-email-confirm/{slug}/{hash}` (lien signé) ;
-- privé (`auth:api`) : `characters/{character}/decode-activities` (GET, POST `throttle:6,1`) et `decode-activities/{activity}/…`
-  (`secrets`, `secrets/{secret}/proposals`, `reopen`, `close`, DELETE, `export/rules`, `export/results`).
+Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env`.
 
-Administration Blade (`role:admin`, `/anim`), **commune à tous les types d'activité** (une activité s'adresse par `activities/{kind}/{id}`, `kind` = clé de `AnimKinds`) : types, surveillance des activités récentes de tous les types (type, mode, organisateur, **adresse seulement si
-confirmée** — D32, date et mode du dernier changement de mot de passe) et **recours pour les activités SANS COMPTE uniquement**
-(D13) : clore (définitif), supprimer (**étape de confirmation**, jamais en un clic), émettre un lien de réinitialisation (montré
-**une seule fois**, message prêt à envoyer au personnage dans le jeu). Aucun geste sur une activité privée.
+## Icônes des items (05/11/2026)
 
-Règles tranchées par Greg :
-- **Le code du coffre en cours** n'est renvoyé à **personne**, l'organisateur compris (Greg, 28/10/2026 : « on va le masquer » ; le serveur tire la combinaison, l'organisateur ne la connaît pas) : il n'apparaît qu'une fois le coffre percé (`opened`) et, à la clôture d'une activité sans compte avec email confirmé, dans le compte rendu (D31). Les tests le lisent en base (`decodeSecretCode()`).
-- **Texte des règles** : DEUX versions rédigées par Cowork (`17-regles-decode.md`, validées par Greg le 28/10/2026) — `types.decode.rules` (FR et EN) = version **export forum** (BBCode, directe aux joueurs) ; la version **site** (qui nomme l'Office) est `Animation.Types.decode.Rules` côté frontend. Les deux ne sont pas jumeaux.
-- **Suppression** : une activité **privée close** par son organisateur ; une activité **sans compte** par l'administrateur du site seulement.
-- **Réouverture** : privée seulement (refusée si une autre activité du type est active) ; **jamais** sans compte.
-- **Une seule activité non close par type et par personnage** (privé) ; **une seule activité sans compte non close par empreinte d'IP**.
-- **Page de résumé d'une activité sans compte** : 5 ans après la clôture (`anim:purge-closed`), puis suppression et **libération du slug**.
+Brief `brief-icones-items.md`. Table `item_icons` : nom → `game_item_id` Celsius Online. L'Office ne stocke **aucune image**. Lecture publique : `GET item-icons?names[]=…` (200 max), clé = **nom tel que demandé** (rapprochement PHP `normalizeName` : casse et espaces ignorés, **accents significatifs**). `Cache-Control: public, max-age=86400`. ⚠️ Collation `utf8mb4_unicode_ci` refuse deux noms ne différant que par casse/accent. Admin : page Blade `/item-icons`. 🔴 **Aucun aperçu** côté frontend (IP joueur → CDN Celsius exclu par `/legal/privacy` §6). Tests : `ItemIconsTest`.
 
-**Tâches planifiées** (09:00 Paris, heartbeats `decode` et `decode_purge`, **communes à toutes les activités d'Animation** : `App\Support\AnimKinds`
-liste Décode le code et la Grille des lots, ajouter un type = une ligne) : `anim:close-inactive` (30 jours sans action ; une
-réouverture relance l'horloge) et `anim:purge-closed` (`--dry-run`). Les durées sont des **constantes** de chaque modèle (`AnimDecodeActivity`, `AnimRewardsGrid`), pas
-un `config/*.php` (un nouveau fichier de config est absent du cache en prod).
+## Mode maintenance (18/11/2026, non mergée)
 
-⚠️ **Prod** : routes ajoutées → `php artisan route:cache` en SSH après le déploiement (sinon 404) ; le déploiement ne lance pas les
-migrations (`php artisan migrate`, qui sème aussi le type `decode`) ; `anim:*` ne tournent qu'avec la tâche cron `schedule:run` de
-cPanel ; aucun nouveau `config/*.php` ni `.env` ; **mesurer ce que `$request->ip()` voit derrière O2Switch avant d'activer le mode
-sans compte** ; **rien ne se déploie avant le texte légal** (politique, « Vos données », `/legal/cookies`, registre des traitements).
-Texte des règles (`types.decode.rules`) : rédigé par Cowork (28/10/2026).
+Brief `brief-mode-maintenance.md`. **Pas de SSH** : `scripts/maintenance.sh` dépose/retire `storage/framework/down` **par FTP**. `deploy.yml` : ferme avant envoi, rouvre après (sauf si déjà fermé → mode `held`). `maintenance.yml` : ferme/rouvre à la main.
 
-Hors lots 1 et 3 : export art. 20 (lot export, sans la `note`).
+🔴 **Secret** : `MAINTENANCE_SECRET` (GitHub Secret, 16+ car. `[A-Za-z0-9_-]`). Absent → déploiement sans maintenance.
+- API : 503 JSON `{message: "maintenance", retry_after: 300}` + `Retry-After`. `HandleCors` **avant** maintenance (sinon erreur réseau). Bypass : cookie natif (Blade) + header `X-Maintenance-Bypass` (site joueurs, `hash_equals`).
+- Page 503 Blade avec accès administrateur (champ masqué → `/{secret}`).
+- Tests : `MaintenanceModeTest`.
+- ⚠️ Prod : créer `MAINTENANCE_SECRET` dans GitHub Secrets.
 
-## Animation — Grille des lots (10/11/2026, `feat/rewards-grid`, non mergée)
+## Annonces du site (18/11/2026, non mergée)
 
-Deuxième activité du module Animation (brief `admin/content/brief-grille-des-lots.md`, stratégie `admin/strategies/animation.md`). Même modèle que Décode le code :
-**deux modes** dans les mêmes tables (`anim_rewards_grids.is_anonymous`), autorisation **par propriété** (`character_id`, catégorie **A**, `cascadeOnDelete` : une grille privée disparaît avec le personnage ou le compte, ses lots avec elle — Greg, 11/11/2026), sans compte par slug + mot de passe dans le corps.
+Annonce de maintenance défilante. Table `site_announcements` : message FR/EN (500 car.), échéance `exact`/`period`/null, visibilité `visible_from`/`visible_until`, `is_active`. Dates en UTC, saisies à Paris.
 
-| Pièce | Rôle |
-|---|---|
-| `anim_rewards_grids` / `anim_rewards_lists` | la grille (largeur × hauteur, lieu obligatoire, `slug` unique) et ses lots (`name`, `place` 1..capacité, `player` texte libre, `is_taken`) ; `grid_id` en cascade |
-| `App\Services\RewardsGridWorkflow` | **seul écrivain** : `create`, `createAnonymous`, `addLot`, **`addLots`** (plusieurs lots, une transaction, tout ou rien), `removeLot`, `draw`, `assign`, `markTaken`, `close`, `reopen`, `delete` ; statut recalculé par `updateStatusAfterLotChange` |
-| `RewardsGridReader` | lecture unique (organisateur, public, photo figée) ; **les noms des lots non réclamés ne sont jamais envoyés avant la clôture** |
-| `RewardsGridClosing`, `RewardsGridPasswordReset`, `RewardsGridLinks` | clôture (sans compte : données personnelles effacées, lots conservés), réinitialisation (lien à usage unique 24 h), liens vers le site des joueurs |
-
-Machine à états : `new → incomplete → filled → confirmed → closed` (**`drawed` n'est jamais produit** : le tirage passe directement à `confirmed`, décision de Greg du 10/11/2026 ; `PUBLIC_STATUSES` le tolère). La page publique n'existe qu'à partir du tirage (404 avant).
-**Ajout de lots** : `POST rewards-grids/{grid}/lots` et `POST anim/rewards-manage/{slug}/lots` acceptent `name` (un lot) **ou** `names` (liste, jusqu'à 500 noms) — règles de forme communes `RewardsGridController::LOT_RULES` ; une liste qui dépasse les cases libres est refusée en entier (`grid_full`). La quantité n'existe pas côté serveur : l'interface envoie n fois le même nom.
-**Emails et administration** (option A de Greg, 11/11/2026 : « faire comme Décode ») : la grille sans compte envoie les mêmes emails que Décode par `AnimMailer` (confirmation à la création, lien de réinitialisation demandé par l'auteur à une adresse confirmée, avis après chaque changement de mot de passe) ; **aucun compte rendu de fin** (la clôture efface l'adresse et ne garde que les lots). Sans adresse confirmée, la demande est notée et l'administrateur émet le lien depuis `/anim` (écran commun avec Décode). `RewardsGridPasswordReset` et `DecodePasswordReset` restent deux classes jumelles (tests `Anim/RewardsEmailAdminTest`, `Anim/DecodeAnonymousApiTest`).
-**Dimensions** : de 3 à 20 cases par côté (`AnimRewardsGrid::MIN_SIDE` / `MAX_SIDE`, décision de Greg du 11/11/2026), soit 9 à 400 cases, dans les 500 noms d'une requête ; refus `grid_dimensions_invalid` (le message donne les bornes).
-Routes : `anim/rewards-slug`, `anim/rewards-manage[/{slug}/…]`, `anim/rewards-grids/{slug}`, `characters/{character}/rewards-grids`, `rewards-grids/{grid}/…`. ⚠️ **Prod** : `migrate` + `route:cache`.
-Les tâches planifiées `anim:close-inactive` / `anim:purge-closed` couvrent les grilles (`AnimKinds`) : 30 jours sans action → clôture (privée : tout est gardé ; sans compte : clôture définitive, lots conservés) ; sans compte close depuis 5 ans → suppression avec ses lots. Une grille privée n'est jamais purgée par ces tâches ; elle disparaît avec son organisateur (catégorie A).
-🔴 **Reste avant le merge** : lignes du registre des traitements ; texte légal. **Le type `rewards` naît inactif** (`AnimActivityTypeSeeder::TYPES`) : à la mise en ligne, l'activer depuis `/anim` (bouton « Activer ») seulement une fois le texte légal publié.
-
-## Inventaires — réglages et inventaires en base (11/11/2026, `feat/inventory-settings`, non mergée)
-
-Fils `admin/echanges/inventaire-scopes/` (texte légal) et `inventaire-bilans/` (historique de la province) ; décisions de Greg et Cowork du 11/11/2026. Jusqu'ici **tout vivait dans le navigateur** (aucune table, aucune route). Pour un joueur **connecté**, les réglages d'inventaire passent **en base, aux trois niveaux** ; sans compte, rien ne change (navigateur seulement). La phase 1 du frontend (catégories, ordre, export) est livrée ; **le frontend n'est pas encore branché** sur cette API.
-
-| Table | Rattachée à | Contenu | Catégorie |
-|---|---|---|---|
-| `character_inventory_settings` | `character_id` (unique, **cascade**) | document de réglages + **dernier inventaire collé** (`inventory`, **chiffré**, un seul exemplaire remplacé) | **A** |
-| `city_inventory_settings` | `city_id` (unique) | idem ; `updated_by_character_id` nullable (`nullOnDelete`) | **C** |
-| `province_inventory_settings` | `province_id` (unique) | document de réglages seulement ; `updated_by_character_id` nullable | **C** |
-| `province_inventory_snapshots` | `province_id` | **HISTORIQUE** des collages du commissaire au commerce, calqué sur `mine_reports` : un exemplaire par province et par jour de Paris, un second collage le **remplace** (`active` NULL + `replaced_by_id`, rien ne s'efface), texte **chiffré** ; `character_id` nullable (`nullOnDelete`), `office_key` | **C** |
-
-🔴 **Une table par niveau, avec sa vraie clé étrangère** (§5ter) : le `owner_type` / `owner_id` polymorphe que proposaient les briefs est écarté (une colonne morph ne porte pas de FK, donc pas de `nullOnDelete` garanti). Le niveau et le propriétaire se résolvent **côté serveur, depuis le poste tenu MAINTENANT** (`App\Services\InventorySettings::owner()`), jamais depuis la requête.
-
-**Qui peut quoi** (`MandateAuthority`) : **personnel** = le personnage lui-même ; **ville** = le **maire** en fonction (`inventoryCity()`), lecture et écriture ; **province** = le **commissaire au commerce** seul écrit (`INVENTORY_PROVINCE_OFFICES`), il lit avec le **dirigeant**, lecture seule (`INVENTORY_PROVINCE_READER_OFFICES`). Le commissaire aux mines et le bailli n'ont **aucun accès** (à la différence des prix) ; le maire ne lit pas la province.
-
-| Pièce | Rôle |
-|---|---|
-| `App\Support\InventorySettingsDocument` | **seul garde de forme** du document : clés connues seulement (partagées : `custom`, `hiddenBuiltIn`, `order`, `exportColor`, `itemCategories` ; **personnel seulement** : `exportQtyFormat`, `exportShowEcus`, `exportShowIcons` (booléen, 14/11/2026 : inclure les `[img]` des icônes d'items dans l'export BBCode, voir « Icônes des items »), `exportWrapper`, `visibility`), slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko). Une clé inconnue est refusée |
-| `App\Services\InventorySettings` | **seul écrivain** des réglages : `scopes`, `show`, `save` (**écriture à version** : 409 `version_conflict` avec l'état courant si le client n'a pas lu la dernière), `copyPersonal` |
-| `App\Services\InventoryText` | le **dernier inventaire collé** (personnage, ville), chiffré, remplacé à chaque collage |
-| `App\Services\ProvinceInventoryRegistry` | l'**historique** de la province : `record` (poste du commissaire au commerce, jour de Paris, texte identique du jour = rien créé), `history` (les 100 exemplaires les plus récents, déchiffrés, **auteur jamais nommé** : seulement `by_me`) |
-
-**Routes** (`auth:api`, contrat d'erreurs `MandateApiErrors`, clés `inventory.api.*`) : `GET characters/{id}/inventory-scopes` ; `GET|PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT : `{data, version}`, `throttle:30,1`) ; `POST characters/{id}/inventory-settings/personal/copy` (`from_character_id`, `confirm_replace`) ; `GET|PUT characters/{id}/inventory/{personal|city}` (texte collé) ; `GET|POST characters/{id}/inventory/province` (historique / inscription du jour). ⚠️ **Routes ajoutées : `route:cache` en prod.**
-
-**Copie** : un joueur copie les réglages **personnels** d'un de ses personnages vers un autre **du même compte** ; elle remplace (confirmation `confirm_replace` si la cible en a déjà) et ne copie **jamais** le texte collé (chaque personnage a son inventaire).
-
-**Garde-fous** : les quatre tables sont classées dans `UserDataLifecycleTest` (A / C / C / C) et dans `AccountExportCoverageTest` — les réglages **personnels** sont dans l'export art. 20 (section `inventory`, texte collé déchiffré compris, résumé dans le PDF), ville, province et historique **exclus** (communautaires, dits dans `not_included.shared_data`) ; `module-data:check` relit les trois colonnes chiffrées (`ENCRYPTED_COLUMNS`, où manquait aussi `anim_rewards_grids.organizer_email`) ; `Enforcement/InventoryNotConsultableTest` échoue si une surface d'administration référence ces tables (§5bis). Registre des traitements : quatre lignes.
-
-⚠️ **Prod** : `php artisan migrate` (4 migrations), `route:cache` ; aucun nouveau `config/*.php`, aucune clé `.env`, aucun paquet Composer. **Rien ne se met en ligne avant le texte légal** (fil `inventaire-scopes`, Cowork).
-
-## Icônes des items (05/11/2026, corrigé le 13/11/2026)
-
-Brief `admin/content/brief-icones-items.md`, fil `admin/echanges/icones-items/`. Associe le nom d'un item à l'**ID de son icône chez Celsius Online** : l'Office ne stocke, ne copie et ne proxifie **aucune image** — l'export BBCode y renvoie par `[img]` vers `lesroyaumes.cdn.oxv.fr`, comme un joueur le ferait à la main. Table `item_icons`, hors taxinomie des données utilisateur.
-
-- **Lecture publique** `GET /api/v1/item-icons?names[]=…` (200 noms au plus) → `{success, icons: {nom demandé: id}}`. 🔴 La **clé est le nom tel que demandé**, jamais celui enregistré : le rapprochement se fait en PHP (`ItemIcon::normalizeName` : espaces et casse ignorés, **accents significatifs**) sur tout le référentiel, donc identique sur SQLite et MariaDB. Rien ne correspond → `icons: {}` (objet, pas tableau). `Cache-Control: public, max-age=86400, stale-while-revalidate=3600` (brief du 13/11/2026, décision de Greg : « respecte le briefing ») : une icône ajoutée ou corrigée met jusqu'à 24 h à se voir dans un export déjà en cache chez le joueur ; les erreurs de validation ne sont pas mises en cache.
-- **Administration** : page Blade `/item-icons` (c'est l'écran de travail) et API JSON `/api/v1/admin/item-icons` (même règle, aucun écran ne l'appelle). Seul `game_item_id` se corrige ; le nom, lui, se supprime et se recrée.
-- ⚠️ La base refuse deux noms qui ne diffèrent que par la casse **ou l'accent** (collation `utf8mb4_unicode_ci` : « Mais » = « Maïs ») ; le rapprochement PHP, lui, les distingue. Sur la durée, un doublon accentué est donc refusé à l'écriture plutôt que résolu à la lecture.
-- La vue Blade passe ses chaînes françaises dans JavaScript par **`@js()`** (apostrophes : « Retirer l'icône » rompait le `confirm('…')`, le bouton Supprimer partait sans confirmation) et lit l'URL du CDN dans `ItemIcon::CDN_URL_PATTERN`. Garde-fous : `Feature/ItemIcons/ItemIconsTest`.
-- **Pas d'autocomplete du nom** : la table `inventory_items` du brief n'existe pas (les inventaires sont des textes chiffrés, jamais décomposés).
-- **Décision de Greg (13/11/2026) pour la phase 2 (frontend)** : **aucun aperçu des icônes dans l'interface**, seulement le `[img]` de l'export — un aperçu ferait charger le CDN de Celsius par le navigateur du joueur (adresse IP transmise), ce que `/legal/privacy` §6 exclut.
-
-## Mode maintenance (18/11/2026, `feat/maintenance-mode`, non mergée)
-
-Brief `admin/content/brief-mode-maintenance.md` (Cowork, 11/11/2026) ; décisions de Greg du 18/11/2026. Un **seul interrupteur** ferme l'API et, par elle, le site des joueurs.
-
-- **Pas de SSH au déploiement** : `php artisan down` n'écrit qu'un fichier JSON, `storage/framework/down`, que Laravel lit à chaque requête. `scripts/maintenance.sh` (`down` / `up` / `status` / `payload`) le dépose ou le retire **par FTP** (curl, mêmes identifiants que l'action de déploiement). `storage/framework/**` étant exclu de l'envoi, le fichier n'est ni écrasé ni gardé par un déploiement.
-- **`deploy.yml`** : l'Office est fermé juste avant l'envoi FTP (après tests et construction des assets) et rouvert juste après, **avant** les sondes (origine canonique, CORS : elles attendent un site ouvert). Un envoi en échec **laisse l'Office fermé** plutôt que servi à moitié mis à jour (étape qui le dit, Discord signale l'échec). 🔴 **Un Office déjà fermé à l'arrivée reste fermé** (mode `held`, sondes ignorées) : c'est ainsi qu'on essaie une mise à jour avant d'ouvrir. **`maintenance.yml`** (`workflow_dispatch`, action `down` / `up`) ferme et rouvre à la main : down → déployer → essayer par le bypass → up.
-- 🔴 **Secret** : secret GitHub **`MAINTENANCE_SECRET`** (16 caractères minimum, `[A-Za-z0-9_-]` : il entre tel quel dans le JSON et dans une URL, le script refuse le reste). Absent : le déploiement part **sans** maintenance, avec un avertissement. Aucune clé `.env`, aucun `config/*.php`.
-- **API** : 503 JSON `{success: false, message: "maintenance", retry_after: 300}` + `Retry-After` (`bootstrap/app.php`, uniquement `api/*` en maintenance ; le panneau Blade garde la page 503 de Laravel). `HandleCors` passe **avant** le middleware de maintenance : le 503 et le préflight portent leurs en-têtes CORS (sans eux le navigateur ne verrait qu'une erreur réseau) — figé par test.
-- **Bypass** : le cookie natif (`/{secret}`, panneau Blade) reste. Pour le **site des joueurs** (autre origine, jetons Bearer, aucun cookie envoyé), `App\Http\Middleware\PreventRequestsDuringMaintenance` (remplace celui de Laravel dans `bootstrap/app.php`) accepte aussi le secret dans l'en-tête **`X-Maintenance-Bypass`** (`hash_equals`, jamais un en-tête vide ni un fichier sans secret). Côté site : `/maintenance/<secret>` (frontend, `docs/ARCHITECTURE.md`).
-- **Accès administrateur sur la page 503 du panneau Blade** (Greg, 18/11/2026 : secret perdu, « un bouton pour contourner ») : `resources/views/errors/503.blade.php` remplace la page standard de Laravel. **Pendant une maintenance seulement** (`app()->isDownForMaintenance()`), un « Accès administrateur » déplie un champ masqué ; le navigateur ouvre `/{secret}`, adresse que Laravel reconnaît pour poser le cookie de contournement. Le secret n'est jamais écrit dans la page ; un secret faux ramène sur la même page (Laravel ne distingue pas, voulu). Un 503 d'une autre origine n'a pas de formulaire. L'API n'est pas concernée (JSON). Pour **relire le secret actif** : `grep -o '"secret":"[^"]*"' storage/framework/down` en SSH (le secret GitHub, lui, ne se relit pas).
-- Tests : `Feature/Maintenance/MaintenanceModeTest` (503 JSON, CORS, bypass, secret invalide, fichier produit par le script accepté par Laravel, ordre des étapes de `deploy.yml`, page 503 du panneau avec et sans maintenance).
-- ⚠️ **Prod, avant le premier déploiement** : créer le secret `MAINTENANCE_SECRET` (GitHub → Settings → Secrets, backend) ; aucune commande SSH, aucune route ajoutée.
-
-## Annonces du site (18/11/2026, `feat/announcements`, non mergée)
-
-Demande de Greg du 18/11/2026 : **annoncer une maintenance à l'avance**, le message **défile de droite à gauche** sur l'accueil de l'application (`/app/`). Ce lot est le **backend** ; le bandeau (frontend) vient ensuite. Décisions de Greg : saisie par une page d'administration, message FR/EN + échéance + visibilité, une échéance **précise OU en période** (« maintenance prévue cette semaine »).
-
-| Pièce | Rôle |
-|---|---|
-| `site_announcements` | `message_fr` / `message_en` (500 car. : une ligne qui défile), `schedule_type` (`exact` \| `period` \| null), `maintenance_starts_at` / `maintenance_ends_at`, `visible_from` / `visible_until`, `is_active` (retrait manuel). **Dates en UTC**, saisies et relues à Paris. **Hors taxinomie des données utilisateur** : texte de l'administrateur, aucun lien vers un compte (comme `item_icons`) |
-| `App\Models\SiteAnnouncement` | `current()` (la seule annonce servie), `scopeVisibleAt`, `renderMessage()` / `whenPhrase()`, conversions Paris ↔ UTC |
-| `Web\AnnouncementController` + `resources/views/announcements/*` | page `/announcements` (rôle `admin`) : liste avec état (affichée / programmée / terminée / retirée), création, modification, retirer-remettre, suppression |
-| `Api\AnnouncementController` | `GET /api/v1/announcements/current` — **publique** (le bandeau s'affiche aussi sans compte), `Cache-Control: public, max-age=60` |
-
-- **Échéance** : `exact` = un début (date + heure) et, si l'on veut, une fin ; `period` = des **jours** (du 1er à 00:00 au dernier à 23:59:59, heure de Paris ; un seul jour par défaut) ; rien = pas de date.
-- **Marqueur `{quand}` / `{when}`** dans le message (l'un ou l'autre, dans les deux langues) : remplacé par l'API, dans la langue du message, par « le 24 novembre à 22 h 00 », « le 24 novembre de 22 h 00 à 23 h 00 », « du 24 novembre à 22 h 00 au 25 novembre à 02 h 00 », « le 24 novembre », « du 30 novembre au 2 décembre », et — pour une période qui est EXACTEMENT la semaine en cours (lundi-dimanche, Paris) ou la suivante — **« cette semaine » / « la semaine prochaine »** (« this week » / « next week »). Textes dans `lang/{fr,en}/announcements.php` (`when.*`) ; sans marqueur ou sans échéance, le message part tel quel.
-- **Visibilité** : l'annonce est servie de `visible_from` (vide : tout de suite) à `visible_until` ; à défaut jusqu'à la **fin** de la maintenance ; à défaut jusqu'à son **début** (une fois la maintenance commencée le site est fermé, plus rien à annoncer) ; sans aucune échéance, jusqu'au retrait manuel. **Une seule annonce à la fois** : la maintenance la plus proche d'abord, une annonce sans date en dernier, puis la plus récente.
-- **Contrat de l'API** : `{success, announcement: null | {id, message: {fr, en} (marqueur déjà remplacé), schedule: {type, starts_at, ends_at} (UTC, Zulu), visible_until}}` — `visible_until` est la fin effective, pour que le site retire le bandeau sans rappeler l'API.
-- Tests : `Feature/Announcements/AnnouncementsTest` (API, rendu FR/EN, visibilité, ordre, administration, droits).
-- ⚠️ **Prod** : `php artisan migrate` (1 migration) et `php artisan route:cache` (6 routes web + 1 route API) ; aucun `config/*.php`, aucune clé `.env`, aucun paquet. Pas de texte légal : aucune donnée de joueur.
+Marqueur `{quand}`/`{when}` remplacé par l'API (dates formatées, « cette semaine »/« la semaine prochaine »). **Une seule annonce à la fois** (maintenance la plus proche d'abord). API publique `GET announcements/current`, cache 60s. Admin Blade `/announcements`. Tests : `AnnouncementsTest`. ⚠️ Prod : `migrate` + `route:cache`.
 
 ## Tests
 
-`docker exec odc-backend php artisan test` — décompte à jour dans `README.md` (source unique,
-pas dupliqué ici). `CharacterFactory` utilise
-`RAND()` MySQL/MariaDB pour `city_id` par défaut → passer `city_id: null` explicitement dans les tests
-(incompatible SQLite/CI). Factories `KingdomFactory`/`ProvinceFactory`/`CityFactory` disponibles
-pour monter une carte de test. Tester un
-lien signé : construire l'URL directement avec `URL::temporarySignedRoute('verification.verify.api', ...)`
-dans le test plutôt que parser le contenu de l'email (voir `AuthTest.php`).
+`docker exec odc-backend php artisan test` — décompte dans `README.md` (source unique). `CharacterFactory` utilise `RAND()` MySQL → passer `city_id: null` en test (incompatible SQLite). Factories Kingdom/Province/City disponibles. Lien signé : `URL::temporarySignedRoute(…)` plutôt que parser l'email.
 
 ## Contraintes projet
 
-- Backend : **aucun texte en dur** — `__()` partout, `lang/fr` complet, `lang/en` seulement pour ce
-  qui est réellement rendu en anglais (aujourd'hui les emails des mandats). Interfaces Blade en
-  français, sans bascule de langue (arbitrage du 03/10/2026, fil `mandats-lot1`, Q5).
+- **Aucun texte en dur** — `__()` partout, `lang/fr` complet, `lang/en` seulement pour l'anglais réel. Blade en français, sans bascule de langue.
 - Ne jamais committer `.env`/credentials.
