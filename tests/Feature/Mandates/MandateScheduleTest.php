@@ -138,7 +138,7 @@ test('un conseiller est rappelé 2 jours après sa passation, pas après son 60e
     $this->artisan('mandates:send-reminders');
     Notification::assertNothingSent();
 
-    atGameTime('2026-07-05 00:00'); // 2 jours après la passation
+    atGameTime('2026-07-05 04:00'); // 2 jours après la passation (04:00, début du jour du jeu)
     $this->artisan('mandates:send-reminders');
     Notification::assertSentTo($player->user, MandateReminder::class, function (MandateReminder $notification) {
         $text = implode("\n", $notification->lines());

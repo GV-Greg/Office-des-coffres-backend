@@ -154,6 +154,20 @@ test('un prix daté du futur est refusé', function () {
         ->assertStatus(422)->assertJsonPath('codes.effective_from', 'price_future');
 });
 
+test('le jour du jeu commence à 04:00 : entre minuit et 04:00, « aujourd\'hui » est encore la veille du calendrier', function () {
+    Passport::actingAs($this->mines->user);
+
+    // 11/05 à 02:00 (Paris) : le jeu est encore le 10/05. Un prix daté du 11/05 est donc dans le futur ; celui du 10/05 est du jour.
+    atGameTime('2026-05-11 02:00');
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-11']))
+        ->assertStatus(422)->assertJsonPath('codes.effective_from', 'price_future');
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-10']))->assertCreated();
+
+    // À 04:00, le 11/05 commence : le prix du 11/05 est accepté.
+    atGameTime('2026-05-11 04:00');
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-11']))->assertCreated();
+});
+
 test('un poste validé APRÈS l\'entrée en fonction couvre quand même le début du mandat (cas de prod du 16/10)', function () {
     // Le mandat court depuis le 03/05, mais l'Office ne connaît le poste que depuis le 08/05 (validation) : le
     // commissaire doit pouvoir dater un prix du 04/05, pas seulement à partir de sa validation.

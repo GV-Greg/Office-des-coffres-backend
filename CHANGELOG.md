@@ -7,6 +7,19 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-20] — PR #98 (Le jour du jeu commence à 04:00 heure de Paris)
+
+### Fixed
+- **Les mandats, les prix et les relevés respectent l'heure de bascule du jeu : 04:00 heure de Paris, pas minuit** (constat de Greg, 20/11/2026 ; fil `mandats-heure-bascule`, validé par Cowork). Le mandat de maire de Buldo finissait à 00:00 : sorti de fonction 4 h trop tôt, niveau « Ville » de l'inventaire disparu pendant la nuit. Un mandat « commencé le 21/10 » entre maintenant en fonction le 21/10 à **04:00** et, pour 30 jours (60 pour un conseiller), finit le 20/11 à **04:00**. Les durées annoncées aux joueurs ne changent pas.
+- `MandateCalendar::GAME_DAY_STARTS_AT_HOUR = 4` (**constante**, jamais `config/*.php` : cache de configuration de la prod) ; `startOfGameDay` = 04:00, `endOfGameDay`, `today()` = jour du jeu en cours. Même jour du jeu pour les prix (`canEditPriceOn`, `MinePrices`), le registre des mines et le registre des stocks de la province ; tâches planifiées, délais de grâce en jours et affichages `d/m/Y` inchangés.
+
+### Changed
+- **Migration** `2026_11_20_000001_shift_mandate_instants_to_game_day_04h` : +4 h sur les instants dont l'heure locale Paris est exactement 00:00:00 (`mayor_mandates`, `council_mandates` : `valid_until`, `in_office_from`, `holds_until` ; `council_office_periods`, `office_history_archive` : `started_at`, `ended_at`). Une valeur posée à la main à une autre heure ne bouge pas ; rejouable ; `down()` sans effet (documenté).
+- ADR « Le jour du jeu commence à 04:00 » dans `docs/DECISIONS.md` ; `docs/ARCHITECTURE.md` mis à jour. 7 tests (878).
+
+### Deploy notes
+- 🔴 **`php artisan migrate` à lancer à la main en SSH après le déploiement** (le déploiement ne lance pas les migrations). Aucune route ajoutée (pas de `route:cache`), aucun `config/*.php` (pas de `config:cache`), aucun paquet, pas de `cache:clear`. Vérifier ensuite qu'un mandat en fonction affiche sa fin à 04:00 (`/mandates/running`).
+
 ## [2026-11-19] — PR #96 (Grille des lots dans le dashboard et bandeau de stats compact)
 
 ### Added

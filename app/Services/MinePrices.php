@@ -6,6 +6,7 @@ use App\Exceptions\MandateRefusal;
 use App\Models\Character;
 use App\Models\Province;
 use App\Models\ProvinceMinePrice;
+use App\Support\MandateCalendar;
 use App\Support\MandateLabels;
 use Illuminate\Support\Carbon;
 
@@ -32,10 +33,10 @@ class MinePrices
             ->first();
     }
 
-    /** Jeu en vigueur aujourd'hui (jour de Paris). */
+    /** Jeu en vigueur aujourd'hui (jour du jeu : 04:00 → 04:00, heure de Paris). */
     public function getCurrentPrice(int $provinceId): ?ProvinceMinePrice
     {
-        return $this->getPriceForDate($provinceId, Carbon::now(config('mandates.timezone'))->toDateString());
+        return $this->getPriceForDate($provinceId, MandateCalendar::today());
     }
 
     /**
@@ -135,7 +136,7 @@ class MinePrices
         // Pas de prix daté du futur : sa date d'effet ne tomberait dans aucune période de poste connue,
         // et il serait impossible à corriger. Pas de prix antidaté hors de SA période non plus : sans
         // cela, le verrou de 7 jours se contournerait en écrivant dans le passé d'un autre.
-        if ($date > Carbon::now(config('mandates.timezone'))->toDateString()) {
+        if ($date > MandateCalendar::today()) {
             throw MandateRefusal::make('effective_from', 'mines.api.price_future');
         }
         if (! $this->authority->canEditPriceOn($actor, $province, $date)) {

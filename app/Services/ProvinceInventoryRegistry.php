@@ -6,6 +6,7 @@ use App\Exceptions\InventoryAccessDenied;
 use App\Exceptions\MandateRefusal;
 use App\Models\Character;
 use App\Models\ProvinceInventorySnapshot;
+use App\Support\MandateCalendar;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -40,7 +41,7 @@ class ProvinceInventoryRegistry
         $province = $this->authority->canManageProvinceInventory($character)
             ?? throw new InventoryAccessDenied('inventory.api.province_not_authorized');
         InventoryText::assertText($raw);
-        $today = Carbon::now(config('mandates.timezone'))->toDateString();
+        $today = MandateCalendar::today();
 
         return DB::transaction(function () use ($character, $raw, $province, $today) {
             $existing = ProvinceInventorySnapshot::query()
