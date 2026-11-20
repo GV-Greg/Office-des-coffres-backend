@@ -18,6 +18,7 @@ return [
         'copy_source_not_found' => 'The character to copy does not exist on your account.',
         'copy_same_character' => 'Pick a character other than this one: a character cannot be copied onto itself.',
         'copy_source_empty' => 'The character :source has no inventory settings to copy.',
+        'registry_needs_confirmation' => 'An inventory is already in the registry for :date (:place). It will be replaced, not deleted: the old one is kept.',
         'copy_needs_confirmation' => ':target already has inventory settings: they will be replaced by those of :source. Confirm to continue.',
     ],
 ];

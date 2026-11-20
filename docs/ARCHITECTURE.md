@@ -31,6 +31,7 @@ hasMany `Province` → hasMany `City`. `CouncilMandate` → hasMany `CouncilOffi
 | `city_inventory_settings` | idem ville, `updated_by_character_id` nullable | C |
 | `province_inventory_settings` | réglages province, `updated_by_character_id` nullable | C |
 | `province_inventory_snapshots` | historique collages commissaire commerce, chiffré, `active` 1/NULL | C |
+| `city_inventory_snapshots` | historique collages du maire (registre des stocks, 20/11), jumeau de la province, `office_key` = `mayor` | C |
 | `anim_activity_types` | référentiel (`key`, `is_active`) | — |
 | `anim_decode_activities` | activité Décode (privée ou sans compte), slug unique, lieu obligatoire | A (privé) / hors taxinomie (sans compte) |
 | `anim_decode_secrets` | coffre, `code` chiffré | suit l'activité |
@@ -80,7 +81,8 @@ dans `deploy.yml`.
 | GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
 | GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
 | GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
-| GET/POST | `characters/{id}/inventory/province` | InventoryController | api | historique province |
+| GET/POST | `characters/{id}/inventory/province` | InventoryController | api | historique province ; POST : 409 `registry_needs_confirmation` puis `confirm_replace` |
+| GET/POST | `characters/{id}/inventory/city/registry` | InventoryController | api | historique ville (maire seul), même contrat |
 | GET | `characters/{id}/inventory-scopes` | InventoryController | api | niveaux accessibles |
 | POST | `characters/{id}/inventory-settings/personal/copy` | InventoryController | api | copie entre persos même compte |
 | GET | `anim/activity-types` | AnimController | — | types actifs |
@@ -246,9 +248,12 @@ Autorisation (`MandateAuthority`) : personnel = le personnage ; ville = **maire*
 | `InventorySettingsDocument` | garde de forme : clés connues, slugs, tailles bornées (30 catégories, 3000 objets, 256 Ko) |
 | `InventorySettings` | seul écrivain, **écriture à version** (409 `version_conflict`) |
 | `InventoryText` | dernier inventaire collé, chiffré, remplacé à chaque collage |
-| `ProvinceInventoryRegistry` | historique province (texte identique du jour = rien créé, auteur jamais nommé : `by_me`) |
+| `InventoryRegistry` | **socle** des registres de territoire (fil `registre-stocks`, 20/11) : `record()` (texte identique du jour = rien créé ; autre texte = 409 `InventoryReplacementNeedsConfirmation` sauf `confirm_replace`, l'ancien passe `active` NULL + `replaced_by_id`) et `history()` (≤ 100 exemplaires en vigueur) |
+| `ProvinceInventoryRegistry` / `CityInventoryRegistry` | sous-classes : modèle, clé du lieu, poste qui écrit/lit. Province = commissaire au commerce (le **bailli n'écrit pas**, Q2), lit aussi le dirigeant ; ville = **maire seul**, `office_key` = `MayorMandate::LEVEL` |
 
-Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env`.
+🔴 **Auteurs** (Q5, politique §3) : l'auteur d'un exemplaire en vigueur n'est **jamais** nommé (`by_me` seulement) ; le pseudo n'apparaît que pour le rédacteur **remplacé** (`replaced` dans la liste) et pour l'exemplaire à remplacer (`existing` du 409) ; `pseudo` NULL si le personnage a disparu. **Pas de registre personnel** (Q4, reporté). Mi-mandat/fin pour la lecture analytique (PR 3b) : moitié et totalité du mandat — province 30/60 j, ville 15/30 j, en jours du jeu.
+
+Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env` ; **registre de la ville : `migrate` (table `city_inventory_snapshots`) et `route:cache` (routes `inventory/city/registry`), et l'écriture ne s'ouvre qu'une fois la politique §3 en ligne (PR 0)**.
 
 ## Icônes des items (05/11/2026)
 

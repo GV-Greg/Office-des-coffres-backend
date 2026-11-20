@@ -153,6 +153,9 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
             ->where(['character' => '[0-9]+', 'level' => 'personal|city|province']);
         Route::get('characters/{character}/inventory/province', [InventorySettingsController::class, 'provinceHistory'])
             ->where('character', '[0-9]+');
+        // Registre des stocks de la VILLE (fil registre-stocks, 20/11/2026) : le maire en fonction lit et inscrit. ⚠️ Route ajoutée : route:cache en prod.
+        Route::get('characters/{character}/inventory/city/registry', [InventorySettingsController::class, 'cityHistory'])
+            ->where('character', '[0-9]+');
         Route::get('characters/{character}/inventory/{level}', [InventorySettingsController::class, 'textShow'])
             ->where(['character' => '[0-9]+', 'level' => 'personal|city']);
         Route::middleware('throttle:30,1')->group(function () {
@@ -163,6 +166,8 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
             Route::put('characters/{character}/inventory/{level}', [InventorySettingsController::class, 'textPut'])
                 ->where(['character' => '[0-9]+', 'level' => 'personal|city']);
             Route::post('characters/{character}/inventory/province', [InventorySettingsController::class, 'provinceRecord'])
+                ->where('character', '[0-9]+');
+            Route::post('characters/{character}/inventory/city/registry', [InventorySettingsController::class, 'cityRecord'])
                 ->where('character', '[0-9]+');
         });
         // Registre des mines : lecture (PR 4) — commissaire aux mines, bailli, dirigeant.

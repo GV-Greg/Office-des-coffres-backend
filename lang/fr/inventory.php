@@ -18,6 +18,7 @@ return [
         'copy_source_not_found' => "Le personnage à copier n'existe pas sur votre compte.",
         'copy_same_character' => 'Choisissez un autre personnage que celui-ci : on ne copie pas un personnage sur lui-même.',
         'copy_source_empty' => 'Le personnage :source n\'a aucun réglage d\'inventaire à copier.',
+        'registry_needs_confirmation' => 'Un inventaire existe déjà au registre pour le :date (:place). Il sera remplacé, pas effacé : l\'ancien reste conservé.',
         'copy_needs_confirmation' => ':target a déjà des réglages d\'inventaire : ils seront remplacés par ceux de :source. Confirmez pour continuer.',
     ],
 ];

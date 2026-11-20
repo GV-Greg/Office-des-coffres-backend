@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InventoryAccessDenied;
 use App\Exceptions\InventoryCopyNeedsConfirmation;
+use App\Exceptions\InventoryReplacementNeedsConfirmation;
 use App\Exceptions\InventoryVersionConflict;
 use App\Http\Controllers\Controller;
 use App\Models\Character;
+use App\Services\CityInventoryRegistry;
+use App\Services\InventoryRegistry;
 use App\Services\InventorySettings;
 use App\Services\InventoryText;
 use App\Services\ProvinceInventoryRegistry;
@@ -27,6 +30,7 @@ class InventorySettingsController extends Controller
         private readonly InventorySettings $settings,
         private readonly InventoryText $text,
         private readonly ProvinceInventoryRegistry $registry,
+        private readonly CityInventoryRegistry $cityRegistry,
     ) {}
 
     /** Ce que le personnage peut gérer MAINTENANT : son inventaire, la ville dont il est maire, la province dont il est commissaire au commerce ou dirigeant. */
@@ -85,23 +89,66 @@ class InventorySettingsController extends Controller
     /** L'historique des inventaires de la province (commissaire au commerce, dirigeant). */
     public function provinceHistory(Request $request, int $character): JsonResponse
     {
-        return $this->withCharacter($request, $character, fn (Character $c) => response()->json(['success' => true] + $this->registry->history($c)));
+        return $this->withCharacter($request, $character, fn (Character $c) => response()->json(['success' => true] + $this->history($this->registry, $c)));
     }
 
-    /** Inscrit l'inventaire du jour dans l'historique de la province (commissaire au commerce). */
+    /** Inscrit l'inventaire du jour dans l'historique de la province (commissaire au commerce). 409 si un autre texte existe déjà ce jour-là. */
     public function provinceRecord(Request $request, int $character): JsonResponse
     {
-        $input = $request->validate(['raw' => ['required', 'string']]);
+        return $this->record($request, $character, $this->registry);
+    }
 
-        return $this->withCharacter($request, $character, function (Character $c) use ($input) {
-            $result = $this->registry->record($c, $input['raw']);
+    /** L'historique des inventaires de la ville (maire en fonction). */
+    public function cityHistory(Request $request, int $character): JsonResponse
+    {
+        return $this->withCharacter($request, $character, fn (Character $c) => response()->json(['success' => true] + $this->history($this->cityRegistry, $c)));
+    }
+
+    /** Inscrit l'inventaire du jour dans l'historique de la ville (maire en fonction). 409 si un autre texte existe déjà ce jour-là. */
+    public function cityRecord(Request $request, int $character): JsonResponse
+    {
+        return $this->record($request, $character, $this->cityRegistry);
+    }
+
+    /**
+     * La liste du registre. Clés historiques de la province (`province`) conservées ; la ville sert `city` — le lieu est nommé sous la
+     * clé de son niveau, jamais sous un nom générique que le frontend devrait deviner.
+     *
+     * @return array<string, mixed>
+     */
+    private function history(InventoryRegistry $registry, Character $character): array
+    {
+        $result = $registry->history($character);
+        $key = $registry instanceof CityInventoryRegistry ? 'city' : 'province';
+        $result[$key] = $result['place'];
+        unset($result['place']);
+
+        return $result;
+    }
+
+    private function record(Request $request, int $character, InventoryRegistry $registry): JsonResponse
+    {
+        $input = $request->validate(['raw' => ['required', 'string'], 'confirm_replace' => ['sometimes', 'boolean']]);
+
+        return $this->withCharacter($request, $character, function (Character $c) use ($input, $registry) {
+            try {
+                $result = $registry->record($c, $input['raw'], (bool) ($input['confirm_replace'] ?? false));
+            } catch (InventoryReplacementNeedsConfirmation $pending) {
+                $response = MandateApiErrors::error(409, 'inventory.api.registry_needs_confirmation', [
+                    'date' => $pending->existing->taken_on->format('d/m/Y'),
+                    'place' => $pending->placeName,
+                ]);
+
+                // Qui a écrit l'exemplaire qui sera remplacé : nommé à l'écran, avant l'écriture (fil registre-stocks, Q5-Q6).
+                return response()->json($response->getData(true) + ['existing' => InventoryRegistry::author($pending->existing)], 409);
+            }
 
             return response()->json([
                 'success' => true,
                 'snapshot' => ['id' => $result['snapshot']->id, 'taken_on' => $result['snapshot']->taken_on->toDateString()],
-                'replaced' => $result['replaced'],
+                'replaced' => $result['replaced'] ? InventoryRegistry::author($result['replaced']) : null,
                 'unchanged' => $result['unchanged'],
-            ], $result['unchanged'] || $result['replaced'] ? 200 : 201);
+            ], $result['unchanged'] ? 200 : 201);
         });
     }
 

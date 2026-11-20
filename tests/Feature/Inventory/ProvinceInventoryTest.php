@@ -9,8 +9,9 @@ use Laravel\Passport\Passport;
 /*
 | Inventaires de la PROVINCE — historique des collages du commissaire au commerce, pour ses bilans (Cowork et Greg,
 | 11/11/2026, fil inventaire-bilans : « B pour la province »). Calqué sur le Registre des mines : un exemplaire par province
-| et par jour, un second collage le REMPLACE sans rien effacer, le texte est chiffré, le successeur voit tout l'historique,
-| l'auteur n'est jamais nommé, il reste quand l'auteur disparaît.
+| et par jour, un second collage le REMPLACE sans rien effacer (après confirmation : 409 puis `confirm_replace`, fil registre-stocks
+| Q6), le texte est chiffré, le successeur voit tout l'historique, l'auteur d'un exemplaire n'est nommé que lorsqu'il est REMPLACÉ
+| (Q5), l'exemplaire reste quand l'auteur disparaît.
 */
 
 beforeEach(function () {
@@ -51,7 +52,7 @@ const PROV_DAY1 = "Encombrement : 100\n596Miches de pain2980\n121Morceaux de via
 
 test('le commissaire au commerce inscrit l\'inventaire du jour : un exemplaire daté du jour de Paris, texte chiffré en base', function () {
     provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated()
-        ->assertJsonPath('snapshot.taken_on', '2026-05-10')->assertJsonPath('replaced', false)->assertJsonPath('unchanged', false);
+        ->assertJsonPath('snapshot.taken_on', '2026-05-10')->assertJsonPath('replaced', null)->assertJsonPath('unchanged', false);
 
     $snapshot = ProvinceInventorySnapshot::sole();
     expect($snapshot->province_id)->toBe($this->province->id)
@@ -84,10 +85,12 @@ test('un texte vide ou démesuré est refusé', function () {
 
 // ─── Un exemplaire par jour : remplacé, jamais effacé ────────────────────────
 
-test('un second collage le même jour REMPLACE le premier : l\'ancien reste en base, marqué remplacé', function () {
-    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
+test('un second collage le même jour REMPLACE le premier, après confirmation : l\'ancien reste en base, marqué remplacé', function () {
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated()->assertJsonPath('replaced', null);
     $second = PROV_DAY1."\n3Cailloux0";
-    $this->postJson(provUrl($this->commerce), ['raw' => $second])->assertOk()->assertJsonPath('replaced', true);
+    $this->postJson(provUrl($this->commerce), ['raw' => $second, 'confirm_replace' => true])->assertCreated()
+        ->assertJsonPath('replaced.pseudo', 'Marchand')->assertJsonPath('replaced.office_key', 'commissaire_commerce')
+        ->assertJsonPath('replaced.office_label.fr', 'Commissaire au commerce')->assertJsonPath('replaced.taken_on', '2026-05-10');
 
     expect(ProvinceInventorySnapshot::count())->toBe(2);
     $old = ProvinceInventorySnapshot::whereNull('active')->sole();
@@ -101,9 +104,21 @@ test('un second collage le même jour REMPLACE le premier : l\'ancien reste en b
     $this->getJson(provUrl($this->commerce))->assertOk()->assertJsonCount(1, 'snapshots')->assertJsonPath('snapshots.0.raw', $second);
 });
 
-test('un collage identique à celui du jour ne crée rien', function () {
+test('un autre texte le même jour SANS confirmation : 409 qui nomme l\'auteur de l\'exemplaire à remplacer, rien n\'est écrit', function () {
     provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
-    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertOk()->assertJsonPath('unchanged', true)->assertJsonPath('replaced', false);
+
+    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1."\n3Cailloux0"])->assertStatus(409)
+        ->assertJsonPath('code', 'registry_needs_confirmation')
+        ->assertJsonPath('messages.fr', 'Un inventaire existe déjà au registre pour le 10/05/2026 (Artois). Il sera remplacé, pas effacé : l\'ancien reste conservé.')
+        ->assertJsonPath('messages.en', 'An inventory is already in the registry for 10/05/2026 (Artois). It will be replaced, not deleted: the old one is kept.')
+        ->assertJsonPath('existing.pseudo', 'Marchand')->assertJsonPath('existing.office_label.en', 'Trade Minister');
+
+    expect(ProvinceInventorySnapshot::count())->toBe(1)->and(ProvinceInventorySnapshot::sole()->active)->toBeTrue();
+});
+
+test('un collage identique à celui du jour ne crée rien, et ne demande aucune confirmation', function () {
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
+    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertOk()->assertJsonPath('unchanged', true)->assertJsonPath('replaced', null);
     expect(ProvinceInventorySnapshot::count())->toBe(1);
 });
 
@@ -149,12 +164,36 @@ test('lecture : le commissaire au commerce et le dirigeant lisent l\'historique,
     provAs($this->other)->getJson(provUrl($this->other))->assertOk()->assertJsonPath('province.name', 'Berry')->assertJsonCount(0, 'snapshots');
 });
 
-test('l\'auteur n\'est jamais nommé : l\'historique ne porte ni pseudo ni identifiant de personnage', function () {
+test('l\'auteur d\'un exemplaire en vigueur n\'est jamais nommé : l\'historique ne porte ni son pseudo ni son identifiant', function () {
     provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
     $body = provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()->getContent();
 
     expect($body)->not->toContain('Marchand')->and($body)->not->toContain('character_id')
-        ->and(array_keys(json_decode($body, true)['snapshots'][0]))->toBe(['id', 'taken_on', 'saved_at', 'office_key', 'by_me', 'raw']);
+        ->and(array_keys(json_decode($body, true)['snapshots'][0]))->toBe(['id', 'taken_on', 'saved_at', 'office_key', 'by_me', 'replaced', 'raw'])
+        ->and(json_decode($body, true)['snapshots'][0]['replaced'])->toBeNull();
+});
+
+test('le rédacteur REMPLACÉ reste nommé dans l\'historique, pour tout lecteur (politique §3) — sans son texte', function () {
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
+    $second = '9Cailloux0'; // sans rien de commun avec le premier texte
+    $this->postJson(provUrl($this->commerce), ['raw' => $second, 'confirm_replace' => true])->assertCreated();
+
+    $body = provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()
+        ->assertJsonCount(1, 'snapshots')->assertJsonPath('snapshots.0.replaced.pseudo', 'Marchand')
+        ->assertJsonPath('snapshots.0.replaced.office_key', 'commissaire_commerce')->getContent();
+
+    // Le texte de l'ancien n'est plus consultable : seul son rédacteur est nommé, pas le texte.
+    expect(array_keys(json_decode($body, true)['snapshots'][0]['replaced']))->toBe(['id', 'pseudo', 'office_key', 'office_label', 'taken_on', 'saved_at', 'replaced_at'])
+        ->and($body)->not->toContain('Miches de pain')->and(substr_count($body, 'Cailloux'))->toBe(1);
+});
+
+test('si le rédacteur remplacé a disparu, son pseudo est NULL : le lien est coupé, le fait reste', function () {
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
+    $successor = mandatePlayer($this->map['cityB'], ['pseudo' => 'Successeur']);
+    approvedCouncil($successor, $this->province, '2026-05-02', '2026-05-09', 'commissaire_commerce');
+    $this->commerce->delete();
+
+    provAs($successor)->postJson(provUrl($successor), ['raw' => '5Cailloux0', 'confirm_replace' => true])->assertCreated()->assertJsonPath('replaced.pseudo', null);
 });
 
 // ─── Mémoire de la province : transmission et survie ─────────────────────────
