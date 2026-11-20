@@ -126,4 +126,20 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Registre des stocks (fil admin/echanges/registre-stocks, texte de Cowork du 20/11/2026, PR 0 du brief
+    // brief-registre-et-reorganisation-sdc ; écriture ouverte par la PR 2). Une entrée propre à cette modification. « Substantielle » :
+    // nouveau traitement (l'inventaire d'une ville s'ajoute à l'historique de la province : instantanés datés conservés et transmis au
+    // successeur du poste) et pseudo du rédacteur remplacé visible. Pas de nouveau destinataire (le maire lit sa ville, le commissaire
+    // au commerce et le dirigeant leur province) ; rien pour l'inventaire personnel (reporté) ni pour le bailli (Q2 : n'écrit pas).
+    // ⚠️ `date` PROVISOIRE : à dater de la mise en ligne du texte. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE, et à
+    // confirmer par Greg (`decided_by`).
+    '2026-11-20-registre-des-stocks' => [
+        'date' => '2026-11-20',
+        'summary' => [
+            'fr' => "Registre des stocks — L'Office conserve désormais un historique daté de vos inventaires municipaux et comtaux, enregistrés à votre initiative dans le Registre des stocks. Si un inventaire est remplacé par un autre officier, le pseudo du rédacteur précédent reste visible dans l'historique, afin de garantir la traçabilité des données du poste. Rien ne change pour votre inventaire personnel, ni pour les personnes qui peuvent lire ces inventaires (voir §6).",
+            'en' => 'Stock Registry — The Office now keeps a dated history of your city and county inventories, saved at your initiative in the Stock Registry. If an inventory is replaced by another officer, the previous author’s character name remains visible in the history, to ensure traceability of office data. Nothing changes for your personal inventory, or for the people who can read these inventories (see §6).',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];

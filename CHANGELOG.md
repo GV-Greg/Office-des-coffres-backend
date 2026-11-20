@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-20] — PR #99 (Journal de politique : « Registre des stocks »)
+
+### Added
+- Entrée `2026-11-20-registre-des-stocks` dans `resources/policy/changelog.php` (`substantial: true`, `decided_by: Greg`) : l'Office conserve un historique daté des inventaires municipaux et comtaux, enregistrés à l'initiative du titulaire (Registre des stocks) ; le pseudo du rédacteur précédent reste visible dans l'historique ; rien ne change pour l'inventaire personnel ni pour les lecteurs (§6). Résumé FR/EN de Cowork (fil `admin/echanges/registre-stocks/`), texte légal en ligne par front #143.
+
+### Deploy notes
+- Aucune migration, route ni config. **`php artisan policy:notify` se lance à la main (Greg), pas avant que le texte front #143 soit déployé** ; la `date` de l'entrée (20/11/2026) est celle de la mise en ligne.
+
 ## [2026-11-20] — PR #98 (Le jour du jeu commence à 04:00 heure de Paris)
 
 ### Fixed
