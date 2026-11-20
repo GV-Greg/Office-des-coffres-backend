@@ -54,6 +54,8 @@ $exportDecisions = [
     'city_inventory_settings' => 'excluded',
     'province_inventory_settings' => 'excluded',
     'province_inventory_snapshots' => 'excluded',
+    // C — HISTORIQUE des inventaires de la ville (registre des stocks, 20/11/2026) : même raison que celui de la province.
+    'city_inventory_snapshots' => 'excluded',
 
     // C — prix communautaires de la province.
     // Non exportés : mêmes raisons que mine_reports.

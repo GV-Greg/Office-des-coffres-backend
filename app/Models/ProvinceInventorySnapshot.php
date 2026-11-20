@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\EncryptedModuleData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Un inventaire collé de la province, daté du jour de Paris, chiffré. HISTORIQUE sans suppression : un exemplaire se
@@ -38,5 +39,11 @@ class ProvinceInventorySnapshot extends Model
     public function replacedBy(): BelongsTo
     {
         return $this->belongsTo(self::class, 'replaced_by_id');
+    }
+
+    /** L'exemplaire que celui-ci a remplacé (même jour), s'il y en a un. */
+    public function replaces(): HasOne
+    {
+        return $this->hasOne(self::class, 'replaced_by_id');
     }
 }

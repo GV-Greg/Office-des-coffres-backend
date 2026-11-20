@@ -82,6 +82,11 @@ $declaredTables = [
     // (nullOnDelete), l'exemplaire reste. Texte chiffré. Tenu par Inventory/ProvinceInventoryTest.
     'province_inventory_snapshots' => 'C',
 
+    // C — HISTORIQUE des inventaires de la VILLE (Cowork et Greg, 20/11/2026, fil registre-stocks, Q1-A : une table par niveau), jumeau de
+    // province_inventory_snapshots : la mémoire de la ville, transmise d'un maire au suivant. `character_id` passe à NULL par la base
+    // (nullOnDelete), l'exemplaire reste. Texte chiffré. Tenu par Inventory/CityInventoryRegistryTest.
+    'city_inventory_snapshots' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

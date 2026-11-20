@@ -21,6 +21,8 @@ return [
         'capitaine' => 'Capitaine',
         'porte_parole' => 'Porte-parole',
         'bailli' => 'Bailli',
+        // Estampille du registre des stocks de la ville (MayorMandate::LEVEL) : le maire n'est pas un poste du conseil, mais son libellé suit la même table.
+        'mayor' => 'Maire',
     ],
     'no_office' => 'sans poste',
 

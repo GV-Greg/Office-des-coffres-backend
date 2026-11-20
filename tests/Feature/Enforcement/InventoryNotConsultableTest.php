@@ -12,12 +12,12 @@ use App\Console\Commands\CheckModuleData;
 */
 
 const INVENTORY_TABLES = [
-    'character_inventory_settings', 'city_inventory_settings', 'province_inventory_settings', 'province_inventory_snapshots',
+    'character_inventory_settings', 'city_inventory_settings', 'province_inventory_settings', 'province_inventory_snapshots', 'city_inventory_snapshots',
 ];
 
 const INVENTORY_MODELS = [
-    'CharacterInventorySettings', 'CityInventorySettings', 'ProvinceInventorySettings', 'ProvinceInventorySnapshot',
-    'InventorySettings', 'InventoryText', 'ProvinceInventoryRegistry',
+    'CharacterInventorySettings', 'CityInventorySettings', 'ProvinceInventorySettings', 'ProvinceInventorySnapshot', 'CityInventorySnapshot',
+    'InventorySettings', 'InventoryText', 'InventoryRegistry', 'ProvinceInventoryRegistry', 'CityInventoryRegistry',
 ];
 
 function adminSurfaceFiles(): array
@@ -70,5 +70,6 @@ test('les colonnes de texte collé sont déclarées chiffrées au contrôle du c
         'character_inventory_settings' => 'inventory',
         'city_inventory_settings' => 'inventory',
         'province_inventory_snapshots' => 'payload',
+        'city_inventory_snapshots' => 'payload',
     ]);
 });

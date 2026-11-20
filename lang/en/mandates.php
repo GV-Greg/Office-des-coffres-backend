@@ -22,6 +22,7 @@ return [
         'capitaine' => 'Captain',
         'porte_parole' => 'Spokesperson',
         'bailli' => 'Sheriff',
+        'mayor' => 'Mayor',
     ],
     'no_office' => 'without an office',
 
