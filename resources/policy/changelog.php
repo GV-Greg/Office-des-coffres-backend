@@ -126,4 +126,20 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Registre des stocks (fil admin/echanges/registre-stocks, texte de Cowork du 20/11/2026, PR 0 du brief
+    // brief-registre-et-reorganisation-sdc ; écriture ouverte par la PR 2). Une entrée propre à cette modification. « Substantielle » :
+    // nouveau traitement (l'inventaire d'une ville s'ajoute à l'historique de la province : instantanés datés conservés et transmis au
+    // successeur du poste) et pseudo du rédacteur remplacé visible. Pas de nouveau destinataire (le maire lit sa ville, le commissaire
+    // au commerce et le dirigeant leur province) ; rien pour l'inventaire personnel (reporté) ni pour le bailli (Q2 : n'écrit pas).
+    // ⚠️ `date` PROVISOIRE : à dater de la mise en ligne du texte. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE, et à
+    // confirmer par Greg (`decided_by`).
+    '2026-11-20-registre-des-stocks' => [
+        'date' => '2026-11-20',
+        'summary' => [
+            'fr' => "La politique de confidentialité décrit désormais le Registre des stocks : l'inventaire d'une ville (maire en fonction) et celui d'une province (commissaire au commerce) sont aussi enregistrés comme des instantanés datés, qui forment un historique transmis au successeur du poste. Si un inventaire est remplacé par un autre officier, le pseudo du rédacteur précédent reste visible dans l'historique. Rien ne change pour votre inventaire personnel, ni pour les personnes qui peuvent lire ces inventaires.",
+            'en' => 'The privacy policy now describes the Stock Registry: the inventory of a city (acting mayor) and that of a province (Trade Minister) are also saved as dated snapshots, which form a history handed on to the successor of the office. If an inventory is replaced by another officer, the previous author’s character name remains visible in the history. Nothing changes for your personal inventory, nor for the people who can read these inventories.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
