@@ -7,6 +7,20 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-20] — PR #100 (Registre des stocks : ville, 409 + confirm_replace)
+
+### Added
+- **Registre des stocks de la VILLE** : table `city_inventory_snapshots` (une table par niveau, vraie FK, catégorie C, `nullOnDelete`, payload chiffré, `active` 1/NULL, `office_key` = `MayorMandate::LEVEL`), jumelle de `province_inventory_snapshots`. Routes `GET` / `POST characters/{id}/inventory/city/registry` : le **maire en fonction seul** lit et inscrit ; un nouveau maire voit l'historique complet de ses prédécesseurs.
+- Socle `InventoryRegistry` (province et ville) ; libellé `mayor` dans `mandates.offices` ; `CheckModuleData` et listes d'enforcement (cycle de vie C, export exclu, non-consultable) couvrent la nouvelle table.
+
+### Changed
+- **409 `registry_needs_confirmation` puis `confirm_replace`** (contrat des mines) sur `POST inventory/province` et le registre de la ville : un autre texte le même jour n'est plus remplacé en silence (aucun appelant jusque-là). `replaced` devient l'auteur remplacé (`{id, pseudo, office_key, office_label, taken_on, saved_at}`) ou `null`, au lieu d'un booléen.
+- **Auteurs** (politique §3, front #143) : l'auteur d'une inscription en vigueur n'est jamais nommé (`by_me`) ; le pseudo n'apparaît que pour le rédacteur remplacé (`replaced`) et pour l'exemplaire à remplacer (`existing` du 409). Le bailli n'écrit pas ; pas de registre personnel (fil `admin/echanges/registre-stocks/`, Q1-Q6).
+
+### Deploy notes
+- ⚠️ **`php artisan migrate`** (table `city_inventory_snapshots`) **et `php artisan route:cache` en SSH** (route ajoutée : sinon 404 ; sonde : `…/inventory/city/registry` doit répondre **401** sans jeton). Aucun `config/*.php` ni `.env`, aucun paquet.
+- Texte légal §3/§5 déjà en ligne (front #143) ; `policy:notify` (back #99) à la main.
+
 ## [2026-11-20] — PR #99 (Journal de politique : « Registre des stocks »)
 
 ### Added
