@@ -227,13 +227,25 @@ class MandateAuthority
     /** Province dont le personnage peut ÉCRIRE l'inventaire (commissaire au commerce en fonction), ou null. */
     public function canManageProvinceInventory(Character $character): ?Province
     {
-        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_OFFICES)->with('province')->first()?->province;
+        return $this->provinceInventoryMandate($character)?->province;
+    }
+
+    /** Le mandat qui porte le poste d'ÉCRITURE de l'inventaire de la province (commissaire au commerce en fonction), ou null. */
+    public function provinceInventoryMandate(Character $character): ?CouncilMandate
+    {
+        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_OFFICES)->with('province')->first();
+    }
+
+    /** Le mandat qui porte le poste de LECTURE de l'inventaire de la province (commissaire au commerce ou dirigeant), ou null. */
+    public function provinceInventoryReaderMandate(Character $character): ?CouncilMandate
+    {
+        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_READER_OFFICES)->with('province')->first();
     }
 
     /** Province dont le personnage peut CONSULTER l'inventaire (commissaire au commerce ou dirigeant), ou null. */
     public function canReadProvinceInventory(Character $character): ?Province
     {
-        return $this->councilMandateHoldingOffice($character, self::INVENTORY_PROVINCE_READER_OFFICES)->with('province')->first()?->province;
+        return $this->provinceInventoryReaderMandate($character)?->province;
     }
 
     private function councilMandateHoldingOffice(Character $character, array $officeKeys): Builder

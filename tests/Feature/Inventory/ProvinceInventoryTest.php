@@ -237,3 +237,29 @@ test('l\'historique servi est borné aux exemplaires les plus récents', functio
     provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()->assertJsonCount(100, 'snapshots')
         ->assertJsonPath('snapshots.0.raw', 'x105');
 });
+
+// ─── Rétro-datation (brief 10) : mêmes règles que la ville, depuis l'entrée en fonction du commissaire au commerce (03/05 04:00) ─────────────
+
+test('province : la date choisie, de 14 jours du jeu avant l\'entrée en fonction (19/04) à aujourd\'hui (10/05) ; hors plage, 422', function () {
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1, 'date' => '2026-04-19'])->assertCreated()->assertJsonPath('snapshot.taken_on', '2026-04-19');
+    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1, 'date' => '2026-04-18'])->assertStatus(422)->assertJsonPath('codes.date', 'registry_date_out_of_range');
+    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1, 'date' => '2026-05-11'])->assertStatus(422)->assertJsonPath('codes.date', 'registry_date_out_of_range');
+});
+
+test('province : avant l\'entrée en fonction, l\'inscription du prédécesseur est verrouillée ; pendant le mandat, elle se remplace après confirmation', function () {
+    ProvinceInventorySnapshot::create(['province_id' => $this->province->id, 'taken_on' => '2026-04-25', 'character_id' => null, 'office_key' => 'commissaire_commerce', 'payload' => 'héritage']);
+
+    provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => 'autre', 'date' => '2026-04-25', 'confirm_replace' => true])->assertStatus(409)
+        ->assertJsonPath('code', 'registry_before_mandate_locked');
+    expect(ProvinceInventorySnapshot::sole()->payload)->toBe('héritage');
+
+    $this->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1, 'date' => '2026-05-06'])->assertCreated();
+    $this->postJson(provUrl($this->commerce), ['raw' => 'autre', 'date' => '2026-05-06'])->assertStatus(409)->assertJsonPath('code', 'registry_needs_confirmation');
+});
+
+test('province : `office_from` pour tout lecteur (le dirigeant aussi), `backdate_min` seulement pour celui qui écrit', function () {
+    provAs($this->commerce)->getJson(provUrl($this->commerce))->assertOk()
+        ->assertJsonPath('office_from', '2026-05-03')->assertJsonPath('backdate_min', '2026-04-19');
+    provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()
+        ->assertJsonPath('office_from', '2026-05-03')->assertJsonPath('backdate_min', null);
+});

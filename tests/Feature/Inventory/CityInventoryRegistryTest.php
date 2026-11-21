@@ -236,3 +236,78 @@ test('le registre de la ville et celui de la province sont deux tables : l\'un n
     cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1])->assertCreated();
     expect(DB::table('city_inventory_snapshots')->count())->toBe(1)->and(DB::table('province_inventory_snapshots')->count())->toBe(0);
 });
+
+// ─── Rétro-datation (brief 10, fil registre-stocks) : choisir la date de l'inscription ─────────────────────────────────────────────
+// Le maire d'Arras est entré en fonction le 01/05 à 04:00 (jour du jeu 2026-05-01) ; « aujourd'hui » est le 10/05. Plage : du 17/04 (14 jours du jeu
+// avant l'entrée en fonction) au 10/05. Avant le 01/05 : l'inscription en place est celle d'un prédécesseur, elle ne se remplace pas.
+
+test('sans date : le jour du jeu en cours ; avec une date passée dans la plage : l\'inscription porte CETTE date', function () {
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-05-04'])->assertCreated()
+        ->assertJsonPath('snapshot.taken_on', '2026-05-04');
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => '5Cailloux0'])->assertCreated()->assertJsonPath('snapshot.taken_on', '2026-05-10');
+
+    expect(CityInventorySnapshot::orderBy('taken_on')->pluck('taken_on')->map->toDateString()->all())->toBe(['2026-05-04', '2026-05-10']);
+    // La liste est triée par date d'inscription, pas par ordre d'écriture.
+    $this->getJson(cityRegUrl($this->mayor))->assertOk()->assertJsonPath('snapshots.0.taken_on', '2026-05-10')->assertJsonPath('snapshots.1.taken_on', '2026-05-04');
+});
+
+test('la plage : 14 jours du jeu avant l\'entrée en fonction (bornes comprises), jamais une date future — sinon 422 sur « date »', function () {
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-04-17'])->assertCreated(); // la plus ancienne permise
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-04-16'])->assertStatus(422)->assertJsonPath('codes.date', 'registry_date_out_of_range')
+        ->assertJsonPath('messages.date.fr', 'Cette date est hors de la plage permise : du 17/04/2026 au 10/05/2026.')
+        ->assertJsonPath('messages.date.en', 'This date is outside the allowed range: from 17/04/2026 to 10/05/2026.');
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-05-11'])->assertStatus(422)->assertJsonPath('codes.date', 'registry_date_out_of_range');
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '10/05/2026'])->assertStatus(422); // format Y-m-d seulement
+    expect(CityInventorySnapshot::count())->toBe(1);
+});
+
+test('la borne de fin suit le jour du jeu : à 02:00 Paris, « aujourd\'hui » est encore la veille', function () {
+    atGameTime('2026-05-11 02:00');
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-05-11'])->assertStatus(422);
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-05-10'])->assertCreated();
+});
+
+test('AVANT le mandat, une inscription existante ne se remplace jamais : 409 « verrouillée », sans bouton Remplacer et sans nommer personne', function () {
+    // L'inscription d'un prédécesseur, au 20/04 (avant l'entrée en fonction du 01/05).
+    CityInventorySnapshot::create(['city_id' => $this->city->id, 'taken_on' => '2026-04-20', 'character_id' => $this->otherMayor->id, 'office_key' => 'mayor', 'payload' => 'héritage']);
+
+    foreach ([false, true] as $confirm) {
+        $body = cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => 'autre', 'date' => '2026-04-20', 'confirm_replace' => $confirm])->assertStatus(409)
+            ->assertJsonPath('code', 'registry_before_mandate_locked')
+            ->assertJsonPath('messages.fr', 'Une inscription existe déjà à cette date, antérieure à votre prise de fonction. Elle ne peut pas être remplacée.')
+            ->assertJsonPath('messages.en', 'An entry already exists on this date, before you took office. It cannot be replaced.')
+            ->getContent();
+        expect($body)->not->toContain('Maire de Béthune')->and($body)->not->toContain('existing'); // aucun rédacteur nommé
+    }
+    $kept = CityInventorySnapshot::sole();
+    expect($kept->payload)->toBe('héritage')->and($kept->active)->toBeTrue();
+});
+
+test('AVANT le mandat, une date libre s\'inscrit (l\'inventaire hérité du prédécesseur) ; le même texte déjà en place ne change rien', function () {
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => 'héritage', 'date' => '2026-04-25'])->assertCreated();
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => 'héritage', 'date' => '2026-04-25'])->assertOk()->assertJsonPath('unchanged', true);
+    expect(CityInventorySnapshot::count())->toBe(1);
+});
+
+test('PENDANT le mandat, une inscription existante à la date choisie demande confirmation, puis se remplace', function () {
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1, 'date' => '2026-05-05'])->assertCreated();
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => '9Cailloux0', 'date' => '2026-05-05'])->assertStatus(409)
+        ->assertJsonPath('code', 'registry_needs_confirmation')->assertJsonPath('existing.pseudo', 'Maire')->assertJsonPath('existing.taken_on', '2026-05-05');
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => '9Cailloux0', 'date' => '2026-05-05', 'confirm_replace' => true])->assertCreated()
+        ->assertJsonPath('replaced.taken_on', '2026-05-05');
+    // La date du jour reste libre : le conflit se cherche à la date choisie, pas à aujourd'hui.
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => 'autre jour'])->assertCreated()->assertJsonPath('snapshot.taken_on', '2026-05-10');
+});
+
+test('le jour d\'entrée en fonction lui-même est PENDANT le mandat (remplaçable) ; la veille est AVANT (verrouillée)', function () {
+    CityInventorySnapshot::create(['city_id' => $this->city->id, 'taken_on' => '2026-05-01', 'character_id' => null, 'office_key' => 'mayor', 'payload' => 'jour J']);
+    CityInventorySnapshot::create(['city_id' => $this->city->id, 'taken_on' => '2026-04-30', 'character_id' => null, 'office_key' => 'mayor', 'payload' => 'veille']);
+
+    cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => 'x', 'date' => '2026-05-01'])->assertStatus(409)->assertJsonPath('code', 'registry_needs_confirmation');
+    $this->postJson(cityRegUrl($this->mayor), ['raw' => 'x', 'date' => '2026-04-30'])->assertStatus(409)->assertJsonPath('code', 'registry_before_mandate_locked');
+});
+
+test('le registre dit au lecteur le jour d\'entrée en fonction de son mandat (`office_from`) et la plus ancienne date qu\'il peut choisir (`backdate_min`)', function () {
+    cityRegAs($this->mayor)->getJson(cityRegUrl($this->mayor))->assertOk()
+        ->assertJsonPath('office_from', '2026-05-01')->assertJsonPath('backdate_min', '2026-04-17')->assertJsonPath('today', '2026-05-10');
+});

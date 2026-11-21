@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\City;
 use App\Models\CityInventorySnapshot;
+use App\Models\Mandate;
 use App\Models\MayorMandate;
 use Illuminate\Database\Eloquent\Model;
 
@@ -45,6 +46,16 @@ class CityInventoryRegistry extends InventoryRegistry
     protected function readablePlace(Character $character): ?Model
     {
         return $this->authority->inventoryCity($character);
+    }
+
+    protected function writableMandate(Character $character): ?Mandate
+    {
+        return $this->authority->activeMayorMandate($character);
+    }
+
+    protected function readerMandate(Character $character): ?Mandate
+    {
+        return $this->authority->activeMayorMandate($character);
     }
 
     protected function placeName(Model $place): string
