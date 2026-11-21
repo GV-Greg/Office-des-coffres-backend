@@ -99,7 +99,10 @@ abstract class InventoryRegistry
     /**
      * L'historique du lieu : les exemplaires en vigueur, du plus récent au plus ancien, déchiffrés.
      *
-     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool}
+     * `today` : le jour du jeu EN COURS (bascule à 04:00 Paris, MandateCalendar), pour que l'écran dise l'âge de la dernière inscription
+     * (« il y a 2 jours, le 24/05 ») comme celui du Registre des mines — sans que le navigateur recalcule la bascule.
+     *
+     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool, today: string}
      *
      * @throws InventoryAccessDenied
      */
@@ -133,6 +136,7 @@ abstract class InventoryRegistry
             'place' => ['id' => $place->id, 'name' => $this->placeName($place)],
             'snapshots' => $snapshots,
             'can_write' => $this->writablePlace($character)?->id === $place->id,
+            'today' => (string) MandateCalendar::today(),
         ];
     }
 

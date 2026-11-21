@@ -167,6 +167,15 @@ test('lecture : le maire lit l\'historique de SA ville ; le conseil, un passant 
     cityRegAs($this->otherMayor)->getJson(cityRegUrl($this->otherMayor))->assertOk()->assertJsonPath('city.name', 'Béthune')->assertJsonCount(0, 'snapshots');
 });
 
+test('le registre dit le jour du jeu en cours (`today`), pour l\'âge de la dernière inscription — la bascule est à 04:00 Paris', function () {
+    cityRegAs($this->mayor)->getJson(cityRegUrl($this->mayor))->assertOk()->assertJsonPath('today', '2026-05-10');
+    // 02:00 à Paris : le jour du jeu n'a pas encore basculé.
+    atGameTime('2026-05-11 02:00');
+    $this->getJson(cityRegUrl($this->mayor))->assertOk()->assertJsonPath('today', '2026-05-10');
+    atGameTime('2026-05-11 04:30');
+    $this->getJson(cityRegUrl($this->mayor))->assertOk()->assertJsonPath('today', '2026-05-11');
+});
+
 test('l\'auteur d\'un exemplaire en vigueur n\'est jamais nommé : ni son pseudo ni son identifiant', function () {
     cityRegAs($this->mayor)->postJson(cityRegUrl($this->mayor), ['raw' => CITY_DAY1])->assertCreated();
     $body = cityRegAs($this->mayor)->getJson(cityRegUrl($this->mayor))->assertOk()->getContent();
