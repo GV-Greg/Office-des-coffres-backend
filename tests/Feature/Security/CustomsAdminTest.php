@@ -54,3 +54,13 @@ test('un joueur ne peut pas valider par la page d\'administration', function () 
     $this->actingAs(mandatePlayer($this->map['cityA'])->user)->post("/customs/{$officer->id}/approve")->assertForbidden();
     expect($officer->refresh()->status)->toBe(CustomsOfficer::PENDING);
 });
+
+test('le lien Douaniers vit dans le menu de gauche, plus dans celui du dessus', function () {
+    $html = $this->actingAs(mandateAdmin())->get('/customs')->assertOk()->getContent();
+
+    // Une seule occurrence du lien : la barre latérale. Le menu du haut (bureau et mobile) n'en porte plus.
+    expect(substr_count($html, route('customs.index')))->toBe(1)
+        ->and($html)->toContain('fixed left-0 top-16');
+    preg_match('~<nav class="fixed left-0 top-16.*?</nav>~s', $html, $sidebar);
+    expect($sidebar[0] ?? '')->toContain(route('customs.index'));
+});
