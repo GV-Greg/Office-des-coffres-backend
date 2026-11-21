@@ -19,6 +19,8 @@ return [
         'copy_same_character' => 'Choisissez un autre personnage que celui-ci : on ne copie pas un personnage sur lui-même.',
         'copy_source_empty' => 'Le personnage :source n\'a aucun réglage d\'inventaire à copier.',
         'registry_needs_confirmation' => 'Un inventaire existe déjà au registre pour le :date (:place). Il sera remplacé, pas effacé : l\'ancien reste conservé.',
+        'registry_date_out_of_range' => 'Cette date est hors de la plage permise : du :min au :max.',
+        'registry_before_mandate_locked' => 'Une inscription existe déjà à cette date, antérieure à votre prise de fonction. Elle ne peut pas être remplacée.',
         'copy_needs_confirmation' => ':target a déjà des réglages d\'inventaire : ils seront remplacés par ceux de :source. Confirmez pour continuer.',
     ],
 ];

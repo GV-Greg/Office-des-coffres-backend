@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InventoryAccessDenied;
+use App\Exceptions\InventoryBeforeMandateLocked;
 use App\Exceptions\InventoryCopyNeedsConfirmation;
 use App\Exceptions\InventoryReplacementNeedsConfirmation;
 use App\Exceptions\InventoryVersionConflict;
@@ -128,11 +129,14 @@ class InventorySettingsController extends Controller
 
     private function record(Request $request, int $character, InventoryRegistry $registry): JsonResponse
     {
-        $input = $request->validate(['raw' => ['required', 'string'], 'confirm_replace' => ['sometimes', 'boolean']]);
+        $input = $request->validate(['raw' => ['required', 'string'], 'confirm_replace' => ['sometimes', 'boolean'], 'date' => ['sometimes', 'nullable', 'date_format:Y-m-d']]);
 
         return $this->withCharacter($request, $character, function (Character $c) use ($input, $registry) {
             try {
-                $result = $registry->record($c, $input['raw'], (bool) ($input['confirm_replace'] ?? false));
+                $result = $registry->record($c, $input['raw'], (bool) ($input['confirm_replace'] ?? false), $input['date'] ?? null);
+            } catch (InventoryBeforeMandateLocked) {
+                // Aucun rédacteur nommé, aucun « Remplacer » : l'inscription antérieure à la prise de fonction est définitive.
+                return MandateApiErrors::error(409, 'inventory.api.registry_before_mandate_locked');
             } catch (InventoryReplacementNeedsConfirmation $pending) {
                 $response = MandateApiErrors::error(409, 'inventory.api.registry_needs_confirmation', [
                     'date' => $pending->existing->taken_on->format('d/m/Y'),

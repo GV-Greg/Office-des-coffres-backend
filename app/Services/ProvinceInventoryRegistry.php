@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Character;
+use App\Models\Mandate;
 use App\Models\Province;
 use App\Models\ProvinceInventorySnapshot;
 use Illuminate\Database\Eloquent\Model;
@@ -43,6 +44,16 @@ class ProvinceInventoryRegistry extends InventoryRegistry
     protected function readablePlace(Character $character): ?Model
     {
         return $this->authority->canReadProvinceInventory($character);
+    }
+
+    protected function writableMandate(Character $character): ?Mandate
+    {
+        return $this->authority->provinceInventoryMandate($character);
+    }
+
+    protected function readerMandate(Character $character): ?Mandate
+    {
+        return $this->authority->provinceInventoryReaderMandate($character);
     }
 
     protected function placeName(Model $place): string

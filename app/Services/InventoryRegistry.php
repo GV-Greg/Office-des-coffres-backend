@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Exceptions\InventoryAccessDenied;
+use App\Exceptions\InventoryBeforeMandateLocked;
 use App\Exceptions\InventoryReplacementNeedsConfirmation;
 use App\Exceptions\MandateRefusal;
 use App\Models\Character;
+use App\Models\Mandate;
 use App\Support\MandateCalendar;
 use App\Support\MandateLabels;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +31,12 @@ abstract class InventoryRegistry
     /** Exemplaires servis par lecture (les plus récents). */
     public const HISTORY_LIMIT = 100;
 
+    /**
+     * Combien de JOURS DU JEU avant son entrée en fonction un titulaire peut rétro-dater une inscription (fil registre-stocks, brief 10 :
+     * l'inventaire hérité du prédécesseur à la prise de poste). Constante, jamais `config/*.php` (cache de configuration de la prod).
+     */
+    public const BACKDATE_BEFORE_MANDATE_DAYS = 14;
+
     /** @return class-string<Model> */
     abstract protected function model(): string;
 
@@ -44,6 +52,12 @@ abstract class InventoryRegistry
     /** Le lieu que le personnage peut LIRE maintenant, ou null. */
     abstract protected function readablePlace(Character $character): ?Model;
 
+    /** Le mandat qui porte le poste d'ÉCRITURE (sa date d'entrée en fonction borne la rétro-datation), ou null. */
+    abstract protected function writableMandate(Character $character): ?Mandate;
+
+    /** Le mandat qui porte le poste de LECTURE (sa date d'entrée en fonction : le début du mandat du lecteur), ou null. */
+    abstract protected function readerMandate(Character $character): ?Mandate;
+
     abstract protected function placeName(Model $place): string;
 
     /** Clé `inventory.api.*` du refus d'écriture. */
@@ -53,29 +67,49 @@ abstract class InventoryRegistry
     abstract protected function deniedReadKey(): string;
 
     /**
+     * `$date` (Y-m-d, optionnelle) : le jour du jeu sous lequel l'inventaire s'inscrit — absent, c'est le jour du jeu en cours. Plage permise :
+     * de 14 jours du jeu AVANT l'entrée en fonction du titulaire jusqu'à aujourd'hui, jamais une date future (422 `date` sinon). Le conflit se
+     * cherche à CETTE date : pendant le mandat, un autre texte demande confirmation (409) ; avant le mandat, l'inscription existante ne se
+     * remplace jamais (409 `registry_before_mandate_locked`, brief 10).
+     *
      * @return array{snapshot: Model, replaced: ?Model, unchanged: bool}
      *
      * @throws InventoryAccessDenied
+     * @throws InventoryBeforeMandateLocked
      * @throws InventoryReplacementNeedsConfirmation
      * @throws MandateRefusal
      */
-    public function record(Character $character, string $raw, bool $confirmReplace = false): array
+    public function record(Character $character, string $raw, bool $confirmReplace = false, ?string $date = null): array
     {
         $place = $this->writablePlace($character) ?? throw new InventoryAccessDenied($this->deniedWriteKey());
         InventoryText::assertText($raw);
+        $mandate = $this->writableMandate($character) ?? throw new InventoryAccessDenied($this->deniedWriteKey());
         $today = MandateCalendar::today();
+        $officeFrom = MandateCalendar::gameDayOf($mandate->in_office_from);
+        $earliest = MandateCalendar::shiftGameDay($officeFrom, -self::BACKDATE_BEFORE_MANDATE_DAYS);
+        $takenOn = $date ?? $today;
+        if ($takenOn < $earliest || $takenOn > $today) {
+            throw MandateRefusal::make('date', 'inventory.api.registry_date_out_of_range', [
+                'min' => Carbon::parse($earliest)->format('d/m/Y'),
+                'max' => Carbon::parse($today)->format('d/m/Y'),
+            ]);
+        }
         $model = $this->model();
 
-        return DB::transaction(function () use ($character, $raw, $place, $today, $confirmReplace, $model) {
+        return DB::transaction(function () use ($character, $raw, $place, $takenOn, $officeFrom, $confirmReplace, $model) {
             $existing = $model::query()
                 ->where($this->placeColumn(), $place->id)
-                ->whereDate('taken_on', $today)
+                ->whereDate('taken_on', $takenOn)
                 ->where('active', true)
                 ->lockForUpdate()
                 ->first();
 
             if ($existing && $existing->payload === $raw) {
                 return ['snapshot' => $existing, 'replaced' => null, 'unchanged' => true];
+            }
+            // Avant la prise de fonction : l'inscription en place est celle d'un prédécesseur (ou rétro-datée) — elle ne se remplace pas, même confirmée.
+            if ($existing && $takenOn < $officeFrom) {
+                throw new InventoryBeforeMandateLocked;
             }
             if ($existing && ! $confirmReplace) {
                 throw new InventoryReplacementNeedsConfirmation($existing->loadMissing('character'), $this->placeName($place));
@@ -85,7 +119,7 @@ abstract class InventoryRegistry
 
             $snapshot = $model::create([
                 $this->placeColumn() => $place->id,
-                'taken_on' => $today,
+                'taken_on' => $takenOn,
                 'character_id' => $character->id,
                 'office_key' => $this->officeKey(),
                 'payload' => $raw,
@@ -102,7 +136,10 @@ abstract class InventoryRegistry
      * `today` : le jour du jeu EN COURS (bascule à 04:00 Paris, MandateCalendar), pour que l'écran dise l'âge de la dernière inscription
      * (« il y a 2 jours, le 24/05 ») comme celui du Registre des mines — sans que le navigateur recalcule la bascule.
      *
-     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool, today: string}
+     * `office_from` : le jour du jeu où le mandat du lecteur est entré en fonction (null s'il n'en a pas) — la base des repères de mi-mandat et de
+     * fin de mandat de la lecture (PR 3b). `backdate_min` : la plus ancienne date qu'il peut choisir pour inscrire (null s'il n'écrit pas).
+     *
+     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool, today: string, office_from: ?string, backdate_min: ?string}
      *
      * @throws InventoryAccessDenied
      */
@@ -137,7 +174,19 @@ abstract class InventoryRegistry
             'snapshots' => $snapshots,
             'can_write' => $this->writablePlace($character)?->id === $place->id,
             'today' => (string) MandateCalendar::today(),
+            'office_from' => ($reader = $this->readerMandate($character)) ? MandateCalendar::gameDayOf($reader->in_office_from) : null,
+            'backdate_min' => $this->backdateMin($character),
         ];
+    }
+
+    /** La plus ancienne date que le titulaire en fonction peut choisir (Y-m-d), ou null s'il n'écrit pas. */
+    private function backdateMin(Character $character): ?string
+    {
+        $mandate = $this->writableMandate($character);
+
+        return $mandate
+            ? MandateCalendar::shiftGameDay(MandateCalendar::gameDayOf($mandate->in_office_from), -self::BACKDATE_BEFORE_MANDATE_DAYS)
+            : null;
     }
 
     /**

@@ -45,7 +45,19 @@ class MandateCalendar
     /** Le jour du jeu EN COURS, au format Y-m-d : avant 04:00, c'est encore la veille du calendrier. */
     public static function today(): string
     {
-        return Carbon::now(self::timezone())->subHours(self::GAME_DAY_STARTS_AT_HOUR)->format('Y-m-d');
+        return self::gameDayOf(Carbon::now());
+    }
+
+    /** Le jour du jeu (Y-m-d) auquel appartient un instant : 03:59 appartient encore à la veille, 04:00 au jour suivant. */
+    public static function gameDayOf(CarbonInterface $instant): string
+    {
+        return Carbon::instance($instant)->setTimezone(self::timezone())->subHours(self::GAME_DAY_STARTS_AT_HOUR)->format('Y-m-d');
+    }
+
+    /** Décale un jour du jeu (Y-m-d) de N jours civils — en dates pures, sans heure : aucun changement d'heure ne peut le déplacer. */
+    public static function shiftGameDay(string $day, int $days): string
+    {
+        return Carbon::createFromFormat('!Y-m-d', $day, 'UTC')->addDays($days)->format('Y-m-d');
     }
 
     /** Ajoute des jours civils du fuseau du jeu à un instant stocké en UTC. */
