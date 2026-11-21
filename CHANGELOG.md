@@ -7,6 +7,16 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-21] — PR #102 (Registre des stocks : date d'inscription choisie, `office_from` — PR 3b-0)
+
+### Added
+- **Date d'inscription** (brief `10-brief-date-inventaire`, demande de Greg) : `POST …/inventory/province` et `…/inventory/city/registry` acceptent `date` (AAAA-MM-JJ, optionnelle ; absente = jour du jeu en cours), de **14 jours du jeu avant l'entrée en fonction** du titulaire (`BACKDATE_BEFORE_MANDATE_DAYS`, constante) jusqu'à aujourd'hui, jamais le futur (422 sur `date`, `registry_date_out_of_range`). Le conflit se cherche **à la date choisie** : pendant le mandat, 409 `registry_needs_confirmation` puis `confirm_replace` ; **avant le mandat, 409 `registry_before_mandate_locked`** — l'inscription d'un prédécesseur ne se remplace jamais, et le refus ne nomme personne. Un texte identique reste « inchangé ».
+- La réponse du registre porte **`office_from`** (jour du jeu d'entrée en fonction du mandat du lecteur : base des repères de mi-mandat et de fin de mandat de la PR 3b) et **`backdate_min`** (pour qui écrit).
+- `MandateCalendar::gameDayOf` et `shiftGameDay` ; `MandateAuthority::provinceInventoryMandate` et `provinceInventoryReaderMandate`.
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, `.env` ni paquet ; rien à lancer en SSH. Le champ `date` est optionnel : le frontend actuel continue de fonctionner sans changement.
+
 ## [2026-11-21] — PR #101 (Registre des stocks : le jour du jeu en cours)
 
 ### Added
