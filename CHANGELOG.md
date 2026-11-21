@@ -7,6 +7,20 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-21] — PR #104 (Module Sécurité, PR 2 : douaniers — demande opt-in validée par le trio, inactivité, page admin)
+
+### Added
+- **Douaniers** (brief `admin/content/brief-module-securite.md`, fil `admin/echanges/module-securite/`) : rôle de l'Office, **demandé** par le joueur et validé par le trio, jamais nommé d'office. Tables `customs_officers` (catégorie A) et `province_security_settings` (catégorie C) ; un seul accès ou demande en cours par personnage.
+- **Cascade de validation** dans `MandateAuthority` : niveau 1 prévôt/connétable ; niveau 2 capitaine, comte ou maire d'une ville de la province, **seulement sans prévôt ni connétable connu** ; niveau 3 administrateur (page `/customs`). `App\Services\CustomsOfficers` est le seul écrivain.
+- **API** `characters/{id}/customs`, `characters/{id}/customs/settings`, `customs-officers/{id}/{approve,reject,revoke}`, erreurs bilingues `security.api.*`.
+- **Inactivité** : 90 jours par défaut, réglable de 30 à 365 par le niveau 1 (ou 2) ; tâche `customs:inactivity` (09:00 Paris, heartbeat `customs`) — avec un trio connu, signalement seulement ; sans trio, avis email à 7 jours puis révocation automatique, nouvelle demande possible.
+- Section `customs` de l'export art. 20, lignes du registre des traitements, tables déclarées aux tests structurels.
+
+### Deploy notes
+- 🔴 **`php artisan migrate`** (deux tables) et **`php artisan route:cache`** (routes API `customs` et web `/customs`) en SSH ; sonde : une route protégée répond 401 sans jeton, jamais 404.
+- Aucun nouveau `config/*.php` (durée et bornes en constantes de `CustomsOfficer`), aucune clé `.env`, aucun paquet ; la tâche passe par le cron `schedule:run` existant.
+- Aucune donnée de tiers : les listes et les bilans (PR 3) attendent le texte légal.
+
 ## [2026-11-21] — PR #103 (Registre des stocks : repères du mandat du lecteur — PR 3b-1)
 
 ### Added

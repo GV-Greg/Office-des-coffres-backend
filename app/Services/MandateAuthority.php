@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\City;
 use App\Models\CouncilMandate;
+use App\Models\CustomsOfficer;
 use App\Models\MayorMandate;
 use App\Models\Province;
 use App\Models\ProvinceMinePrice;
@@ -246,6 +247,87 @@ class MandateAuthority
     public function canReadProvinceInventory(Character $character): ?Province
     {
         return $this->provinceInventoryReaderMandate($character)?->province;
+    }
+
+    /**
+     * Module Sécurité (brief admin/content/brief-module-securite.md ; fil admin/echanges/module-securite/, Greg le 21/11/2026).
+     *
+     * TRIO de sécurité : prévôt des maréchaux, connétable, capitaine. VALIDATION des douaniers en cascade : niveau 1 = prévôt et/ou
+     * connétable ; niveau 2 = capitaine, dirigeant (comte) ou maire d'une ville de la province, SEULEMENT si ni prévôt ni connétable
+     * n'a de mandat en fonction ; niveau 3 = l'administrateur (hors de cette classe).
+     *
+     * ⚠️ Limite 2 de la classe : « aucun prévôt ni connétable » veut dire « l'Office n'en connaît pas », ce qui est l'état COURANT
+     * (2 ou 3 conseillers sur 12 sont déclarés) — le repli est donc le mode normal d'une province, pas une exception (Greg, 21/11 :
+     * conception conservée, dite à l'écran).
+     */
+    public const SECURITY_TRIO = ['prevot_des_marechaux', 'connetable', 'capitaine'];
+
+    public const CUSTOMS_PRIMARY_OFFICES = ['prevot_des_marechaux', 'connetable'];
+
+    public const CUSTOMS_FALLBACK_OFFICES = ['capitaine', 'leader'];
+
+    /**
+     * Niveau (1 ou 2) auquel le personnage valide ou révoque les douaniers de cette province MAINTENANT, ou null. Le niveau 2 s'éteint
+     * dès qu'un prévôt ou un connétable est en fonction dans la province. Par le TITRE, jamais par l'appartenance au conseil.
+     */
+    public function customsDeciderLevel(Character $character, Province $province): ?int
+    {
+        if ($this->holdsOfficeInProvince($character, $province, self::CUSTOMS_PRIMARY_OFFICES)) {
+            return 1;
+        }
+
+        if ($this->hasPrimaryCustomsDecider($province)) {
+            return null;
+        }
+
+        $mayorHere = $this->activeMayorMandate($character)?->city?->province_id === $province->id;
+
+        return $mayorHere || $this->holdsOfficeInProvince($character, $province, self::CUSTOMS_FALLBACK_OFFICES) ? 2 : null;
+    }
+
+    /** Province où le personnage valide les douaniers maintenant, avec son niveau, ou null. */
+    public function customsDeciderScope(Character $character): ?array
+    {
+        $province = $this->councilMandateHoldingOffice($character, self::CUSTOMS_PRIMARY_OFFICES)->with('province')->first()?->province;
+        if ($province) {
+            return ['province' => $province, 'level' => 1];
+        }
+
+        $candidates = collect([
+            $this->councilMandateHoldingOffice($character, self::CUSTOMS_FALLBACK_OFFICES)->with('province')->first()?->province,
+            $this->activeMayorMandate($character)?->city?->province,
+        ])->filter();
+
+        foreach ($candidates as $candidate) {
+            if ($this->customsDeciderLevel($character, $candidate) === 2) {
+                return ['province' => $candidate, 'level' => 2];
+            }
+        }
+
+        return null;
+    }
+
+    /** Un prévôt des maréchaux ou un connétable est-il en fonction dans cette province (connu de l'Office) ? */
+    public function hasPrimaryCustomsDecider(Province $province): bool
+    {
+        return $this->currentHolders($province, self::CUSTOMS_PRIMARY_OFFICES)->isNotEmpty();
+    }
+
+    /** Le trio de sécurité (prévôt, connétable, capitaine) a-t-il au moins un occupant connu en fonction ? */
+    public function provinceHasSecurityTrio(Province $province): bool
+    {
+        return $this->currentHolders($province, self::SECURITY_TRIO)->isNotEmpty();
+    }
+
+    /** Douanier EN VIGUEUR du personnage, ou null. */
+    public function activeCustomsOfficer(Character $character): ?CustomsOfficer
+    {
+        return CustomsOfficer::query()->approved()->where('character_id', $character->id)->first();
+    }
+
+    private function holdsOfficeInProvince(Character $character, Province $province, array $officeKeys): bool
+    {
+        return $this->councilMandateHoldingOffice($character, $officeKeys)->where('province_id', $province->id)->exists();
     }
 
     private function councilMandateHoldingOffice(Character $character, array $officeKeys): Builder

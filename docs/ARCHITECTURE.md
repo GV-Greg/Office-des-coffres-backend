@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 20/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 21/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
@@ -32,6 +32,8 @@ hasMany `Province` → hasMany `City`. `CouncilMandate` → hasMany `CouncilOffi
 | `province_inventory_settings` | réglages province, `updated_by_character_id` nullable | C |
 | `province_inventory_snapshots` | historique collages commissaire commerce, chiffré, `active` 1/NULL | C |
 | `city_inventory_snapshots` | historique collages du maire (registre des stocks, 20/11), jumeau de la province, `office_key` = `mayor` | C |
+| `customs_officers` | douaniers (module Sécurité) : demande opt-in puis accès, `active` 1/NULL, décideur et niveau tracés | A |
+| `province_security_settings` | réglages de sécurité de la province (durée d'inactivité du douanier), `updated_by_character_id` nullable | C |
 | `anim_activity_types` | référentiel (`key`, `is_active`) | — |
 | `anim_decode_activities` | activité Décode (privée ou sans compte), slug unique, lieu obligatoire | A (privé) / hors taxinomie (sans compte) |
 | `anim_decode_secrets` | coffre, `code` chiffré | suit l'activité |
@@ -78,6 +80,7 @@ dans `deploy.yml`.
 | GET/POST/PUT/DELETE | `characters/{id}/mandates`, `mandates/*`, `council-offices` | MandateController | api (sauf GET offices) | voir « Mandats » |
 | POST | `characters/{id}/mine-reports` | MineReportController@store | api | voir « Registre des mines » |
 | GET | `characters/{id}/mine-registry` | MineRegistryController@index | api | lecture registre |
+| GET/POST/DELETE/PUT | `characters/{id}/customs`, `characters/{id}/customs/settings`, `customs-officers/{id}/{approve,reject,revoke}` | CustomsController | api | douaniers, voir « Sécurité — douaniers » |
 | GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
 | GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
 | GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
@@ -98,7 +101,7 @@ dans `deploy.yml`.
 
 ### Web (panneau d'administration Blade, `role:admin`)
 
-`/dashboard` (personnages, toggleValidation), `/users` (liste, recherche, suppression), mandats (`/mandates/*`), `/anim` (surveillance, recours sans compte), `/item-icons`, `/announcements`.
+`/dashboard` (personnages, toggleValidation), `/users` (liste, recherche, suppression), mandats (`/mandates/*`), `/anim` (surveillance, recours sans compte), `/item-icons`, `/announcements`, `/customs` (douaniers, niveau 3).
 
 ## Contrôleurs
 
@@ -256,6 +259,22 @@ Autorisation (`MandateAuthority`) : personnel = le personnage ; ville = **maire*
 🔴 **Auteurs** (Q5, politique §3) : l'auteur d'un exemplaire en vigueur n'est **jamais** nommé (`by_me` seulement) ; le pseudo n'apparaît que pour le rédacteur **remplacé** (`replaced` dans la liste) et pour l'exemplaire à remplacer (`existing` du 409) ; `pseudo` NULL si le personnage a disparu. **Pas de registre personnel** (Q4, reporté). Mi-mandat/fin pour la lecture analytique (PR 3b) : moitié et totalité du mandat — province 30/60 j, ville 15/30 j, en jours du jeu.
 
 Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env` ; **registre de la ville : `migrate` (table `city_inventory_snapshots`) et `route:cache` (routes `inventory/city/registry`), et l'écriture ne s'ouvre qu'une fois la politique §3 en ligne (PR 0)**.
+
+## Sécurité — douaniers (21/11/2026, non mergée)
+
+Brief `admin/content/brief-module-securite.md` ; fil `admin/echanges/module-securite/` (réponses de Greg `02`). **PR 2 sur 5** : les douaniers seulement, aucun bilan ni liste (PR 3).
+
+Le douanier **n'existe pas en jeu** : rôle de l'Office, que le joueur **demande** (opt-in) et que le trio valide — jamais une nomination d'office. Une ligne de `customs_officers` porte la demande ET l'accès (`status` pending/approved/rejected/revoked, `active` 1/NULL, un seul en cours par personnage). `CustomsOfficers` est le **seul écrivain**.
+
+| Pièce | Rôle |
+|---|---|
+| `MandateAuthority::customsDeciderLevel` | **Niveau 1** = prévôt des maréchaux ou connétable en fonction dans la province ; **niveau 2** = capitaine, dirigeant ou maire d'une ville de la province, **seulement si ni prévôt ni connétable n'est connu** ; niveau 3 = administrateur (page Blade `/customs`, hors de cette classe). `customsDeciderScope` donne province + niveau. `provinceHasSecurityTrio` = prévôt, connétable ou capitaine connu |
+| `CustomsOfficers` | `request`, `decide`, `decideAsAdmin`, `withdraw` (retrait par soi : une demande en attente disparaît, un accès laisse sa trace), `revoke`, `recordReport` (**appelée par la saisie d'un bilan, PR 3** : seule action qui remet le compteur à zéro), `setInactivityDays`, `lapsesAt`, `present` |
+| `customs:inactivity` | 09:00 Paris, heartbeat `customs`. **Avec trio connu : rien n'est révoqué**, l'API signale `inactive` au trio ; **sans trio** : avis email à 7 jours (une fois), révocation automatique à l'échéance, nouvelle demande possible |
+
+🔴 Le repli (niveau 2) est **le mode courant** d'une province (limite 2 de `MandateAuthority` : l'Office ne connaît que les mandats déclarés) ; le frontend le dit (`decider.has_security_trio`). Inactivité : **90 jours par défaut, réglable 30 à 365** par le niveau 1 (ou 2) — **constantes de `CustomsOfficer`, pas de nouveau `config/*.php`** (piège du `config:cache`). Compteur : de `in_office_from`, puis `last_report_at`. Le pseudo d'un demandeur n'est servi qu'au décideur et à lui-même. Erreurs : `security.api.*`, mêmes garanties bilingues que les mandats (`MandateApiErrors::covers`). Export art. 20 : section `customs` (le décideur n'y est pas nommé). Tests : `Security/CustomsOfficersTest`, `Security/CustomsAdminTest`.
+
+⚠️ **Prod** : `migrate` (deux tables), **`route:cache`** (routes API `customs` et web `/customs`), aucun nouveau `config/*.php` ni `.env`, aucun paquet ; la tâche passe par le cron `schedule:run` existant. **Rien n'est écrit en base avant le texte légal du module** (PR 3 : listes et bilans, pseudos de tiers) — cette PR ne touche aucun tiers sans compte.
 
 ## Icônes des items (05/11/2026)
 

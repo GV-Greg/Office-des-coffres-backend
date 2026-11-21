@@ -87,6 +87,16 @@ $declaredTables = [
     // (nullOnDelete), l'exemplaire reste. Texte chiffré. Tenu par Inventory/CityInventoryRegistryTest.
     'city_inventory_snapshots' => 'C',
 
+    // A — douaniers (module Sécurité, 21/11/2026, Greg : demande opt-in validée par le trio). Un rôle sans titulaire n'a aucune valeur :
+    // `character_id` en cascadeOnDelete. `decided_by_character_id` / `revoked_by_character_id` passent à NULL par la base (nullOnDelete) :
+    // la décision reste, son auteur n'est plus nommé. Section « customs » de l'export art. 20. Tenu par Security/CustomsOfficersTest.
+    'customs_officers' => 'A',
+
+    // C — réglages de sécurité de la PROVINCE (durée d'inactivité du douanier), écrits par le prévôt, le connétable ou le niveau 2 :
+    // `updated_by_character_id` passe à NULL par la base (nullOnDelete), le réglage reste pour le successeur. Absents de l'export
+    // art. 20 (communautaires). Tenu par Security/CustomsOfficersTest.
+    'province_security_settings' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

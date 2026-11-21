@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
 use App\Http\Controllers\Api\Anim\RewardsGridController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
+use App\Http\Controllers\Api\CustomsController;
 use App\Http\Controllers\Api\InventorySettingsController;
 use App\Http\Controllers\Api\ItemIconController;
 use App\Http\Controllers\Api\MandateController;
@@ -228,6 +229,17 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
                 ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
             Route::post('mandates/council/{id}/office', [MandateController::class, 'declareOffice'])
                 ->where('id', '[0-9]+');
+        });
+        // Sécurité — douaniers (module « Salle des gardes », fil admin/echanges/module-securite). Demande opt-in, validée par le trio.
+        // ⚠️ Routes ajoutées : route:cache en prod ; une route protégée répond 401 sans jeton, jamais 404.
+        Route::get('characters/{character}/customs', [CustomsController::class, 'show'])->where('character', '[0-9]+');
+        Route::middleware('throttle:6,1')->group(function () {
+            Route::post('characters/{character}/customs', [CustomsController::class, 'store'])->where('character', '[0-9]+');
+            Route::delete('characters/{character}/customs', [CustomsController::class, 'destroy'])->where('character', '[0-9]+');
+            Route::put('characters/{character}/customs/settings', [CustomsController::class, 'settings'])->where('character', '[0-9]+');
+            Route::post('customs-officers/{id}/approve', [CustomsController::class, 'approve'])->where('id', '[0-9]+');
+            Route::post('customs-officers/{id}/reject', [CustomsController::class, 'reject'])->where('id', '[0-9]+');
+            Route::post('customs-officers/{id}/revoke', [CustomsController::class, 'revoke'])->where('id', '[0-9]+');
         });
         Route::delete('mandates/{level}/{id}', [MandateController::class, 'destroy'])
             ->where(['level' => 'mayor|council', 'id' => '[0-9]+']);
