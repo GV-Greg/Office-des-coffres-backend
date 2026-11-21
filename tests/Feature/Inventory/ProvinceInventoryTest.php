@@ -164,6 +164,12 @@ test('lecture : le commissaire au commerce et le dirigeant lisent l\'historique,
     provAs($this->other)->getJson(provUrl($this->other))->assertOk()->assertJsonPath('province.name', 'Berry')->assertJsonCount(0, 'snapshots');
 });
 
+test('le registre dit le jour du jeu en cours (`today`) — la bascule est à 04:00 Paris', function () {
+    provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()->assertJsonPath('today', '2026-05-10');
+    atGameTime('2026-05-11 02:00');
+    $this->getJson(provUrl($this->comte))->assertOk()->assertJsonPath('today', '2026-05-10');
+});
+
 test('l\'auteur d\'un exemplaire en vigueur n\'est jamais nommé : l\'historique ne porte ni son pseudo ni son identifiant', function () {
     provAs($this->commerce)->postJson(provUrl($this->commerce), ['raw' => PROV_DAY1])->assertCreated();
     $body = provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()->getContent();
