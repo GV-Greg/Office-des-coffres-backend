@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-21] — PR #101 (Registre des stocks : le jour du jeu en cours)
+
+### Added
+- `today` dans la réponse du registre des stocks (`GET characters/{id}/inventory/province` et `…/inventory/city/registry`) : le **jour du jeu en cours**, bascule à **04:00 Paris** (`MandateCalendar::today()`), pour que la page dise l'âge de la dernière inscription (« il y a 2 jours, le 24/05. ») au format du Registre des mines sans recalculer la bascule dans le navigateur. Tests : le jour change à 04:00, pas à minuit.
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, `.env` ni paquet ; rien à lancer en SSH. À déployer avant la PR frontend « Registre des stocks » (front #144), qui lit ce champ.
+
 ## [2026-11-20] — PR #100 (Registre des stocks : ville, 409 + confirm_replace)
 
 ### Added
