@@ -37,6 +37,9 @@ abstract class InventoryRegistry
      */
     public const BACKDATE_BEFORE_MANDATE_DAYS = 14;
 
+    /** La fenêtre « prédécesseurs » : les 30 jours du jeu avant l'entrée en fonction du lecteur (fiche de prise de poste, comme les mines). */
+    public const PREDECESSOR_DAYS = 30;
+
     /** @return class-string<Model> */
     abstract protected function model(): string;
 
@@ -54,6 +57,12 @@ abstract class InventoryRegistry
 
     /** Le mandat qui porte le poste d'ÉCRITURE (sa date d'entrée en fonction borne la rétro-datation), ou null. */
     abstract protected function writableMandate(Character $character): ?Mandate;
+
+    /** Jours du jeu entre l'entrée en fonction du lecteur et le bilan de MI-MANDAT : la moitié du mandat (constante de la sous-classe, jamais de config). */
+    abstract protected function midMandateDays(): int;
+
+    /** Jours du jeu entre l'entrée en fonction du lecteur et le bilan de FIN DE MANDAT : la totalité du mandat. */
+    abstract protected function endMandateDays(): int;
 
     /** Le mandat qui porte le poste de LECTURE (sa date d'entrée en fonction : le début du mandat du lecteur), ou null. */
     abstract protected function readerMandate(Character $character): ?Mandate;
@@ -136,10 +145,12 @@ abstract class InventoryRegistry
      * `today` : le jour du jeu EN COURS (bascule à 04:00 Paris, MandateCalendar), pour que l'écran dise l'âge de la dernière inscription
      * (« il y a 2 jours, le 24/05 ») comme celui du Registre des mines — sans que le navigateur recalcule la bascule.
      *
-     * `office_from` : le jour du jeu où le mandat du lecteur est entré en fonction (null s'il n'en a pas) — la base des repères de mi-mandat et de
-     * fin de mandat de la lecture (PR 3b). `backdate_min` : la plus ancienne date qu'il peut choisir pour inscrire (null s'il n'écrit pas).
+     * `mandate` : les repères du mandat DU LECTEUR (« chacun le sien », dirigeant compris), au format du Registre des mines — le jour du jeu où il
+     * est entré en fonction, et les dates de son bilan de mi-mandat et de fin de mandat (la moitié et la totalité du mandat : province 30/60,
+     * ville 15/30 jours du jeu, fil registre-stocks R7) ; null s'il n'a pas de mandat en fonction. `backdate_min` : la plus ancienne date qu'il
+     * peut choisir pour inscrire (null s'il n'écrit pas).
      *
-     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool, today: string, office_from: ?string, backdate_min: ?string}
+     * @return array{place: array{id: int, name: string}, snapshots: list<array<string, mixed>>, can_write: bool, today: string, mandate: ?array{in_office_from: string, mid_at: string, end_at: string, predecessor_from: string}, backdate_min: ?string}
      *
      * @throws InventoryAccessDenied
      */
@@ -174,7 +185,12 @@ abstract class InventoryRegistry
             'snapshots' => $snapshots,
             'can_write' => $this->writablePlace($character)?->id === $place->id,
             'today' => (string) MandateCalendar::today(),
-            'office_from' => ($reader = $this->readerMandate($character)) ? MandateCalendar::gameDayOf($reader->in_office_from) : null,
+            'mandate' => ($reader = $this->readerMandate($character)) ? [
+                'in_office_from' => MandateCalendar::gameDayOf($reader->in_office_from),
+                'mid_at' => MandateCalendar::gameDayOf(MandateCalendar::addGameDays($reader->in_office_from, $this->midMandateDays())),
+                'end_at' => MandateCalendar::gameDayOf(MandateCalendar::addGameDays($reader->in_office_from, $this->endMandateDays())),
+                'predecessor_from' => MandateCalendar::gameDayOf(MandateCalendar::addGameDays($reader->in_office_from, -self::PREDECESSOR_DAYS)),
+            ] : null,
             'backdate_min' => $this->backdateMin($character),
         ];
     }

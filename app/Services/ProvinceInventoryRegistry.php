@@ -19,6 +19,11 @@ class ProvinceInventoryRegistry extends InventoryRegistry
 {
     public const OFFICE_KEY = 'commissaire_commerce';
 
+    /** Un mandat de conseil dure 60 jours du jeu : mi-mandat à 30, fin à 60 (comme MineRegistryReader). */
+    public const MID_DAYS = 30;
+
+    public const END_DAYS = 60;
+
     public function __construct(private readonly MandateAuthority $authority) {}
 
     protected function model(): string
@@ -44,6 +49,16 @@ class ProvinceInventoryRegistry extends InventoryRegistry
     protected function readablePlace(Character $character): ?Model
     {
         return $this->authority->canReadProvinceInventory($character);
+    }
+
+    protected function midMandateDays(): int
+    {
+        return self::MID_DAYS;
+    }
+
+    protected function endMandateDays(): int
+    {
+        return self::END_DAYS;
     }
 
     protected function writableMandate(Character $character): ?Mandate
