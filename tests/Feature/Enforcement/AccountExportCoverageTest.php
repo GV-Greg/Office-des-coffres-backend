@@ -57,6 +57,11 @@ $exportDecisions = [
     // C — HISTORIQUE des inventaires de la ville (registre des stocks, 20/11/2026) : même raison que celui de la province.
     'city_inventory_snapshots' => 'excluded',
 
+    // A — douaniers (module Sécurité, 21/11/2026) : le statut du joueur (demande, accès, dates) est une donnée du compte. Section « customs »
+    // de AccountExport. C — réglages de sécurité de la province : communautaires, non exportés.
+    'customs_officers' => 'exported',
+    'province_security_settings' => 'excluded',
+
     // C — prix communautaires de la province.
     // Non exportés : mêmes raisons que mine_reports.
     'province_mine_prices' => 'excluded',

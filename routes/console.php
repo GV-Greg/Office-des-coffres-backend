@@ -65,3 +65,10 @@ Schedule::command('anim:close-inactive')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
 Schedule::command('anim:purge-closed')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+
+/*
+| Sécurité — douaniers inactifs (Greg, 21/11/2026) : avec un trio connu, signalement à l'écran seulement ; sans trio, avis à
+| 7 jours puis révocation automatique. Une fois par jour, heartbeat `customs`.
+*/
+Schedule::command('customs:inactivity')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));

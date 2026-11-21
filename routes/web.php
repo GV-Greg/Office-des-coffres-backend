@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Web\AnimAdminController;
 use App\Http\Controllers\Web\AnnouncementController;
+use App\Http\Controllers\Web\CustomsAdminController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\ItemIconController;
 use App\Http\Controllers\Web\MandateAdminController;
@@ -73,6 +74,15 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::post('item-icons', [ItemIconController::class, 'store'])->name('item-icons.store');
     Route::patch('item-icons/{icon}', [ItemIconController::class, 'update'])->where('icon', '[0-9]+')->name('item-icons.update');
     Route::delete('item-icons/{icon}', [ItemIconController::class, 'destroy'])->where('icon', '[0-9]+')->name('item-icons.destroy');
+
+    // Douaniers — niveau 3 de la validation (module Sécurité, 21/11/2026) : l'administrateur, sur demande.
+    // ⚠️ Routes ajoutées : route:cache en prod.
+    Route::prefix('customs')->name('customs.')->controller(CustomsAdminController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('{id}/approve', 'approve')->where('id', '[0-9]+')->name('approve');
+        Route::post('{id}/reject', 'reject')->where('id', '[0-9]+')->name('reject');
+        Route::post('{id}/revoke', 'revoke')->where('id', '[0-9]+')->name('revoke');
+    });
 
     // Annonces du site (18/11/2026) : prévenir d'une maintenance, le bandeau défile sur l'accueil de l'application.
     // ⚠️ Routes ajoutées : route:cache en prod.

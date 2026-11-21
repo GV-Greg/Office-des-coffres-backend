@@ -35,7 +35,7 @@ class MandateApiErrors
 
     public static function covers(Request $request): bool
     {
-        return $request->is('api/v1/mandates', 'api/v1/mandates/*', 'api/v1/characters/*/mandates', 'api/v1/characters/*/province', 'api/v1/characters/*/mine-reports', 'api/v1/characters/*/mine-registry', 'api/v1/characters/*/mine-registry/*', 'api/v1/provinces/*/mine-prices', 'api/v1/provinces/*/mine-prices/*', 'api/v1/council-offices', 'api/v1/characters/*/inventory-scopes', 'api/v1/characters/*/inventory-settings/*', 'api/v1/characters/*/inventory-settings/*/*', 'api/v1/characters/*/inventory/*');
+        return $request->is('api/v1/mandates', 'api/v1/mandates/*', 'api/v1/characters/*/mandates', 'api/v1/characters/*/province', 'api/v1/characters/*/mine-reports', 'api/v1/characters/*/mine-registry', 'api/v1/characters/*/mine-registry/*', 'api/v1/provinces/*/mine-prices', 'api/v1/provinces/*/mine-prices/*', 'api/v1/council-offices', 'api/v1/characters/*/inventory-scopes', 'api/v1/characters/*/inventory-settings/*', 'api/v1/characters/*/inventory-settings/*/*', 'api/v1/characters/*/inventory/*', 'api/v1/characters/*/customs', 'api/v1/characters/*/customs/*', 'api/v1/customs-officers/*', 'api/v1/customs-officers/*/*');
     }
 
     public static function validation(ValidationException $exception): JsonResponse

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\CharacterInventorySettings;
 use App\Models\CouncilMandate;
+use App\Models\CustomsOfficer;
 use App\Models\MayorMandate;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -42,6 +43,7 @@ class AccountExport
             'characters'   => $this->charactersSection($user),
             'mandates'     => $this->mandatesSection($user),
             'inventory'    => $this->inventorySection($user),
+            'customs'      => $this->customsSection($user),
             'not_included' => $this->notIncludedSection(),
         ];
     }
@@ -144,6 +146,38 @@ class AccountExport
                 'settings'                => $row->data ?: null,
                 'last_inventory'          => $row->inventory,
                 'last_inventory_saved_at' => $row->inventory_saved_at?->toIso8601ZuluString(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Statut de douanier de chacun de ses personnages (module Sécurité, brief §10) : demande, accès, dates, fin éventuelle. Le décideur
+     * n'y est PAS nommé (un autre joueur) ; seul le niveau de la décision l'est.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function customsSection(User $user): array
+    {
+        $pseudos = $user->characters->pluck('pseudo', 'id');
+
+        return CustomsOfficer::query()
+            ->whereIn('character_id', $pseudos->keys())
+            ->with('province.kingdom', 'city')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CustomsOfficer $row) => [
+                'character'       => $pseudos[$row->character_id],
+                'province'        => $row->province?->province_name,
+                'city'            => $row->city?->city_name,
+                'status'          => $row->status,
+                'requested_at'    => $row->created_at?->toIso8601ZuluString(),
+                'decision_level'  => $row->decision_level,
+                'decided_at'      => $row->decided_at?->toIso8601ZuluString(),
+                'in_office_from'  => $row->in_office_from?->toIso8601ZuluString(),
+                'last_report_at'  => $row->last_report_at?->toIso8601ZuluString(),
+                'revoked_at'      => $row->revoked_at?->toIso8601ZuluString(),
+                'revocation_reason' => $row->revocation_reason,
             ])
             ->values()
             ->all();
