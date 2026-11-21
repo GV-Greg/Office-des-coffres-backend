@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 21/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 22/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
@@ -157,7 +157,7 @@ Fond `slate-800`, logo PNG du **site des joueurs**, carte claire liseré orange,
 
 ## Chiffrement des données de module
 
-Mécanisme en place, aucune table de module existante encore. `MODULE_DATA_KEY` ≠ `APP_KEY` (rotation de `APP_KEY` = reconnexion, rotation sur données = illisibles). `EncryptedModuleData` cast (`:string` ou `:array`). `php artisan module-data:check` : lecture seule, vérifie chaque donnée chiffrée. ⚠️ **Chiffrer le contenu, jamais les axes** (indexation impossible avec IV aléatoire).
+Mécanisme en place et utilisé par les tables de module (relevés des mines, inventaires, activités d'Animation…). `MODULE_DATA_KEY` ≠ `APP_KEY` (rotation de `APP_KEY` = reconnexion, rotation sur données = illisibles). `EncryptedModuleData` cast (`:string` ou `:array`). `php artisan module-data:check` : lecture seule, vérifie chaque donnée chiffrée. ⚠️ **Chiffrer le contenu, jamais les axes** (indexation impossible avec IV aléatoire).
 
 ## Mandats (lot 1)
 
@@ -232,7 +232,7 @@ Brief `brief-coffres-scelles.md` ; **spéc. à jour : `admin/echanges/animation-
 
 ⚠️ **Prod** : `route:cache`, `migrate` (sème le type `decode`), `anim:*` via `schedule:run` cPanel, **aucun** nouveau `config/*.php`/`.env`, **mesurer `$request->ip()` derrière O2Switch**, **rien avant le texte légal**.
 
-## Animation — Grille des lots (10/11/2026, non mergée)
+## Animation — Grille des lots (10/11/2026, back #82, mergée le 11/11/2026)
 
 Brief `brief-grille-des-lots.md`. Même modèle que Décode : **deux modes**, autorisation **par propriété** (catégorie A, cascadeOnDelete). `RewardsGridWorkflow` seul écrivain. Machine à états : `new → incomplete → filled → confirmed → closed` (🔴 **`drawed` jamais produit** : tirage → `confirmed` directement). Page publique qu'à partir du tirage.
 
@@ -240,7 +240,7 @@ Ajout de lots : `name` (un lot) ou `names` (liste, ≤ 500). Dimensions : 3-20 p
 
 Tâches planifiées communes (`AnimKinds`) : `anim:close-inactive` (30j), `anim:purge-closed` (5 ans sans compte). Durées = **constantes** du modèle. 🔴 **Type `rewards` naît inactif** : activer depuis `/anim` après texte légal.
 
-## Inventaires (11/11/2026, non mergée)
+## Inventaires (11/11/2026, back #83 et #84 mergées le 11/11/2026 ; registre des stocks back #100 à #103, 20-21/11/2026)
 
 Fils `inventaire-scopes/` et `inventaire-bilans/`. **Une table par niveau avec sa vraie FK** (pas de polymorphe). Niveau et propriétaire résolus **côté serveur** depuis le poste tenu maintenant (`InventorySettings::owner()`).
 
@@ -258,9 +258,9 @@ Autorisation (`MandateAuthority`) : personnel = le personnage ; ville = **maire*
 
 🔴 **Auteurs** (Q5, politique §3) : l'auteur d'un exemplaire en vigueur n'est **jamais** nommé (`by_me` seulement) ; le pseudo n'apparaît que pour le rédacteur **remplacé** (`replaced` dans la liste) et pour l'exemplaire à remplacer (`existing` du 409) ; `pseudo` NULL si le personnage a disparu. **Pas de registre personnel** (Q4, reporté). Mi-mandat/fin pour la lecture analytique (PR 3b) : moitié et totalité du mandat — province 30/60 j, ville 15/30 j, en jours du jeu.
 
-Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env` ; **registre de la ville : `migrate` (table `city_inventory_snapshots`) et `route:cache` (routes `inventory/city/registry`), et l'écriture ne s'ouvre qu'une fois la politique §3 en ligne (PR 0)**.
+Copie : réglages **personnels** entre personnages **du même compte**. Ne copie jamais le texte collé. Routes : `GET/PUT characters/{id}/inventory-settings/{personal|city|province}` (PUT à version, `throttle:30,1`). ⚠️ Prod : `migrate`, `route:cache`, aucun nouveau config/`.env` ; **registre de la ville : `migrate` (table `city_inventory_snapshots`) et `route:cache` (routes `inventory/city/registry`), et l'écriture ne s'ouvrait qu'une fois la politique §3 en ligne (PR 0, front #143 et back #99, en ligne le 20/11/2026)**.
 
-## Sécurité — douaniers (21/11/2026, non mergée)
+## Sécurité — douaniers (21/11/2026, back #104, mergée le 21/11/2026)
 
 Brief `admin/content/brief-module-securite.md` ; fil `admin/echanges/module-securite/` (réponses de Greg `02`). **PR 2 sur 5** : les douaniers seulement, aucun bilan ni liste (PR 3).
 
@@ -280,7 +280,7 @@ Le douanier **n'existe pas en jeu** : rôle de l'Office, que le joueur **demande
 
 Brief `brief-icones-items.md`. Table `item_icons` : nom → `game_item_id` Celsius Online. L'Office ne stocke **aucune image**. Lecture publique : `GET item-icons?names[]=…` (200 max), clé = **nom tel que demandé** (rapprochement PHP `normalizeName` : casse et espaces ignorés, **accents significatifs**). `Cache-Control: public, max-age=86400`. ⚠️ Collation `utf8mb4_unicode_ci` refuse deux noms ne différant que par casse/accent. Admin : page Blade `/item-icons`. 🔴 **Aucun aperçu** côté frontend (IP joueur → CDN Celsius exclu par `/legal/privacy` §6). Tests : `ItemIconsTest`.
 
-## Mode maintenance (18/11/2026, non mergée)
+## Mode maintenance (18/11/2026, back #89, mergée le 18/11/2026)
 
 Brief `brief-mode-maintenance.md`. **Pas de SSH** : `scripts/maintenance.sh` dépose/retire `storage/framework/down` **par FTP**. `deploy.yml` : ferme avant envoi, rouvre après (sauf si déjà fermé → mode `held`). `maintenance.yml` : ferme/rouvre à la main.
 
@@ -290,7 +290,7 @@ Brief `brief-mode-maintenance.md`. **Pas de SSH** : `scripts/maintenance.sh` dé
 - Tests : `MaintenanceModeTest`.
 - ⚠️ Prod : créer `MAINTENANCE_SECRET` dans GitHub Secrets.
 
-## Annonces du site (18/11/2026, non mergée)
+## Annonces du site (18/11/2026, back #91, mergée le 18/11/2026)
 
 Annonce de maintenance défilante. Table `site_announcements` : message FR/EN (500 car.), échéance `exact`/`period`/null, visibilité `visible_from`/`visible_until`, `is_active`. Dates en UTC, saisies à Paris.
 
