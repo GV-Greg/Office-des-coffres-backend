@@ -21,6 +21,11 @@ class CityInventoryRegistry extends InventoryRegistry
 {
     public const OFFICE_KEY = MayorMandate::LEVEL;
 
+    /** Un mandat de maire dure 30 jours du jeu : mi-mandat à 15, fin à 30. */
+    public const MID_DAYS = 15;
+
+    public const END_DAYS = 30;
+
     public function __construct(private readonly MandateAuthority $authority) {}
 
     protected function model(): string
@@ -46,6 +51,16 @@ class CityInventoryRegistry extends InventoryRegistry
     protected function readablePlace(Character $character): ?Model
     {
         return $this->authority->inventoryCity($character);
+    }
+
+    protected function midMandateDays(): int
+    {
+        return self::MID_DAYS;
+    }
+
+    protected function endMandateDays(): int
+    {
+        return self::END_DAYS;
     }
 
     protected function writableMandate(Character $character): ?Mandate

@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-21] — PR #103 (Registre des stocks : repères du mandat du lecteur — PR 3b-1)
+
+### Added
+- La réponse du registre des stocks (ville et province) porte `mandate: { in_office_from, mid_at, end_at, predecessor_from }` : les repères du mandat **du lecteur** (dirigeant compris), au format du Registre des mines, calculés côté serveur en jours du jeu — mi-mandat et fin = la moitié et la totalité du mandat (**province 30/60, ville 15/30**), fenêtre « prédécesseurs » = 30 jours avant l'entrée en fonction. Constantes de classe (`MID_DAYS`, `END_DAYS`, `PREDECESSOR_DAYS`), jamais de configuration.
+
+### Changed
+- `office_from` (ajouté par #102, jamais lu par le frontend) est absorbé dans `mandate`.
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, `.env` ni paquet ; rien à lancer en SSH. Changement additif : à déployer avant la PR frontend 3b, qui lit ces champs.
+
 ## [2026-11-21] — PR #102 (Registre des stocks : date d'inscription choisie, `office_from` — PR 3b-0)
 
 ### Added

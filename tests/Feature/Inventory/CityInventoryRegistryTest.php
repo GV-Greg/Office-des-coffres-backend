@@ -2,6 +2,7 @@
 
 use App\Models\CityInventorySnapshot;
 use App\Models\MayorMandate;
+use App\Services\CityInventoryRegistry;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -307,7 +308,10 @@ test('le jour d\'entrée en fonction lui-même est PENDANT le mandat (remplaçab
     $this->postJson(cityRegUrl($this->mayor), ['raw' => 'x', 'date' => '2026-04-30'])->assertStatus(409)->assertJsonPath('code', 'registry_before_mandate_locked');
 });
 
-test('le registre dit au lecteur le jour d\'entrée en fonction de son mandat (`office_from`) et la plus ancienne date qu\'il peut choisir (`backdate_min`)', function () {
+test('le registre dit au lecteur les repères de SON mandat (`mandate`) — entrée en fonction, mi-mandat à 15 jours, fin à 30 — et la plus ancienne date qu\'il peut choisir', function () {
     cityRegAs($this->mayor)->getJson(cityRegUrl($this->mayor))->assertOk()
-        ->assertJsonPath('office_from', '2026-05-01')->assertJsonPath('backdate_min', '2026-04-17')->assertJsonPath('today', '2026-05-10');
+        ->assertJsonPath('mandate', ['in_office_from' => '2026-05-01', 'mid_at' => '2026-05-16', 'end_at' => '2026-05-31', 'predecessor_from' => '2026-04-01'])
+        ->assertJsonPath('backdate_min', '2026-04-17')->assertJsonPath('today', '2026-05-10');
+    expect(CityInventoryRegistry::MID_DAYS)->toBe(15)->and(CityInventoryRegistry::END_DAYS)->toBe(30);
 });
+

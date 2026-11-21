@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ProvinceInventorySnapshot;
+use App\Services\ProvinceInventoryRegistry;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -257,9 +258,17 @@ test('province : avant l\'entrée en fonction, l\'inscription du prédécesseur 
     $this->postJson(provUrl($this->commerce), ['raw' => 'autre', 'date' => '2026-05-06'])->assertStatus(409)->assertJsonPath('code', 'registry_needs_confirmation');
 });
 
-test('province : `office_from` pour tout lecteur (le dirigeant aussi), `backdate_min` seulement pour celui qui écrit', function () {
+test('province : `mandate` pour tout lecteur (le dirigeant aussi, avec SON mandat) — mi-mandat à 30 jours, fin à 60 —, `backdate_min` seulement pour celui qui écrit', function () {
     provAs($this->commerce)->getJson(provUrl($this->commerce))->assertOk()
-        ->assertJsonPath('office_from', '2026-05-03')->assertJsonPath('backdate_min', '2026-04-19');
+        ->assertJsonPath('mandate', ['in_office_from' => '2026-05-03', 'mid_at' => '2026-06-02', 'end_at' => '2026-07-02', 'predecessor_from' => '2026-04-03'])
+        ->assertJsonPath('backdate_min', '2026-04-19');
     provAs($this->comte)->getJson(provUrl($this->comte))->assertOk()
-        ->assertJsonPath('office_from', '2026-05-03')->assertJsonPath('backdate_min', null);
+        ->assertJsonPath('mandate', ['in_office_from' => '2026-05-03', 'mid_at' => '2026-06-02', 'end_at' => '2026-07-02', 'predecessor_from' => '2026-04-03'])
+        ->assertJsonPath('backdate_min', null);
+    expect(ProvinceInventoryRegistry::MID_DAYS)->toBe(30)->and(ProvinceInventoryRegistry::END_DAYS)->toBe(60);
+});
+
+test('province : un lecteur sans poste en fonction n\'a pas de bloc `mandate` (refus 403, rien à lire)', function () {
+    $plain = mandatePlayer($this->map['cityB']);
+    provAs($plain)->getJson(provUrl($plain))->assertForbidden();
 });
