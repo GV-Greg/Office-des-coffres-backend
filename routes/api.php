@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\Anim\RewardsGridController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\CustomsController;
+use App\Http\Controllers\Api\CustomsListController;
+use App\Http\Controllers\Api\CustomsReportController;
 use App\Http\Controllers\Api\InventorySettingsController;
 use App\Http\Controllers\Api\ItemIconController;
 use App\Http\Controllers\Api\MandateController;
@@ -233,10 +235,19 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
         // Sécurité — douaniers (module « Salle des gardes », fil admin/echanges/module-securite). Demande opt-in, validée par le trio.
         // ⚠️ Routes ajoutées : route:cache en prod ; une route protégée répond 401 sans jeton, jamais 404.
         Route::get('characters/{character}/customs', [CustomsController::class, 'show'])->where('character', '[0-9]+');
+        // Registre de douane (PR 3-1) : bilans de défense et listes rouge/verte. Droits : App\Services\CustomsAccess. Noms `customs-reports` et
+        // `customs-lists` : `customs` est pris par les douaniers (Greg, 22/11/2026). ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('characters/{character}/customs-access', [CustomsReportController::class, 'access'])->where('character', '[0-9]+');
+        Route::get('characters/{character}/customs-reports', [CustomsReportController::class, 'index'])->where('character', '[0-9]+');
+        Route::get('characters/{character}/customs-lists', [CustomsListController::class, 'index'])->where('character', '[0-9]+');
         Route::middleware('throttle:6,1')->group(function () {
             Route::post('characters/{character}/customs', [CustomsController::class, 'store'])->where('character', '[0-9]+');
             Route::delete('characters/{character}/customs', [CustomsController::class, 'destroy'])->where('character', '[0-9]+');
             Route::put('characters/{character}/customs/settings', [CustomsController::class, 'settings'])->where('character', '[0-9]+');
+            Route::post('characters/{character}/customs-reports', [CustomsReportController::class, 'store'])->where('character', '[0-9]+');
+            Route::post('characters/{character}/customs-lists', [CustomsListController::class, 'store'])->where('character', '[0-9]+');
+            Route::put('characters/{character}/customs-lists/{entry}', [CustomsListController::class, 'update'])->where(['character' => '[0-9]+', 'entry' => '[0-9]+']);
+            Route::delete('characters/{character}/customs-lists/{entry}', [CustomsListController::class, 'destroy'])->where(['character' => '[0-9]+', 'entry' => '[0-9]+']);
             Route::post('customs-officers/{id}/approve', [CustomsController::class, 'approve'])->where('id', '[0-9]+');
             Route::post('customs-officers/{id}/reject', [CustomsController::class, 'reject'])->where('id', '[0-9]+');
             Route::post('customs-officers/{id}/revoke', [CustomsController::class, 'revoke'])->where('id', '[0-9]+');

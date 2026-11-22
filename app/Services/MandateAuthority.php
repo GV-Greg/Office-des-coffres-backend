@@ -325,6 +325,43 @@ class MandateAuthority
         return CustomsOfficer::query()->approved()->where('character_id', $character->id)->first();
     }
 
+    /**
+     * Postes du conseil qui donnent un accès au Registre de douane (matrice du brief §3, corrigée par Greg le 22/11/2026). Le trio de
+     * sécurité (prévôt, connétable, capitaine) lit et écrit ; le juge n'ajoute qu'au rouge ; le procureur lit les listes ; le dirigeant lit tout.
+     */
+    public const SECURITY_COUNCIL_OFFICES = ['prevot_des_marechaux', 'connetable', 'capitaine', 'juge', 'procureur', 'leader'];
+
+    /**
+     * Ce que le personnage est, MAINTENANT, dans UNE province pour le Registre de douane, ou null s'il n'y a aucun rôle. Une province seulement :
+     * le poste du conseil d'abord, puis la mairie, puis le statut de douanier ; les autres rôles ne comptent que dans la MÊME province. Par le
+     * titre, jamais par l'appartenance au conseil (§5quinquies) ; réponse négative = « l'Office ne connaît pas » (limite 2).
+     *
+     * @return array{province: Province, office: ?string, mayor_city: ?City, customs: ?CustomsOfficer}|null
+     */
+    public function securityScope(Character $character): ?array
+    {
+        $mandate = $this->councilMandateHoldingOffice($character, self::SECURITY_COUNCIL_OFFICES)->with('province', 'officePeriods.office')->first();
+        $now = Carbon::now();
+        $office = $mandate?->officePeriods
+            ->first(fn ($period) => $period->started_at <= $now && $period->ended_at > $now && in_array($period->office?->key, self::SECURITY_COUNCIL_OFFICES, true))
+            ?->office?->key;
+
+        $mayorCity = $this->activeMayorMandate($character)?->city?->loadMissing('province');
+        $customs = $this->activeCustomsOfficer($character)?->loadMissing('province');
+
+        $province = $mandate?->province ?? $mayorCity?->province ?? $customs?->province;
+        if (! $province) {
+            return null;
+        }
+
+        return [
+            'province' => $province,
+            'office' => $mandate?->province_id === $province->id ? $office : null,
+            'mayor_city' => $mayorCity?->province_id === $province->id ? $mayorCity : null,
+            'customs' => $customs?->province_id === $province->id ? $customs : null,
+        ];
+    }
+
     private function holdsOfficeInProvince(Character $character, Province $province, array $officeKeys): bool
     {
         return $this->councilMandateHoldingOffice($character, $officeKeys)->where('province_id', $province->id)->exists();

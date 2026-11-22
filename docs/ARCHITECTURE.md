@@ -34,6 +34,8 @@ hasMany `Province` → hasMany `City`. `CouncilMandate` → hasMany `CouncilOffi
 | `city_inventory_snapshots` | historique collages du maire (registre des stocks, 20/11), jumeau de la province, `office_key` = `mayor` | C |
 | `customs_officers` | douaniers (module Sécurité) : demande opt-in puis accès, `active` 1/NULL, décideur et niveau tracés | A |
 | `province_security_settings` | réglages de sécurité de la province (durée d'inactivité du douanier), `updated_by_character_id` nullable | C |
+| `customs_reports` | bilans de défense (Registre de douane) : un par ville et par jour du jeu, `active` 1/NULL, payload chiffré (brut + analyse par section), `character_id` nullable | C |
+| `customs_watchlist_entries` | listes rouge/verte d'une province, pseudo et raison chiffrés, `added_on`, `added_by_character_id` nullable ; un retrait supprime la ligne | C |
 | `anim_activity_types` | référentiel (`key`, `is_active`) | — |
 | `anim_decode_activities` | activité Décode (privée ou sans compte), slug unique, lieu obligatoire | A (privé) / hors taxinomie (sans compte) |
 | `anim_decode_secrets` | coffre, `code` chiffré | suit l'activité |
@@ -81,6 +83,8 @@ dans `deploy.yml`.
 | POST | `characters/{id}/mine-reports` | MineReportController@store | api | voir « Registre des mines » |
 | GET | `characters/{id}/mine-registry` | MineRegistryController@index | api | lecture registre |
 | GET/POST/DELETE/PUT | `characters/{id}/customs`, `characters/{id}/customs/settings`, `customs-officers/{id}/{approve,reject,revoke}` | CustomsController | api | douaniers, voir « Sécurité — douaniers » |
+| GET/POST | `characters/{id}/customs-access`, `characters/{id}/customs-reports` | CustomsReportController | api | Registre de douane : droits, jours, bilan du jour, saisie ; voir « Registre de douane » |
+| GET/POST/PUT/DELETE | `characters/{id}/customs-lists`, `characters/{id}/customs-lists/{entry}` | CustomsListController | api | listes rouge/verte |
 | GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
 | GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
 | GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
@@ -101,7 +105,7 @@ dans `deploy.yml`.
 
 ### Web (panneau d'administration Blade, `role:admin`)
 
-`/dashboard` (personnages, toggleValidation), `/users` (liste, recherche, suppression), mandats (`/mandates/*`), `/anim` (surveillance, recours sans compte), `/item-icons`, `/announcements`, `/customs` (douaniers, niveau 3).
+`/dashboard` (personnages, toggleValidation), `/users` (liste, recherche, suppression), mandats (`/mandates/*`), `/anim` (surveillance, recours sans compte), `/item-icons`, `/announcements`, `/customs` (douaniers, niveau 3 ; **retrait d'un pseudo** : formulaire en deux temps, des NOMBRES seulement).
 
 ## Contrôleurs
 
@@ -275,6 +279,23 @@ Le douanier **n'existe pas en jeu** : rôle de l'Office, que le joueur **demande
 🔴 Le repli (niveau 2) est **le mode courant** d'une province (limite 2 de `MandateAuthority` : l'Office ne connaît que les mandats déclarés) ; le frontend le dit (`decider.has_security_trio`). Inactivité : **90 jours par défaut, réglable 30 à 365** par le niveau 1 (ou 2) — **constantes de `CustomsOfficer`, pas de nouveau `config/*.php`** (piège du `config:cache`). Compteur : de `in_office_from`, puis `last_report_at`. Le pseudo d'un demandeur n'est servi qu'au décideur et à lui-même. Erreurs : `security.api.*`, mêmes garanties bilingues que les mandats (`MandateApiErrors::covers`). Export art. 20 : section `customs` (le décideur n'y est pas nommé). Tests : `Security/CustomsOfficersTest`, `Security/CustomsAdminTest`.
 
 ⚠️ **Prod** : `migrate` (deux tables), **`route:cache`** (routes API `customs` et web `/customs`), aucun nouveau `config/*.php` ni `.env`, aucun paquet ; la tâche passe par le cron `schedule:run` existant. **Rien n'est écrit en base avant le texte légal du module** (PR 3 : listes et bilans, pseudos de tiers) — cette PR ne touche aucun tiers sans compte.
+
+## Registre de douane — bilans et listes (22/11/2026, PR 3-1)
+
+Briefs `brief-module-securite.md` ; fil `admin/echanges/module-securite/` (décisions de Greg `02`, `05`, `08`, `11`, `12`). **Parseur au FRONTEND seulement, comme les mines** : le serveur reçoit le JSON analysé **et le brut**, valide la **forme**, ne re-parse jamais.
+
+| Pièce | Rôle |
+|---|---|
+| `CustomsAccess` | **la** matrice d'accès (brief §3, corrigée) : prévôt/connétable = tout + correction + 7 jours en arrière ; capitaine = lecture/écriture sans correction ; maire = sa ville (province s'il est aussi douanier) ; douanier = toute la province ; **maire et douanier écrivent les listes SEULEMENT sans trio connu** ; juge = ajout au rouge ; procureur = listes en lecture ; dirigeant = lecture. Le repli « sans trio » est le mode **courant** d'une province |
+| `MandateAuthority::securityScope` | rôle du personnage MAINTENANT dans UNE province (poste, mairie, douanier) |
+| `CustomsReports` | **seul écrivain des bilans** : un par ville et par jour, tenu par la base (`active`) ; le **même auteur complète** le jour même, le **prévôt et le connétable corrigent** (ajout seul : l'ancien passe `active` NULL) ; refus d'un parseur trop ancien (`MIN_PARSER_VERSION`) ; saisie d'un douanier → `CustomsOfficers::recordReport` |
+| `CustomsWatchlist` | **seul écrivain des listes** : l'auteur retire la sienne même avec un trio actif ; un retrait **supprime** la ligne ; changer de couleur repart d'une nouvelle date ; « ajouté par » visible du **trio** seulement |
+| `CustomsPseudo` | comparaison **en minuscules**, affichage d'origine |
+| `customs:remove-pseudo` | outil **interne, hors politique** (simulation par défaut ; `--force` applique) : supprime les entrées et **remplace** le pseudo dans l'analyse ET le brut de tous les bilans, comme MOT ENTIER (les points font partie des pseudos). Aussi sur `/customs` : nombres seulement, pseudo **jamais journalisé** |
+
+🔴 **Payload chiffré** (`MODULE_DATA_KEY`) : par section `guet` / `visions` / `armies_groups`, `{raw, parser_version, report}` ; brut = liste des villageois **sans préambule**, collage armées/groupes/contrôle de la zone, lignes des visions **du jour D** (C1/C2 : l'en-tête J = la nuit J-1 → J). Axes en clair : ville, jour, auteur, couleur. **La lecture ne sert jamais le brut ni l'auteur** (`by_me` seulement) ; la **coloration** est calculée à la lecture, en minuscules, à partir de la date d'ajout ; le **différentiel du guet** compare au dernier bilan antérieur de la ville et dit lequel.
+⚠️ Le jour D est décidé par le **serveur** (jour du jeu, bascule 04:00) ; `GET customs-access` le dit au client avant la saisie. Export art. 20 : section `customs_activity`, **trace sans contenu** (jour, ville, couleur, sections). **`SecurityNotConsultableTest`** garde la promesse de la politique : aucune surface d'administration ne référence ces tables ni ces classes.
+⚠️ **Prod** : `migrate` (2 tables), `route:cache` (routes `customs-access`, `customs-reports`, `customs-lists` et web `customs/remove-pseudo`), aucun `config/*.php`/`.env`. **L'écriture ne s'ouvre qu'une fois le texte légal vérifié en ligne et `policy:notify` lancé.**
 
 ## Icônes des items (05/11/2026)
 

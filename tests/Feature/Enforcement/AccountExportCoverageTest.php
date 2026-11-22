@@ -62,6 +62,12 @@ $exportDecisions = [
     'customs_officers' => 'exported',
     'province_security_settings' => 'excluded',
 
+    // C — bilans de défense et listes rouge/verte (module Sécurité, 22/11/2026) : NON exportés, décision de Greg (« beaucoup trop de
+    // données » pour les bilans ; pas de contenu de liste non plus). L'export ne porte qu'une TRACE D'ACTIVITÉ sans contenu (section
+    // `customs.activity` de AccountExport : date, ville ou couleur, sections), jamais un pseudo, une raison ni un texte de bilan.
+    'customs_reports' => 'excluded',
+    'customs_watchlist_entries' => 'excluded',
+
     // C — prix communautaires de la province.
     // Non exportés : mêmes raisons que mine_reports.
     'province_mine_prices' => 'excluded',

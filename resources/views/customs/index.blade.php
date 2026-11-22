@@ -63,6 +63,36 @@
                     @endforelse
                 </div>
             </section>
+
+            {{-- Retrait d'un pseudo (outil interne hors politique) : des NOMBRES, jamais un contenu. --}}
+            <section class="bg-white dark:bg-gray-700 overflow-hidden shadow-sm sm:rounded-lg" data-testid="remove-pseudo">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <h2 class="font-bold mb-2">{{ __('security.admin.remove_pseudo_title') }}</h2>
+                    <p class="text-sm mb-4">{{ __('security.admin.remove_pseudo_intro') }}</p>
+
+                    @isset($removal)
+                        <p role="status" class="text-sm text-green-700 dark:text-green-300 mb-3" data-testid="removal-simulation">
+                            {{ __('security.admin.simulation_result', ['pseudo' => $removal['pseudo'], 'entries' => $removal['entries'], 'reports' => $removal['reports'], 'occurrences' => $removal['occurrences']]) }}
+                        </p>
+                        @if($removal['entries'] + $removal['reports'] > 0)
+                            <form method="POST" action="{{ route('customs.remove-pseudo.apply') }}" class="mb-4"
+                                  onsubmit="return confirm(@js(__('security.admin.remove_confirm')))">@csrf
+                                <input type="hidden" name="pseudo" value="{{ $removal['pseudo'] }}">
+                                <button type="submit" class="px-3 py-1 rounded bg-red-700 text-white">{{ __('security.admin.remove_definitely') }}</button>
+                            </form>
+                        @endif
+                    @endisset
+
+                    <form method="POST" action="{{ route('customs.remove-pseudo.preview') }}" class="flex items-end gap-2">@csrf
+                        <label class="text-sm">
+                            <span class="block">{{ __('security.admin.pseudo_label') }}</span>
+                            <input type="text" name="pseudo" required maxlength="40" pattern="\S{1,40}" autocomplete="off"
+                                   class="rounded border-gray-300 text-gray-900" data-testid="remove-pseudo-input">
+                        </label>
+                        <button type="submit" class="px-3 py-1 rounded bg-blue-700 text-white">{{ __('security.admin.simulate') }}</button>
+                    </form>
+                </div>
+            </section>
         </div>
     </div>
 </x-app-layout>

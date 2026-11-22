@@ -97,6 +97,16 @@ $declaredTables = [
     // art. 20 (communautaires). Tenu par Security/CustomsOfficersTest.
     'province_security_settings' => 'C',
 
+    // C — bilans de défense (module Sécurité, PR 3-1, 22/11/2026) : mémoire de la VILLE, transmise d'un titulaire au suivant. `character_id` passe
+    // à NULL par la base (nullOnDelete), le bilan reste ; payload chiffré (brut collé + analyse). Conservation sans limite (politique §5),
+    // « le lien est supprimé », jamais « anonymisé ». Hors export (trace d'activité sans contenu). Tenu par Security/CustomsReportsTest.
+    'customs_reports' => 'C',
+
+    // C — listes rouge et verte d'une PROVINCE : `added_by_character_id` passe à NULL par la base (nullOnDelete), l'entrée reste ; pseudo et
+    // raison chiffrés ; un retrait SUPPRIME la ligne (choix B de Greg). Hors export (trace d'activité sans contenu). Tenu par
+    // Security/CustomsWatchlistTest.
+    'customs_watchlist_entries' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte
