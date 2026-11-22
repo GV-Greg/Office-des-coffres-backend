@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-22] — PR #106 (Entrée `policy:notify` de La Salle des gardes)
+
+### Added
+- Entrée **`2026-11-22-salle-des-gardes`** du journal des modifications de la politique (`resources/policy/changelog.php`, source unique de `policy:notify`) : texte validé par Greg le 22/11/2026, FR et EN, **substantielle**. Le module n'écrit encore rien (PR 3-1) : l'email dit « conservera quand ce module ouvrira ». Liée au texte en ligne par front #148 et back #105.
+
+### Deploy notes
+- FTP seul : aucune migration, route, `config/*.php`, clé `.env` ni paquet. **Après le déploiement**, en SSH : `php artisan policy:notify 2026-11-22-salle-des-gardes` (liste les destinataires, demande confirmation ; un seul email par jour).
+
 ## [2026-11-22] — PR #105 (Garde-fou d'inconsultabilité de La Salle des gardes — PR 3-0, volet backend)
 
 ### Added
