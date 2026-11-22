@@ -7,6 +7,20 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-22] — PR #107 (Module Sécurité, PR 3-1 : Registre de douane — bilans, listes rouge/verte, droits, API, export, retrait de pseudo)
+
+### Added
+- **Tables** `customs_reports` (un bilan par ville et par jour du jeu, `active` 1/NULL, payload chiffré : brut + analyse par section) et `customs_watchlist_entries` (listes rouge/verte d'une province, pseudo et raison chiffrés) — catégorie C, `nullOnDelete`.
+- **`CustomsAccess`** (matrice d'accès), **`CustomsReports`** (seul écrivain des bilans : compléter le jour même, correction par prévôt/connétable, refus d'un parseur trop ancien), **`CustomsWatchlist`** (seul écrivain des listes : un retrait supprime la ligne), `CustomsPseudo` (comparaison en minuscules), `MandateAuthority::securityScope`.
+- **API** `characters/{id}/customs-access`, `customs-reports`, `customs-lists` : forme validée strictement, erreurs bilingues (`security.api.*`) ; **le parseur reste au frontend** (le serveur ne re-parse jamais). Lecture sans brut ni auteur ; coloration en minuscules depuis la date d'ajout ; différentiel du guet.
+- **Export art. 20** : section `customs_activity`, trace sans contenu (jour, ville, couleur, sections). `SecurityNotConsultableTest` garde la promesse de la politique.
+- **`customs:remove-pseudo`** (outil interne hors politique, simulation par défaut) et son formulaire sur `/customs` : des nombres seulement, le pseudo n'est jamais journalisé.
+- **Menu admin** : la tuile « Douaniers » passe dans la barre de gauche (icônes Font Awesome 6) avec une **bulle des demandes en attente** (`CustomsAdminController::pendingCount()`).
+
+### Deploy notes
+- **En SSH après le déploiement** : `php artisan migrate` (**2 tables**) puis **`php artisan route:cache`** (routes ajoutées : API `customs-access` / `customs-reports` / `customs-lists`, web `customs/remove-pseudo`). Sonde : une route protégée répond 401 sans jeton, jamais 404. Aucun nouveau `config/*.php`, aucune clé `.env`, aucun paquet.
+- Texte légal vérifié en ligne le 22/11/2026 (front #148) ; `policy:notify` déjà lancé. Écrans côté joueur : front #149.
+
 ## [2026-11-22] — PR #106 (Entrée `policy:notify` de La Salle des gardes)
 
 ### Added
