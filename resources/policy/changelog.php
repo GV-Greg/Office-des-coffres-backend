@@ -142,4 +142,16 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // La Salle des gardes (module Sécurité ; fil admin/echanges/module-securite, texte validé par Greg le 22/11/2026, PR 3-0 : front #148 et
+    // back #105, en ligne le 22/11/2026). Une entrée propre à cette modification. Le module n'écrit encore rien (écriture ouverte par la PR 3-1) :
+    // l'email dit « conservera quand ce module ouvrira ». Texte de l'entrée : admin/content/policy-notify-securite-draft.md.
+    '2026-11-22-salle-des-gardes' => [
+        'date' => '2026-11-22',
+        'summary' => [
+            'fr' => "Un nouveau chapitre, la « Salle des gardes », décrit désormais ce que l'Office conservera quand ce module ouvrira. Les titulaires habilités d'une province — le prévôt, le connétable, le capitaine, le maire et les douaniers validés, et en lecture seule le procureur et le dirigeant — pourront y saisir des bilans de défense de leur ville et tenir des listes rouge et verte de pseudos de personnages, avec le texte copié depuis le jeu. Les bilans sont chiffrés, lisibles de ces seuls titulaires, conservés sans limite de durée, et ne figurent pas dans l'export de vos données ; les pseudos cités ne sont liés à aucun compte. Si votre personnage demande à devenir douanier, l'Office conserve aussi ce statut, supprimé avec votre personnage. Consultez la politique de confidentialité mise à jour pour le détail (articles 3 à 7 et page « Vos données »).",
+            'en' => 'A new chapter, the “Guardroom”, now describes what the Office will keep once this module opens. A province’s authorised office-holders — the Constable, the Sergeant, the Captain, the mayor and validated customs officers, and, read-only, the Public Prosecutor and the leader — will be able to enter defence reports for their town and keep red and green lists of character names, with the text copied from the game. Reports are encrypted, readable only by these office-holders, kept without any time limit, and are not part of your data export; the names cited are not linked to any account. If your character applies to become a customs officer, the Office also keeps that status, deleted with your character. See the updated privacy policy for details (sections 3 to 7 and the “Your data” page).',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
