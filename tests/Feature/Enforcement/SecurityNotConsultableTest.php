@@ -64,7 +64,8 @@ test('contrôle positif : le détecteur voit un nom réservé dans un contrôleu
 });
 
 test('aucune route web (administration) ne touche aux listes ni aux bilans : /customs ne sert que les douaniers', function () {
-    $allowed = ['customs', 'customs/{id}/approve', 'customs/{id}/reject', 'customs/{id}/revoke'];
+    // + le retrait d'un pseudo (outil interne) : il ne sert que des NOMBRES, voir CustomsAdminTest.
+    $allowed = ['customs', 'customs/{id}/approve', 'customs/{id}/reject', 'customs/{id}/revoke', 'customs/remove-pseudo', 'customs/remove-pseudo/apply'];
 
     $webCustoms = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route) => ! str_starts_with($route->uri(), 'api/') && str_starts_with($route->uri(), 'customs'))

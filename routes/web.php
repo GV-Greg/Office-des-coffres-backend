@@ -79,6 +79,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     // ⚠️ Routes ajoutées : route:cache en prod.
     Route::prefix('customs')->name('customs.')->controller(CustomsAdminController::class)->group(function () {
         Route::get('/', 'index')->name('index');
+        // Retrait d'un pseudo (outil interne hors politique) : nombres seulement, jamais un contenu — voir SecurityNotConsultableTest.
+        Route::post('remove-pseudo', 'previewRemovePseudo')->name('remove-pseudo.preview');
+        Route::post('remove-pseudo/apply', 'removePseudo')->name('remove-pseudo.apply');
         Route::post('{id}/approve', 'approve')->where('id', '[0-9]+')->name('approve');
         Route::post('{id}/reject', 'reject')->where('id', '[0-9]+')->name('reject');
         Route::post('{id}/revoke', 'revoke')->where('id', '[0-9]+')->name('revoke');

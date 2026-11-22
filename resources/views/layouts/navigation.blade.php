@@ -18,10 +18,6 @@
                             <i class="fa-solid fa-bullhorn mr-1"></i>
                             {{ __('announcements.title') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('customs.index')" :active="request()->routeIs('customs.*')">
-                            <i class="fa-solid fa-shield-halved mr-1"></i>
-                            {{ __('security.admin.title') }}
-                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -62,9 +58,6 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
                     {{ __('announcements.title') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('customs.index')" :active="request()->routeIs('customs.*')">
-                    {{ __('security.admin.title') }}
                 </x-responsive-nav-link>
             @endif
         </div>

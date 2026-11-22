@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\CharacterInventorySettings;
 use App\Models\CouncilMandate;
+use App\Models\CustomsReport;
+use App\Models\CustomsWatchlistEntry;
 use App\Models\CustomsOfficer;
 use App\Models\MayorMandate;
 use App\Models\User;
@@ -43,6 +45,7 @@ class AccountExport
             'characters'   => $this->charactersSection($user),
             'mandates'     => $this->mandatesSection($user),
             'inventory'    => $this->inventorySection($user),
+            'customs_activity' => $this->customsActivitySection($user),
             'customs'      => $this->customsSection($user),
             'not_included' => $this->notIncludedSection(),
         ];
@@ -181,6 +184,37 @@ class AccountExport
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Trace d'activité du Registre de douane, SANS CONTENU (décision de Greg, 22/11/2026 : « beaucoup trop de données » pour les bilans, pas de
+     * contenu de liste non plus) : « une entrée a été ajoutée à une liste » (jour, couleur) et « un bilan a été saisi » (jour, ville, sections
+     * présentes). Jamais un pseudo, une raison ni un texte de bilan. Tirée des lignes ENCORE PRÉSENTES : une entrée retirée ne laisse aucune trace.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function customsActivitySection(User $user): array
+    {
+        $ids = $user->characters->pluck('id');
+        $pseudos = $user->characters->pluck('pseudo', 'id');
+
+        $entries = CustomsWatchlistEntry::query()->whereIn('added_by_character_id', $ids)->get()->map(fn (CustomsWatchlistEntry $entry) => [
+            'type'      => 'list_entry_added',
+            'character' => $pseudos[$entry->added_by_character_id],
+            'at'        => $entry->created_at->toIso8601ZuluString(),
+            'colour'    => $entry->colour,
+        ]);
+
+        $reports = CustomsReport::query()->whereIn('character_id', $ids)->where('active', true)->with('city')->get()->map(fn (CustomsReport $report) => [
+            'type'      => 'report_entered',
+            'character' => $pseudos[$report->character_id],
+            'at'        => $report->created_at->toIso8601ZuluString(),
+            'day'       => $report->reported_on->toDateString(),
+            'city'      => $report->city?->city_name,
+            'sections'  => array_keys($report->payload['sections'] ?? []),
+        ]);
+
+        return $entries->concat($reports)->sortBy('at')->values()->all();
     }
 
     private function notIncludedSection(): array
