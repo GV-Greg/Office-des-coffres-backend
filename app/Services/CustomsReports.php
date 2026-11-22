@@ -200,6 +200,63 @@ class CustomsReports
         ];
     }
 
+    /** Le DERNIER bilan en vigueur de la ville, strictement antérieur au jour, qui a un guet (P7). */
+    private function previousGuetReport(int $cityId, string $day): ?CustomsReport
+    {
+        return CustomsReport::query()->where('city_id', $cityId)->where('active', true)
+            ->whereDate('reported_on', '<', $day)->orderByDesc('reported_on')->get()
+            ->first(fn (CustomsReport $candidate) => isset($candidate->payload['sections']['guet']));
+    }
+
+    /**
+     * Relevé unique (PR 3-2, fil module-securite 12 à 14) : ce que le Relevé du guet demande AVANT d'enregistrer quoi que ce soit — la couleur des
+     * pseudos collés et le guet du dernier bilan de la ville. 🔴 **Rien n'est écrit ni journalisé** : seuls les pseudos arrivent, ils ne sont pas
+     * gardés, et ne sont servis que ceux envoyés (jamais la liste elle-même). Les couleurs suivent le droit de LIRE les listes de la province
+     * (Q4), le guet précédent le droit de LIRE les bilans de la ville choisie ; un simple joueur avec compte n'a ni l'un ni l'autre.
+     *
+     * @param  array<int, string>  $pseudos
+     * @return array{today: string, colours: ?array<int, array{pseudo: string, colour: string}>, previous: ?array{compared_to: string, pseudos: array<int, string>}}
+     *
+     * @throws MandateRefusal
+     */
+    public function preview(Character $viewer, array $pseudos, ?City $city = null): array
+    {
+        $access = $this->access->for($viewer);
+        if (! $access) {
+            throw MandateRefusal::make('character', 'security.api.no_security_role');
+        }
+
+        $today = MandateCalendar::today();
+
+        $colours = null;
+        if ($access['read_lists']) {
+            $map = $this->watchlist->colourMap($access['province'], $today);
+            $colours = [];
+            foreach (array_values(array_unique($pseudos)) as $pseudo) {
+                $colour = $map[CustomsPseudo::key($pseudo)] ?? null;
+                if ($colour !== null) {
+                    $colours[] = ['pseudo' => $pseudo, 'colour' => $colour];
+                }
+            }
+        }
+
+        $previous = null;
+        if ($city !== null) {
+            if (! $this->access->canReadIn($access, $city)) {
+                throw MandateRefusal::make('city_id', 'security.api.reports_not_readable');
+            }
+            $last = $this->previousGuetReport($city->id, $today);
+            if ($last) {
+                $previous = [
+                    'compared_to' => $last->reported_on->toDateString(),
+                    'pseudos' => collect($last->payload['sections']['guet']['report']['villagers'] ?? [])->pluck('pseudo')->values()->all(),
+                ];
+            }
+        }
+
+        return ['today' => $today, 'colours' => $colours, 'previous' => $previous];
+    }
+
     /**
      * Arrivées et départs par rapport au DERNIER bilan antérieur de la ville qui a un guet (P7) : on dit lequel, jamais de différentiel inventé.
      *
@@ -209,9 +266,7 @@ class CustomsReports
      */
     private function diff(CustomsReport $report, array $today, array $colours): ?array
     {
-        $previous = CustomsReport::query()->where('city_id', $report->city_id)->where('active', true)
-            ->whereDate('reported_on', '<', $report->reported_on->toDateString())->orderByDesc('reported_on')->get()
-            ->first(fn (CustomsReport $candidate) => isset($candidate->payload['sections']['guet']));
+        $previous = $this->previousGuetReport($report->city_id, $report->reported_on->toDateString());
         if (! $previous) {
             return null;
         }

@@ -86,6 +86,28 @@ class CustomsReportController extends Controller
         ]);
     }
 
+    /**
+     * Couleurs des pseudos collés et dernier guet de la ville, SANS rien enregistrer (Relevé unique). Forme seulement ici ; les droits vivent dans
+     * `CustomsReports::preview`. Plafonné : au plus 2000 pseudos, chacun sans espace (comme à l'enregistrement).
+     */
+    public function preview(Request $request, int $character): JsonResponse
+    {
+        $own = $request->user()->characters()->find($character);
+        if (! $own) {
+            return MandateApiErrors::error(404, 'mandates.api.character_not_found');
+        }
+
+        $data = $request->validate([
+            'city_id' => ['nullable', 'integer', 'exists:rk_cities,id'],
+            'pseudos' => ['present', 'array', 'max:2000'],
+            'pseudos.*' => self::PSEUDO,
+        ]);
+
+        $result = $this->reports->preview($own, $data['pseudos'], isset($data['city_id']) ? City::findOrFail($data['city_id']) : null);
+
+        return response()->json(['success' => true] + $result);
+    }
+
     public function store(Request $request, int $character): JsonResponse
     {
         $own = $request->user()->characters()->find($character);

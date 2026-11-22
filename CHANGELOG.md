@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-22] — PR #108 (Module Sécurité, PR 3-2 : `customs-preview`, couleurs et guet précédent sans enregistrement)
+
+### Added
+- **`POST characters/{id}/customs-preview`** (`CustomsReportController@preview`, `CustomsReports::preview`) pour le **Relevé unique** (fil `admin/echanges/module-securite/` 12 à 14) : reçoit `{ pseudos[], city_id? }` et rend `{ today, colours, previous }`. **Couleurs** des seuls pseudos envoyés (casse ignorée, à la date d'ajout du jour du jeu) avec le droit de lire les listes ; **guet du dernier bilan antérieur** de la ville avec le droit de lire ses bilans ; sans titre de sécurité, 422 `no_security_role`, dans les deux langues.
+- 🔴 **Rien n'est écrit ni journalisé** (test `CustomsPreviewTest`) : seuls des pseudos arrivent (≤ 2000, sans espace), `throttle:30,1`. Route couverte par `MandateApiErrors::covers`.
+- `docs/ARCHITECTURE.md` (route et paragraphe) ; 1012 tests.
+
+### Deploy notes
+- **En SSH après le déploiement : `php artisan route:cache`** (route ajoutée ; sonde : `customs-preview` sans jeton répond 401, jamais 404). Aucune migration, aucun `config/*.php`, aucune clé `.env`, aucun paquet.
+- Sans danger avant le frontend (front #151) : la route n'est appelée que par le Relevé unique.
+
 ## [2026-11-22] — PR #107 (Module Sécurité, PR 3-1 : Registre de douane — bilans, listes rouge/verte, droits, API, export, retrait de pseudo)
 
 ### Added
