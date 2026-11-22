@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-22] — PR (Fix : bilans de mandat passés du Registre des mines, lecture seule et fenêtrée)
+
+### Fixed
+- **Un ancien titulaire peut relire ses bilans** (brief `admin/modules/economie/brief-bilans-passes-mines.md`, fil `admin/echanges/bilans-passes-mines/`, décisions de Greg et Cowork du 22/11/2026) : le bilan de la dernière semaine d'un mandat n'était consultable qu'après la fin du mandat, c'est-à-dire sans plus aucun accès au registre.
+
+### Added
+- `MandateAuthority::pastMineReaderMandates()` (règle d'**historique**, les méthodes « maintenant » ne changent pas) : mandats `approved` (**jamais `revoked`**), entrés en fonction, terminés, avec au moins un poste de `MINE_READER_OFFICES` ; `lastMineReaderOffice()`.
+- `MineRegistryReader::readForMandate()` ; `readFor()` passe par elle. 🔴 **Fenêtrage d'un mandat passé** : relevés de `in_office_from` − 30 j à `holds_until` **exclu**, jamais rien de postérieur (un ancien titulaire ne lit pas le travail de ses successeurs). Mandat en cours : inchangé, sans borne haute. Ajoute `read_only`, `window`, `mandate.id`, `mandate.ended_at`.
+- `access` : `past_mandates` (une entrée par mandat, dernier poste éligible). Route `GET characters/{id}/mine-registry/mandates/{mandate}` (403 `mine_not_reader`, bilingue).
+- Tests `Mines/MinePastBalancesTest` ; 1024 tests.
+
+### Deploy notes
+- **En SSH après le déploiement : `php artisan route:cache`** (route ajoutée ; sonde : `…/mine-registry/mandates/1` sans jeton répond 401, jamais 404). Aucune migration, aucun `config/*.php`, aucune clé `.env`, aucun paquet.
+- Le texte légal correspondant est en ligne (front #153). Le frontend (sélecteur de mandat) suit dans `fix/mine-past-balances` côté frontend.
+
 ## [2026-11-22] — PR #108 (Module Sécurité, PR 3-2 : `customs-preview`, couleurs et guet précédent sans enregistrement)
 
 ### Added

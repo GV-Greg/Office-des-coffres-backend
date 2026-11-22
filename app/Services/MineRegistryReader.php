@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Character;
+use App\Models\CouncilMandate;
 use App\Models\MineReport;
 use App\Support\MandateCalendar;
 use App\Support\MandateLabels;
@@ -35,16 +36,46 @@ class MineRegistryReader
     public function readFor(Character $character): ?array
     {
         $mandate = $this->authority->mineReaderMandate($character);
-        if (! $mandate || ! $mandate->province) {
+
+        return $mandate ? $this->readForMandate($character, $mandate) : null;
+    }
+
+    /**
+     * Le registre vu par UN mandat, en cours OU passé (bilans de mandat passés ; brief
+     * admin/modules/economie/brief-bilans-passes-mines.md, fil admin/echanges/bilans-passes-mines, 22/11/2026). Le mandat doit
+     * appartenir au personnage ET lui avoir donné un poste de MINE_READER_OFFICES — en cours (le mandat de
+     * `mineReaderMandate`) ou passé (`pastMineReaderMandates`) ; sinon null, jamais un autre mandat.
+     *
+     * 🔴 FENÊTRAGE d'un mandat PASSÉ : seuls les relevés de SA fenêtre sont servis — du début de la fenêtre « prédécesseur »
+     * (`in_office_from` − 30 j) à la fin du mandat, `holds_until` EXCLU (le jour où le successeur entre en fonction n'est plus
+     * le sien). Aucun relevé postérieur : sans cette borne, un ancien titulaire lirait pour toujours le travail de ses
+     * successeurs. Un mandat EN COURS garde le comportement d'avant (aucune borne haute).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function readForMandate(Character $character, CouncilMandate $mandate): ?array
+    {
+        if ($mandate->character_id !== $character->id || ! $mandate->province) {
+            return null;
+        }
+
+        $current = $this->authority->mineReaderMandate($character);
+        $isCurrent = $current !== null && $current->id === $mandate->id;
+        $isPast = ! $isCurrent && $this->authority->pastMineReaderMandates($character)->contains('id', $mandate->id);
+        if (! $isCurrent && ! $isPast) {
             return null;
         }
 
         $start = $mandate->in_office_from;
         $day = fn (?Carbon $instant) => $instant?->copy()->setTimezone(MandateCalendar::timezone())->toDateString();
+        $windowFrom = $start ? $day(MandateCalendar::addGameDays($start, -self::PREDECESSOR_DAYS)) : null;
+        $windowTo = $isPast ? $day($mandate->holds_until) : null;
 
         $reports = MineReport::query()
             ->with('character')
             ->where('province_id', $mandate->province_id)
+            ->when($isPast && $windowFrom, fn ($query) => $query->whereDate('reported_at', '>=', $windowFrom))
+            ->when($isPast && $windowTo, fn ($query) => $query->whereDate('reported_at', '<', $windowTo))
             ->orderByDesc('reported_at')
             ->orderByDesc('id')
             ->get();
@@ -52,12 +83,17 @@ class MineRegistryReader
         return [
             'province' => ['id' => $mandate->province_id, 'name' => $mandate->province->province_name],
             'today' => MandateCalendar::today(),
+            // Lecture seule d'un mandat TERMINÉ : l'écran le dit (« bilan du mandat terminé le … »), sans recalculer la règle.
+            'read_only' => $isPast,
+            'window' => $isPast ? ['from' => $windowFrom, 'to' => $windowTo] : null,
             'mandate' => $start ? [
+                'id' => $mandate->id,
                 'in_office_from' => $day($start),
                 'mid_at' => $day(MandateCalendar::addGameDays($start, self::MID_DAYS)),
                 'end_at' => $day(MandateCalendar::addGameDays($start, self::END_DAYS)),
+                'ended_at' => $isPast ? $windowTo : null,
             ] : null,
-            'predecessor' => $start ? $this->predecessor($reports, $character, $day($start), $day(MandateCalendar::addGameDays($start, -self::PREDECESSOR_DAYS))) : [],
+            'predecessor' => $start ? $this->predecessor($reports, $character, $day($start), $windowFrom) : [],
             'reports' => $reports->map(fn (MineReport $r) => [
                 'id' => $r->id,
                 'reported_at' => $r->reported_at->toDateString(),

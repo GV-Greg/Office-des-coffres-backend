@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CouncilMandate;
 use App\Models\Province;
 use App\Services\MandateAuthority;
 use App\Services\MineRegistry;
 use App\Services\MineRegistryReader;
 use App\Services\MineReplacementNeedsConfirmation;
 use App\Support\MandateApiErrors;
+use App\Support\MandateCalendar;
 use App\Support\MandateLabels;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +50,21 @@ class MineReportController extends Controller
                 'write' => $province($this->authority->canManagePrices($character)),
                 'read' => $province($this->authority->canReadPrices($character)),
             ],
+            // Mandats PASSÉS par lesquels ce personnage a consulté le registre (bilans de mandat passés) : une entrée par mandat,
+            // le dernier poste éligible tenu. Vide si aucun. La règle reste ici ; l'écran n'en recalcule aucune.
+            'past_mandates' => $this->authority->pastMineReaderMandates($character)->map(function ($mandate) {
+                $office = $this->authority->lastMineReaderOffice($mandate);
+                $day = fn ($instant) => $instant?->copy()->setTimezone(MandateCalendar::timezone())->toDateString();
+
+                return [
+                    'id' => $mandate->id,
+                    'province' => ['id' => $mandate->province_id, 'name' => $mandate->province?->province_name],
+                    'office_key' => $office?->key,
+                    'office_label' => ['fr' => MandateLabels::office($office?->key, 'fr'), 'en' => MandateLabels::office($office?->key, 'en')],
+                    'in_office_from' => $day($mandate->in_office_from),
+                    'holds_until' => $day($mandate->holds_until),
+                ];
+            })->values()->all(),
         ]);
     }
 
@@ -63,6 +80,27 @@ class MineReportController extends Controller
         }
 
         $registry = $reader->readFor($character);
+        if ($registry === null) {
+            return MandateApiErrors::error(403, 'mines.api.mine_not_reader');
+        }
+
+        return response()->json(['success' => true] + $registry);
+    }
+
+    /**
+     * Le registre vu par UN mandat, en cours ou passé, en LECTURE SEULE (bilans de mandat passés). Même format que `reports` :
+     * le frontend réutilise le même composant de bilan. Un mandat qui n'est pas au personnage, révoqué, ou sans poste éligible : 403
+     * (jamais 404, qui dirait qu'il existe). Les relevés d'un mandat passé sont fenêtrés : voir MineRegistryReader::readForMandate.
+     */
+    public function mandate(Request $request, int $character, int $mandate, MineRegistryReader $reader): JsonResponse
+    {
+        $character = $request->user()->characters()->find($character);
+        if (! $character) {
+            return MandateApiErrors::error(404, 'mandates.api.character_not_found');
+        }
+
+        $council = CouncilMandate::query()->with('province')->find($mandate);
+        $registry = $council ? $reader->readForMandate($character, $council) : null;
         if ($registry === null) {
             return MandateApiErrors::error(403, 'mines.api.mine_not_reader');
         }
