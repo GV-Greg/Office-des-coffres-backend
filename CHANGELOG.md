@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-22] — PR #105 (Garde-fou d'inconsultabilité de La Salle des gardes — PR 3-0, volet backend)
+
+### Added
+- `SecurityNotConsultableTest` : aucune surface d'administration (routes web, contrôleurs `Web`, vues) ne référence les tables ni les classes des listes rouge/verte et des bilans de défense ; `/customs` ne sert que les douaniers ; les routes de listes et de bilans, quand elles existeront, sont derrière `auth:api` et hors `role:admin`. Contrôles positifs. C'est la vérification que promet la politique (« vérifiée automatiquement à chaque livraison », front #148).
+- 🔴 **Noms réservés** : `customs_watchlist_entries`, `customs_reports`, classes `CustomsWatchlist*` et `CustomsReport*`. La PR 3-1 les crée sous ces noms, ou met ce test à jour **avant** de merger.
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, clé `.env` ni paquet ; rien à lancer en SSH. **À déployer avec front #148.** `policy:notify` une fois le texte en ligne, une entrée par jour.
+
 ## [2026-11-21] — PR #104 (Module Sécurité, PR 2 : douaniers — demande opt-in validée par le trio, inactivité, page admin)
 
 ### Added
