@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Character;
 use App\Models\City;
 use App\Models\CouncilMandate;
+use App\Models\CouncilOffice;
 use App\Models\CustomsOfficer;
 use App\Models\MayorMandate;
 use App\Models\Province;
@@ -102,6 +103,43 @@ class MandateAuthority
     public function mineReaderMandate(Character $character): ?CouncilMandate
     {
         return $this->councilMandateHoldingOffice($character, self::MINE_READER_OFFICES)->with('province')->first();
+    }
+
+    /**
+     * Mandats de conseil PASSÉS par lesquels le personnage a consulté le Registre des mines (brief
+     * admin/modules/economie/brief-bilans-passes-mines.md ; fil admin/echanges/bilans-passes-mines, 22/11/2026) :
+     * mandats `approved` — JAMAIS `revoked`, une révocation retire l'accès à ce que le mandat a fait —, déjà entrés en
+     * fonction, TERMINÉS (`holds_until` échu), qui ont eu au moins une période de poste de MINE_READER_OFFICES.
+     * Pas de limite de temps : tant que les relevés existent, le bilan reste lisible — mais seulement ceux de la
+     * fenêtre du mandat (MineRegistryReader). Ne dit pas « maintenant » : c'est une règle d'HISTORIQUE, à part des
+     * méthodes ci-dessus qui restent « maintenant seulement » (Q10). Le cas d'un poste vidé pendant un mandat qui
+     * CONTINUE (élection d'un dirigeant) n'est pas couvert ici (hors scope, décision de Greg).
+     *
+     * @return Collection<int, CouncilMandate> `province` et `officePeriods.office` chargées, du plus récent au plus ancien
+     */
+    public function pastMineReaderMandates(Character $character): Collection
+    {
+        return CouncilMandate::query()
+            ->where('character_id', $character->id)
+            ->where('status', CouncilMandate::APPROVED)
+            ->whereNotNull('in_office_from')
+            ->where('holds_until', '<=', Carbon::now())
+            ->whereHas('officePeriods', fn ($periods) => $periods->whereHas('office', fn ($office) => $office->whereIn('key', self::MINE_READER_OFFICES)))
+            ->with(['province', 'officePeriods' => fn ($periods) => $periods->with('office')->orderByDesc('started_at')])
+            ->orderByDesc('holds_until')
+            ->get();
+    }
+
+    /**
+     * Le DERNIER poste de MINE_READER_OFFICES tenu sur ce mandat (un poste peut changer pendant le mandat, par
+     * réattribution), ou null. Lit les périodes chargées si elles le sont.
+     */
+    public function lastMineReaderOffice(CouncilMandate $mandate): ?CouncilOffice
+    {
+        return $mandate->officePeriods->loadMissing('office')
+            ->sortByDesc('started_at')
+            ->first(fn ($period) => in_array($period->office?->key, self::MINE_READER_OFFICES, true))
+            ?->office;
     }
 
     /**

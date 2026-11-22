@@ -176,6 +176,10 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
         // Registre des mines : lecture (PR 4) — commissaire aux mines, bailli, dirigeant.
         Route::get('characters/{character}/mine-registry/reports', [MineReportController::class, 'reports'])
             ->where('character', '[0-9]+');
+        // Registre des mines — bilans de mandat passés (fil bilans-passes-mines) : le registre vu par UN mandat, en cours ou passé, lecture
+        // seule, relevés fenêtrés pour un mandat passé. ⚠️ Route ajoutée : route:cache en prod.
+        Route::get('characters/{character}/mine-registry/mandates/{mandate}', [MineReportController::class, 'mandate'])
+            ->where(['character' => '[0-9]+', 'mandate' => '[0-9]+']);
         // Registre des mines, lot 2 — prix par période (brief admin/content/brief-prix-registre.md).
         // Pas de DELETE : un prix faux se corrige. ⚠️ Routes ajoutées : route:cache en prod.
         Route::get('provinces/{province}/mine-prices', [MinePriceController::class, 'index'])
