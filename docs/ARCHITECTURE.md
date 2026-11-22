@@ -85,6 +85,7 @@ dans `deploy.yml`.
 | GET/POST/DELETE/PUT | `characters/{id}/customs`, `characters/{id}/customs/settings`, `customs-officers/{id}/{approve,reject,revoke}` | CustomsController | api | douaniers, voir « Sécurité — douaniers » |
 | GET/POST | `characters/{id}/customs-access`, `characters/{id}/customs-reports` | CustomsReportController | api | Registre de douane : droits, jours, bilan du jour, saisie ; voir « Registre de douane » |
 | GET/POST/PUT/DELETE | `characters/{id}/customs-lists`, `characters/{id}/customs-lists/{entry}` | CustomsListController | api | listes rouge/verte |
+| POST | `characters/{id}/customs-preview` | CustomsReportController@preview | api | Relevé unique : couleurs des pseudos collés + guet du dernier bilan de la ville, **sans rien enregistrer** ; `throttle:30,1` |
 | GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
 | GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
 | GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
@@ -296,6 +297,8 @@ Briefs `brief-module-securite.md` ; fil `admin/echanges/module-securite/` (déci
 🔴 **Payload chiffré** (`MODULE_DATA_KEY`) : par section `guet` / `visions` / `armies_groups`, `{raw, parser_version, report}` ; brut = liste des villageois **sans préambule**, collage armées/groupes/contrôle de la zone, lignes des visions **du jour D** (C1/C2 : l'en-tête J = la nuit J-1 → J). Axes en clair : ville, jour, auteur, couleur. **La lecture ne sert jamais le brut ni l'auteur** (`by_me` seulement) ; la **coloration** est calculée à la lecture, en minuscules, à partir de la date d'ajout ; le **différentiel du guet** compare au dernier bilan antérieur de la ville et dit lequel.
 ⚠️ Le jour D est décidé par le **serveur** (jour du jeu, bascule 04:00) ; `GET customs-access` le dit au client avant la saisie. Export art. 20 : section `customs_activity`, **trace sans contenu** (jour, ville, couleur, sections). **`SecurityNotConsultableTest`** garde la promesse de la politique : aucune surface d'administration ne référence ces tables ni ces classes.
 ⚠️ **Prod** : `migrate` (2 tables), `route:cache` (routes `customs-access`, `customs-reports`, `customs-lists` et web `customs/remove-pseudo`), aucun `config/*.php`/`.env`. **L'écriture ne s'ouvre qu'une fois le texte légal vérifié en ligne et `policy:notify` lancé.**
+
+**Relevé unique — `customs-preview`** (PR 3-2, fil `module-securite` 12 à 14, 22/11/2026) : le Relevé du guet (page publique) colle les cinq types ; avec un compte, il demande au serveur, **avant tout enregistrement**, la couleur des pseudos collés et le guet du dernier bilan de la ville (`CustomsReports::preview`). 🔴 **Rien n'est écrit ni journalisé** (test `CustomsPreviewTest`) : seuls les pseudos arrivent (≤ 2000, sans espace), seuls ceux **envoyés** reviennent colorés (jamais la liste), à la date d'ajout du jour du jeu, en minuscules. Droits : couleurs = droit de **lire les listes** (Q4), guet précédent = droit de **lire les bilans de la ville** (Q3) ; un simple joueur avec compte reçoit 422 `no_security_role`. Route couverte par `MandateApiErrors::covers`. ⚠️ **Prod : `route:cache`** (route ajoutée) ; aucun `migrate`, `config/*.php`, `.env` ni paquet.
 
 ## Icônes des items (05/11/2026)
 
