@@ -28,9 +28,13 @@
             <span class="sr-only">{{ __('anim.admin.nav') }}</span>
         </x-nav-link-sidebar>
         {{-- Sécurité : douaniers (niveau 3 de la validation, « sur demande »). Font Awesome 6 `user-shield` (= Fa6UserShield de vue-icons) : le douanier, gardien de la défense. --}}
-        <x-nav-link-sidebar :href="route('customs.index')" :active="request()->is('customs*')" title="{{ __('security.admin.title') }}">
+        @php($pendingCustoms = \App\Http\Controllers\Web\CustomsAdminController::pendingCount())
+        <x-nav-link-sidebar :href="route('customs.index')" :active="request()->is('customs*')" class="relative" title="{{ __('security.admin.title') }}">
             <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-            <span class="sr-only">{{ __('security.admin.title') }}</span>
+            <span class="sr-only">{{ __('security.admin.nav_count', ['count' => $pendingCustoms]) }}</span>
+            @if($pendingCustoms > 0)
+                <span aria-hidden="true" class="absolute top-2 right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 border border-white text-[10px] font-bold leading-none text-white tabular-nums">{{ $pendingCustoms > 9 ? '9+' : $pendingCustoms }}</span>
+            @endif
         </x-nav-link-sidebar>
     @endif
 </nav>

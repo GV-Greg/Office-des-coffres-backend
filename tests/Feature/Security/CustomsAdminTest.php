@@ -68,6 +68,29 @@ test('le lien Douaniers vit dans le menu de gauche, plus dans celui du dessus', 
     expect($sidebar[0] ?? '')->toContain(route('customs.index'));
 });
 
+test('la bulle du menu de gauche compte les demandes de douanier en attente, comme celle des mandats', function () {
+    $sidebar = fn () => (function () {
+        preg_match('~<nav class="fixed left-0 top-16.*?</nav>~s', $this->actingAs(mandateAdmin())->get('/customs')->getContent(), $m);
+
+        return $m[0] ?? '';
+    })->call($this);
+    $badge = '<span aria-hidden="true" class="absolute top-2 right-1.5';
+
+    // Sans demande : le lecteur d'écran dit « 0 », aucune bulle sur la tuile des douaniers.
+    expect($sidebar())->toContain('Douaniers : 0 demande(s) en attente')->not->toContain('>1</span>');
+
+    $this->officers->request($this->applicant, $this->map['cityA']);
+    $html = $sidebar();
+    expect($html)->toContain('Douaniers : 1 demande(s) en attente');
+    // la bulle est dans la tuile des douaniers (après son lien), avec le nombre
+    $tile = substr($html, strpos($html, route('customs.index')));
+    expect($tile)->toContain($badge)->toContain('>1</span>');
+
+    // Un accès en vigueur ne compte plus : seule une demande EN ATTENTE fait la bulle.
+    $this->officers->decideAsAdmin(CustomsOfficer::first(), true);
+    expect($sidebar())->toContain('Douaniers : 0 demande(s) en attente');
+});
+
 // ─── Retrait d'un pseudo (outil interne hors politique) ────────────────────────────────────
 
 function seedRemovalData($test): void

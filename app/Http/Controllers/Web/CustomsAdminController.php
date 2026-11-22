@@ -68,6 +68,12 @@ class CustomsAdminController extends Controller
         return back()->with('status', __('security.admin.revoked'));
     }
 
+    /** Nombre affiché dans le menu de gauche : demandes de douanier en attente (celles que liste la page). */
+    public static function pendingCount(): int
+    {
+        return CustomsOfficer::query()->where('status', CustomsOfficer::PENDING)->count();
+    }
+
     /** @return array{pending: mixed, approved: mixed, officers: CustomsOfficers} */
     private function data(): array
     {

@@ -30,6 +30,7 @@ return [
     ],
     'admin' => [
         'title' => 'Douaniers',
+        'nav_count' => 'Douaniers : :count demande(s) en attente',
         'intro' => "Dernier recours de la validation des douaniers (niveau 3) : le prévôt, le connétable puis le capitaine, le comte ou un maire de la province décident d'abord. Une demande ne doit arriver ici que sur demande expresse.",
         'pending_heading' => 'Demandes en attente',
         'approved_heading' => 'Douaniers en vigueur',
