@@ -16,6 +16,7 @@ return [
         'no_security_role' => 'L\'Office ne connaît aucun rôle de ce personnage dans la sécurité d\'une province.',
         'reports_not_authorized' => 'Seuls le prévôt, le connétable, le capitaine, le maire (pour sa ville) et les douaniers validés saisissent un bilan, et l\'Office ne connaît pas ce rôle pour ce personnage.',
         'reports_not_readable' => 'L\'Office ne connaît à ce personnage aucun rôle qui lise les bilans de cette ville.',
+        'province_not_readable' => 'L\'Office ne connaît à ce personnage aucun rôle qui lise les bilans de plusieurs villes de sa province.',
         'city_not_in_scope' => 'Ce rôle ne saisit pas de bilan pour cette ville.',
         'report_exists' => 'Un bilan existe déjà pour cette ville ce jour-là : seuls le prévôt et le connétable le corrigent.',
         'report_date_not_allowed' => 'Seuls le prévôt et le connétable saisissent un autre jour que le jour du jeu en cours.',

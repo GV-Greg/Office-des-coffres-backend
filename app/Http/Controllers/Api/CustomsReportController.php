@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Services\CustomsAccess;
+use App\Services\CustomsProvinceOverview;
 use App\Services\CustomsReports;
 use App\Support\MandateApiErrors;
 use App\Support\MandateCalendar;
@@ -23,6 +24,7 @@ class CustomsReportController extends Controller
     public function __construct(
         private readonly CustomsAccess $access,
         private readonly CustomsReports $reports,
+        private readonly CustomsProvinceOverview $overview,
     ) {}
 
     /**
@@ -60,6 +62,26 @@ class CustomsReportController extends Controller
             'readable_cities' => $this->access->readableCities($access)->map($city)->values(),
             'min_parser_version' => CustomsReports::MIN_PARSER_VERSION,
         ]]);
+    }
+
+    /**
+     * Vue d'ensemble de la province (PR 5, maquette validée le 23/11/2026) : couverture par ville et, fusionnés, les pseudos marqués, les groupes à surveiller et
+     * les armées, chaque ligne datée de son jour de bilan. LECTURE SEULE, aucun droit nouveau : seules les villes que le rôle lit déjà y figurent, et la vue
+     * n'a de sens qu'à partir de DEUX villes lisibles (un maire simple a le Registre pour sa ville) — sinon 403, comme un rôle qui ne lit rien.
+     */
+    public function province(Request $request, int $character): JsonResponse
+    {
+        $own = $request->user()->characters()->find($character);
+        if (! $own) {
+            return MandateApiErrors::error(404, 'mandates.api.character_not_found');
+        }
+
+        $access = $this->access->for($own);
+        if (! $access || $this->access->readableCities($access)->count() < 2) {
+            return MandateApiErrors::error(403, 'security.api.province_not_readable');
+        }
+
+        return response()->json(['success' => true] + $this->overview->build($own, $access));
     }
 
     /** Les jours qui ont un bilan pour la ville et, si `date` est donnée, le bilan de ce jour. */
