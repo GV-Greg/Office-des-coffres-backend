@@ -7,6 +7,14 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-24] — PR #112 (Politique : entrée du changelog — l'auteur corrige son bilan le jour du jeu même)
+
+### Added
+- **Entrée `2026-11-24-correction-releve-du-jour`** de `resources/policy/changelog.php` (fil `admin/echanges/module-securite/22` et `23`) : le texte de la Politique §6 est en ligne depuis `front #162` (24/11/2026) ; `substantial: true`, `decided_by: Greg` (la modification change qui peut modifier une donnée). Prête pour `php artisan policy:notify 2026-11-24-correction-releve-du-jour`.
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, `.env` ni paquet. **À lancer ensuite en SSH, à la main : `php artisan policy:notify 2026-11-24-correction-releve-du-jour`** (simulation d'abord ; un seul email par jour), **AVANT** de merger la règle serveur (l'auteur corrige son bilan).
+
 ## [2026-11-22] — PR (Fix : bilans de mandat passés du Registre des mines, lecture seule et fenêtrée)
 
 ### Fixed
