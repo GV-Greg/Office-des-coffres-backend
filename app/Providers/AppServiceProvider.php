@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
+use App\Models\AnimRewardsGrid;
+use App\Services\AnimAccess;
 use App\Support\ModuleDataEncrypter;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
@@ -27,9 +30,9 @@ class AppServiceProvider extends ServiceProvider
 
         // AnimAccess cible par défaut AnimDecodeActivity. RewardsAnonymousController doit l'avoir
         // lié à AnimRewardsGrid via un binding contextuel.
-        $this->app->when(\App\Http\Controllers\Api\Anim\RewardsAnonymousController::class)
-            ->needs(\App\Services\AnimAccess::class)
-            ->give(fn () => new \App\Services\AnimAccess(\App\Models\AnimRewardsGrid::class));
+        $this->app->when(RewardsAnonymousController::class)
+            ->needs(AnimAccess::class)
+            ->give(fn () => new AnimAccess(AnimRewardsGrid::class));
     }
 
     public function boot(): void
@@ -59,6 +62,20 @@ class AppServiceProvider extends ServiceProvider
         // Comptes créés en rafale et emails de vérification sortants.
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinute(5)->by('register:'.$request->ip());
+        });
+
+        // « Mot de passe oublié » (24/11/2026) : la demande envoie un email — serrée par adresse, plus large par IP ; l'adresse soumise compte qu'elle ait un
+        // compte ou non (un compteur réservé aux comptes ferait du 429 un oracle). La confirmation devine un jeton : serrée par IP.
+        RateLimiter::for('password-reset', function (Request $request) {
+            $email = mb_strtolower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(3)->by('password-reset:'.$email.'|'.$request->ip()),
+                Limit::perHour(10)->by('password-reset-ip:'.$request->ip()),
+            ];
+        });
+        RateLimiter::for('password-reset-confirm', function (Request $request) {
+            return Limit::perMinute(10)->by('password-reset-confirm:'.$request->ip());
         });
 
         // Exige déjà un refresh token valide : limite généreuse, un onglet rafraîchit toutes

@@ -27,4 +27,20 @@ return [
         'warning'    => 'If you did not make this change, please contact the administrator immediately.',
         'salutation' => "Playfully,\nGregory for the Office des Coffres",
     ],
+    'password_reset' => [
+        'subject'    => 'Reset your password',
+        'greeting'   => 'Hello,',
+        'intro'      => 'You asked to choose a new password for your account on the Office des coffres. Click the button below to choose it.',
+        'expires'    => 'This link expires in :minutes minutes and can only be used once.',
+        'not_you'    => 'If you did not make this request, ignore this email: your password stays unchanged.',
+        'action'     => 'Choose a new password',
+        'salutation' => "Playfully,\nGregory for the Office des coffres",
+    ],
+    'password_changed_notice' => [
+        'subject'    => 'Your password has been changed',
+        'greeting'   => 'Hello,',
+        'intro'      => 'The password of your account on the Office des coffres has just been changed.',
+        'warning'    => 'If you did not make this change, contact the administrator immediately.',
+        'salutation' => "Playfully,\nGregory for the Office des coffres",
+    ],
 ];

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\BaseController;
 use App\Models\User;
 use App\Notifications\EmailChanged;
+use App\Notifications\PasswordChanged;
 use App\Notifications\VerifyApiEmail;
 use App\Notifications\VerifyEmailChange;
 use App\Services\AccountDeletion;
@@ -443,6 +444,13 @@ class AuthController extends BaseController
                 RefreshToken::where('access_token_id', $token->id)->update(['revoked' => true]);
                 $token->revoke();
             });
+
+        // Q5 (fil mot-de-passe-oublie) : un avis part à CHAQUE changement ; il ne bloque jamais le geste du joueur.
+        try {
+            $user->notify(new PasswordChanged);
+        } catch (\Throwable $exception) {
+            Log::warning('Avis de changement de mot de passe : envoi impossible.', ['exception' => $exception::class]);
+        }
 
         return response()->json([
             'success' => true,

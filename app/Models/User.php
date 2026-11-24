@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\PasswordResetLink;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,16 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+
+    /**
+     * Le lien de réinitialisation part au gabarit de l'Office et pointe vers le SITE DES JOUEURS, jamais vers le domaine d'administration (le
+     * broker de Laravel appelle cette méthode, y compris pour le formulaire Blade de l'administration).
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PasswordResetLink($token));
+    }
 
     /**
      * The attributes that are mass assignable.

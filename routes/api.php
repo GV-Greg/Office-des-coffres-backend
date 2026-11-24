@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AdminCharacterController;
-use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\Anim\DecodeActivityController;
 use App\Http\Controllers\Api\Anim\DecodeAnonymousController;
 use App\Http\Controllers\Api\Anim\RewardsAnonymousController;
 use App\Http\Controllers\Api\Anim\RewardsGridController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CharacterController;
 use App\Http\Controllers\Api\CustomsController;
@@ -17,9 +17,9 @@ use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\MinePriceController;
 use App\Http\Controllers\Api\MineReportController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\ProvinceHistoryController;
 use Illuminate\Support\Facades\Route;
-
 
 Route::prefix('v1')->group(function () {
 
@@ -29,8 +29,8 @@ Route::prefix('v1')->group(function () {
     // ⚠️ Routes ajoutées : route:cache en prod.
     Route::get('item-icons', [ItemIconController::class, 'lookup']);
 
-// Annonce du site en cours (bandeau de l'accueil, 18/11/2026) — publique. ⚠️ Route ajoutée : route:cache en prod.
-Route::get('announcements/current', [AnnouncementController::class, 'current']);
+    // Annonce du site en cours (bandeau de l'accueil, 18/11/2026) — publique. ⚠️ Route ajoutée : route:cache en prod.
+    Route::get('announcements/current', [AnnouncementController::class, 'current']);
 
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])
@@ -42,6 +42,12 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
 
         Route::post('resend-verification', [AuthController::class, 'resendVerification'])
             ->middleware('throttle:6,1');
+
+        // « Mot de passe oublié » (24/11/2026) — ⚠️ routes ajoutées : route:cache en prod.
+        Route::post('forgot-password', [PasswordResetController::class, 'forgot'])
+            ->middleware('throttle:password-reset');
+        Route::post('reset-password', [PasswordResetController::class, 'reset'])
+            ->middleware('throttle:password-reset-confirm');
 
         Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
             ->middleware('signed')

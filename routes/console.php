@@ -72,3 +72,8 @@ Schedule::command('anim:purge-closed')
 */
 Schedule::command('customs:inactivity')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
+
+// Jetons de réinitialisation du mot de passe expirés : effacés chaque jour (promesse de /legal/privacy §5, « nettoyage quotidien » ; fil mot-de-passe-oublie).
+// Commande de Laravel ; aucune durée en dur ici : elle lit `auth.passwords.users.expire` (60 min) du broker.
+Schedule::command('auth:clear-resets')
+    ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));
