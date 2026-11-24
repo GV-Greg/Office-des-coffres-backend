@@ -118,7 +118,7 @@ class CustomsReportController extends Controller
         $data = $request->validate($this->rules());
         $city = City::findOrFail($data['city_id']);
 
-        ['report' => $report, 'replaced' => $replaced, 'mode' => $mode] = $this->reports->record($own, $city, $data['sections'], $data['date'] ?? null);
+        ['report' => $report, 'replaced' => $replaced, 'mode' => $mode] = $this->reports->record($own, $city, $data['sections'] ?? [], $data['date'] ?? null, $data['remove_sections'] ?? []);
 
         return response()->json([
             'success' => true,
@@ -149,7 +149,10 @@ class CustomsReportController extends Controller
         return [
             'city_id' => ['required', 'integer', 'exists:rk_cities,id'],
             'date' => ['nullable', 'date_format:Y-m-d'],
-            'sections' => ['required', 'array', 'min:1'],
+            // Au moins une section à inscrire OU une section à retirer (Greg, 24/11/2026 : une case vidée retire la section du relevé existant).
+            'sections' => ['required_without:remove_sections', 'array'],
+            'remove_sections' => ['sometimes', 'array', 'max:2'],
+            'remove_sections.*' => ['string', 'in:visions,armies_groups'],
 
             ...$common('guet'),
             'sections.guet.report.villagers' => [$with('guet'), 'array', 'min:1', 'max:1000'],

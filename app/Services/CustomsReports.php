@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * SEUL écrivain des bilans de défense (Registre de douane ; fil admin/echanges/module-securite, décisions de Greg du 22/11/2026).
  *
  * - UN bilan par ville et par jour du jeu, tenu PAR LA BASE (`active`). Un douanier qui arrive sur une ville déjà saisie voit le bilan et n'en
- *   saisit pas un second (Q5). Le MÊME auteur COMPLÈTE les sections manquantes le même jour ; remplacer une section déjà saisie, ou saisir un
+ *   saisit pas un second (Q5). Le MÊME auteur COMPLÈTE et CORRIGE le sien le même jour (24/11/2026) ; remplacer le bilan d'un autre, ou saisir un
  *   jour passé (jusqu'à 7), revient au prévôt et au connétable (P1, P6). Un bilan ne s'efface jamais : il se remplace.
  * - Le serveur reçoit le JSON analysé PAR LE FRONTEND et le brut, VALIDE LA FORME (contrôleur), ne re-parse JAMAIS (décision de Greg, comme les
  *   mines). Brut et analyse sont conservés dans le payload chiffré, avec `parser_version` par section.
@@ -27,6 +27,9 @@ class CustomsReports
 {
     public const SECTIONS = ['guet', 'visions', 'armies_groups'];
 
+    /** Le guet ne se retire pas : un bilan se fonde sur lui (un premier bilan l'exige). */
+    private const REMOVABLE_SECTIONS = ['visions', 'armies_groups'];
+
     /** Version minimale du parseur du frontend acceptée : un client plus ancien est invité à recharger. */
     public const MIN_PARSER_VERSION = 1;
 
@@ -38,11 +41,13 @@ class CustomsReports
 
     /**
      * @param  array<string, array{raw: string, parser_version: int, report: array}>  $sections  sections VALIDÉES en forme (guet, visions, armies_groups)
+     * @param  array<int, string>  $remove  sections à RETIRER du bilan existant (visions, armies_groups : jamais le guet) — Greg, 24/11/2026 : une section inscrite
+     *                                      par mégarde ; seulement par qui peut corriger, la version précédente reste en archive
      * @return array{report: CustomsReport, replaced: ?CustomsReport, mode: string}
      *
      * @throws MandateRefusal
      */
-    public function record(Character $actor, City $city, array $sections, ?string $date = null): array
+    public function record(Character $actor, City $city, array $sections, ?string $date = null, array $remove = []): array
     {
         $access = $this->access->for($actor);
         if (! $access || ! $access['write_reports']) {
@@ -64,13 +69,14 @@ class CustomsReports
         }
 
         $sections = array_intersect_key($sections, array_flip(self::SECTIONS));
+        $remove = array_values(array_diff(array_intersect($remove, self::REMOVABLE_SECTIONS), array_keys($sections)));
         foreach ($sections as $section) {
             if (($section['parser_version'] ?? 0) < self::MIN_PARSER_VERSION) {
                 throw MandateRefusal::make('sections', 'security.api.parser_outdated');
             }
         }
 
-        $result = DB::transaction(function () use ($actor, $city, $sections, $day, $today, $access) {
+        $result = DB::transaction(function () use ($actor, $city, $sections, $remove, $day, $today, $access) {
             $existing = CustomsReport::query()->where('city_id', $city->id)->whereDate('reported_on', $day)->where('active', true)->lockForUpdate()->first();
 
             if (! $existing) {
@@ -87,15 +93,24 @@ class CustomsReports
                     $mode = 'corrected';
                     $merged = array_replace($current, $sections);
                 } elseif ($mine && $day === $today) {
-                    foreach (array_keys($sections) as $key) {
-                        if (isset($current[$key])) {
-                            throw MandateRefusal::make($key, 'security.api.report_section_exists');
-                        }
-                    }
-                    $mode = 'completed';
-                    $merged = $current + $sections;
+                    // L'AUTEUR corrige le sien le jour du jeu même (Greg, 24/11/2026 : ses groupes avaient changé après sa première saisie) : il complète les
+                    // sections manquantes ET remplace les siennes ; l'ancienne version reste en archive (ajout seul). Le lendemain, plus personne sauf le trio.
+                    $mode = array_intersect_key($sections, $current) === [] ? 'completed' : 'corrected';
+                    $merged = array_replace($current, $sections);
                 } else {
                     throw MandateRefusal::make('city', 'security.api.report_exists');
+                }
+
+                // Une section retirée l'est du bilan EN VIGUEUR ; l'ancienne version, qui la contient, reste en archive (ajout seul).
+                $removed = array_values(array_intersect($remove, array_keys($merged)));
+                foreach ($removed as $key) {
+                    unset($merged[$key]);
+                }
+                if ($removed !== []) {
+                    $mode = 'corrected';
+                }
+                if ($merged === $current && $sections === []) {
+                    throw MandateRefusal::make('sections', 'security.api.report_nothing_to_change');
                 }
 
                 $existing->update(['active' => null]);
@@ -196,7 +211,8 @@ class CustomsReports
             'sections_present' => array_keys($sections),
             'by_me' => $report->character_id !== null && $report->character_id === $viewer->id,
             'can_complete' => $access['write_reports'] && $report->character_id === $viewer->id && $day === MandateCalendar::today(),
-            'can_correct' => (bool) $access['correct_reports'],
+            // Le trio corrige tout ; l'auteur corrige le sien le jour du jeu même (même condition que `can_complete`).
+            'can_correct' => (bool) $access['correct_reports'] || ($access['write_reports'] && $report->character_id === $viewer->id && $day === MandateCalendar::today()),
         ];
     }
 
