@@ -81,7 +81,10 @@ class CustomsReportController extends Controller
             return MandateApiErrors::error(403, 'security.api.province_not_readable');
         }
 
-        return response()->json(['success' => true] + $this->overview->build($own, $access));
+        // `date` facultative : la situation AU jour D (jamais le futur, ramené à aujourd'hui) ; absente = aujourd'hui.
+        $data = $request->validate(['date' => ['nullable', 'date_format:Y-m-d']]);
+
+        return response()->json(['success' => true] + $this->overview->build($own, $access, $data['date'] ?? null));
     }
 
     /** Les jours qui ont un bilan pour la ville et, si `date` est donnée, le bilan de ce jour. */

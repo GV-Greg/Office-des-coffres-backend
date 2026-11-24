@@ -150,19 +150,23 @@ test('la couverture : une ligne par ville LISIBLE, avec le jour de son dernier b
         ->and($cities['Arras']['last_report_day'])->toBe('2026-05-10')
         ->and($cities['Arras']['guet_day'])->toBe('2026-05-10')
         ->and($cities['Arras']['inhabitants'])->toBe(4)
+        ->and($cities['Arras']['groups'])->toBe(2) // le NOMBRE de groupes du bilan du 08 (armées et groupes) : un bilan se voit même sans alerte
+        ->and($cities['Béthune']['groups'])->toBeNull()
         ->and($cities['Béthune'])->toMatchArray(['last_report_day' => null, 'guet_day' => null, 'inhabitants' => null, 'arrivals' => null, 'departures' => null]);
 });
 
-test('arrivées et départs : des COMPTES par ville, comparés au bilan antérieur de la même ville — jamais entre villes', function () {
+test('arrivées et départs : les PSEUDOS de chaque ville, comparés au bilan antérieur de la MÊME ville — jamais entre villes', function () {
     $prevot = ($this->seed)();
     Passport::actingAs($prevot->user);
 
-    $arras = collect($this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->json('cities'))->firstWhere('name', 'Arras');
+    $response = $this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->assertOk();
+    $cities = collect($response->json('cities'))->keyBy('name');
 
-    expect($arras['arrivals'])->toBe(1) // Autre
-        ->and($arras['departures'])->toBe(0)
-        ->and($arras['compared_to'])->toBe('2026-05-08') // le bilan antérieur de la MÊME ville
-        ->and(array_keys($arras))->not->toContain('villagers');
+    expect($cities['Arras']['arrivals'])->toBe([['pseudo' => 'Autre', 'colour' => null]])
+        ->and($cities['Arras']['departures'])->toBe([])
+        ->and($cities['Arras']['compared_to'])->toBe('2026-05-08') // le bilan antérieur de la MÊME ville
+        ->and($cities['Béthune']['arrivals'])->toBeNull() // sans bilan : rien à comparer
+        ->and(array_column($cities['Arras']['arrivals'], 'pseudo'))->not->toContain('Nouveau'); // « Nouveau » était déjà là au bilan du 08 : une arrivée de CE bilan, c'est « Autre » seulement
 });
 
 test('les marques : seulement les pseudos des listes, rouge d\'abord, chacun avec sa ville, comment il a été vu et le jour du bilan', function () {
@@ -192,17 +196,34 @@ test('un pseudo vu à deux jours de bilan apparaît sur chacun, chaque ligne dat
         ->and(array_column($gregor, 'as'))->toBe(['villager', 'vision', 'group_member']);
 });
 
-test('les groupes à surveiller : seul « Groupe de … » alerte ; les autres ne figurent pas ; le détail d\'un groupe n\'est pas servi', function () {
+test('les groupes : TOUS (Greg, 24/11/2026), chacun avec son indicateur ; seul « Groupe de … » alerte ; le détail d\'un groupe n\'est pas servi', function () {
     $prevot = ($this->seed)();
     Passport::actingAs($prevot->user);
 
     $response = $this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->assertOk();
-    $watch = $response->json('groups_to_watch');
+    $groups = collect($response->json('groups'));
 
-    expect($watch)->toHaveCount(1)
-        ->and($watch[0])->toMatchArray(['type' => 'groupe', 'day' => '2026-05-08', 'city' => ['id' => $this->arras->id, 'name' => 'Arras']])
-        ->and($watch[0]['members'])->toBe([['pseudo' => 'Sefrian', 'colour' => 'red'], ['pseudo' => 'Gregor.', 'colour' => 'red']])
-        ->and($response->getContent())->not->toContain('Admission libre')->not->toContain('Fermé')->not->toContain('Damonkael');
+    expect($groups)->toHaveCount(2)
+        ->and($groups->firstWhere('type', 'groupe'))->toMatchArray(['alert' => true, 'day' => '2026-05-08', 'city' => ['id' => $this->arras->id, 'name' => 'Arras']])
+        ->and($groups->firstWhere('type', 'groupe')['members'])->toBe([['pseudo' => 'Sefrian', 'colour' => 'red'], ['pseudo' => 'Gregor.', 'colour' => 'red']])
+        ->and($groups->firstWhere('type', 'corps_armes'))->toMatchArray(['alert' => false])
+        ->and($groups->firstWhere('type', 'corps_armes')['members'])->toBe([['pseudo' => 'Damonkael', 'colour' => null]])
+        ->and($response->getContent())->not->toContain('Admission libre')->not->toContain('Fermé'); // le détail d'un groupe
+});
+
+test('la liste des habitants de chaque ville (pseudo, noblesse, couleur) : celle du dernier guet, jamais le brut ni la réputation', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    $response = $this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->assertOk();
+    $cities = collect($response->json('cities'))->keyBy('name');
+
+    expect(array_column($cities['Arras']['villagers'], 'pseudo'))->toBe(['Gregor.', 'Artifice', 'Nouveau', 'Autre'])
+        ->and($cities['Arras']['villagers'][0])->toBe(['pseudo' => 'Gregor.', 'noblesse' => '', 'colour' => 'red'])
+        ->and($cities['Arras']['villagers'][1]['colour'])->toBe('green')
+        ->and($cities['Arras']['villagers'][2]['colour'])->toBeNull()
+        ->and($cities['Béthune']['villagers'])->toBeNull() // sans guet
+        ->and($response->getContent())->not->toContain('Liste des villageois')->not->toContain('reputation');
 });
 
 test('les armées : nom, commandant, ville et jour du bilan', function () {
@@ -234,6 +255,58 @@ test('le dirigeant (lecture seule) voit la même vue', function () {
     $this->getJson("/api/v1/characters/{$leader->id}/customs-province")->assertOk()
         ->assertJsonPath('province.name', 'Artois')
         ->assertJsonCount(2, 'cities');
+});
+
+// ─── Naviguer dans les jours (Greg, 24/11/2026) ─────────────────────────
+
+test('la situation AU jour D : pour chaque ville, ses bilans jusqu\'à ce jour — le guet du 08 et les armées du 08, pas les visions du 10', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    $response = $this->getJson("/api/v1/characters/{$prevot->id}/customs-province?date=2026-05-08")->assertOk();
+    $arras = collect($response->json('cities'))->firstWhere('name', 'Arras');
+
+    expect($response->json('as_of'))->toBe('2026-05-08')
+        ->and($response->json('today'))->toBe('2026-05-10') // le jour du jeu reste dit
+        ->and($arras['last_report_day'])->toBe('2026-05-08')
+        ->and($arras['guet_day'])->toBe('2026-05-08')
+        ->and($arras['inhabitants'])->toBe(3)
+        ->and($arras['compared_to'])->toBe('2026-05-07')
+        ->and(array_column($response->json('marks'), 'as'))->not->toContain('vision') // les visions sont du 10 : pas encore
+        ->and($response->json('groups'))->toHaveCount(2); // les armées et groupes du 08
+});
+
+test('un jour sans aucun bilan avant lui : toutes les villes sans bilan, aucune ligne', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    $response = $this->getJson("/api/v1/characters/{$prevot->id}/customs-province?date=2026-05-01")->assertOk();
+
+    expect(array_filter($response->json('cities'), fn ($c) => $c['last_report_day'] !== null))->toBe([])
+        ->and($response->json('marks'))->toBe([])
+        ->and($response->json('armies'))->toBe([]);
+});
+
+test('sans date, ou avec une date FUTURE : aujourd\'hui — jamais le futur', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    expect($this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->json('as_of'))->toBe('2026-05-10')
+        ->and($this->getJson("/api/v1/characters/{$prevot->id}/customs-province?date=2026-06-30")->json('as_of'))->toBe('2026-05-10');
+});
+
+test('une date mal formée est refusée', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    $this->getJson("/api/v1/characters/{$prevot->id}/customs-province?date=demain")->assertUnprocessable();
+});
+
+test('les jours à naviguer : ceux qui ont un bilan dans une ville lisible, du plus récent au plus ancien, sans doublon', function () {
+    $prevot = ($this->seed)();
+    Passport::actingAs($prevot->user);
+
+    expect($this->getJson("/api/v1/characters/{$prevot->id}/customs-province")->json('days'))->toBe(['2026-05-10', '2026-05-08', '2026-05-07']);
 });
 
 // ─── Ce qui ne sort jamais, et ce qui n'est jamais écrit ────────────────
