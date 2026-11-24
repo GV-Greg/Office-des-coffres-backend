@@ -154,4 +154,17 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // La Salle des gardes — l'auteur d'un bilan le corrige le jour du jeu même (fil admin/echanges/module-securite 22 et 23, texte validé par Greg
+    // et Cowork le 24/11/2026, en ligne par front #162 le 24/11/2026). Une entrée propre à cette modification. « Substantielle » : elle change qui peut
+    // modifier une donnée (jusqu'ici seuls le prévôt et le connétable corrigeaient un bilan déjà saisi) ; aucun nouveau traitement ni destinataire.
+    // Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE — c'est le cas — et AVANT de livrer le code backend (feat/customs-author-corrects).
+    '2026-11-24-correction-releve-du-jour' => [
+        'date' => '2026-11-24',
+        'summary' => [
+            'fr' => "Dans la Salle des gardes, l'auteur d'un bilan peut désormais le corriger le jour du jeu même. Seuls le prévôt et le connétable corrigent le bilan d'un autre ou saisissent un jour passé.",
+            'en' => 'In the Guardroom, the author of a report can now correct it on the game day itself. Only the Constable and the Sergeant correct someone else’s report or enter a past day.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];
