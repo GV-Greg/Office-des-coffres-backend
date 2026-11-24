@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-24] — PR #110 (Sécurité : la Table des douanes, API de la vue d'ensemble de la province)
+
+### Added
+- **`GET characters/{id}/customs-province`** (`CustomsReportController@province`, service `CustomsProvinceOverview` ; fils `admin/echanges/module-securite/18` à `21`) : lecture seule d'ensemble de la province, **aucun droit nouveau** — seules les villes que le rôle lit déjà, et à partir de **deux** villes lisibles (403 bilingue `province_not_readable` sinon, 404 pour le personnage d'un autre compte ; `throttle:30,1`).
+- **`?date=AAAA-MM-JJ`** : la situation **au jour D** (jamais le futur ; 422 si mal formée) ; la réponse dit `as_of`, `today` et `days` (les 90 jours les plus récents qui ont un bilan, de quoi naviguer).
+- **Par ville** : habitants, **nombre de groupes**, **liste des habitants** (pseudo, noblesse, couleur), **arrivées et départs en pseudos** comparés au bilan antérieur de la même ville. **`groups`** : tous les groupes (type, `alert`, membres, ville, jour) ; marques des listes et armées. Jamais le brut, la réputation, l'auteur ni le détail d'un groupe.
+- Route couverte par `MandateApiErrors::covers` (erreurs FR/EN). 20 tests `CustomsProvinceTest` (1049 au total).
+
+### Deploy notes
+- 🔴 **`php artisan route:cache` en SSH après le déploiement** (route ajoutée) ; sonde : `customs-province` répond **401** sans jeton, jamais 404. Aucune migration, `config/*.php`, `.env` ni paquet. À merger avec `front #161` (Table des douanes), qui consomme cette route.
+
 ## [2026-11-24] — PR #111 (Sécurité : l'auteur corrige son relevé du jour et peut en retirer une section)
 
 ### Changed

@@ -15,6 +15,7 @@ return [
         'no_security_role' => 'The Office knows no role for this character in a province\'s security.',
         'reports_not_authorized' => 'Only the Constable, the Sergeant, the Captain, the mayor (for their town) and validated customs officers enter a report, and the Office does not know this role for this character.',
         'reports_not_readable' => 'The Office knows no role for this character that reads this town\'s reports.',
+        'province_not_readable' => 'The Office knows no role for this character that reads the reports of several towns of their province.',
         'city_not_in_scope' => 'This role does not enter reports for this town.',
         'report_exists' => 'A report already exists for this town on that day: only its author (on the game day itself), the Constable and the Sergeant correct it.',
         'report_nothing_to_change' => 'This report already is as you describe it: nothing to change.',

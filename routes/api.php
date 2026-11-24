@@ -244,6 +244,8 @@ Route::get('announcements/current', [AnnouncementController::class, 'current']);
         Route::get('characters/{character}/customs-access', [CustomsReportController::class, 'access'])->where('character', '[0-9]+');
         Route::get('characters/{character}/customs-reports', [CustomsReportController::class, 'index'])->where('character', '[0-9]+');
         Route::get('characters/{character}/customs-lists', [CustomsListController::class, 'index'])->where('character', '[0-9]+');
+        // Vue d'ensemble de la province (PR 5) : lecture seule, agrégée côté serveur. ⚠️ Route ajoutée : route:cache en prod.
+        Route::get('characters/{character}/customs-province', [CustomsReportController::class, 'province'])->where('character', '[0-9]+')->middleware('throttle:30,1');
         // Relevé unique (PR 3-2) : couleurs des pseudos collés et dernier guet de la ville, SANS enregistrement. ⚠️ Route ajoutée : route:cache en prod.
         Route::post('characters/{character}/customs-preview', [CustomsReportController::class, 'preview'])->where('character', '[0-9]+')->middleware('throttle:30,1');
         Route::middleware('throttle:6,1')->group(function () {

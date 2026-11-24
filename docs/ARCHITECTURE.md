@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 22/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 23/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
@@ -87,6 +87,7 @@ dans `deploy.yml`.
 | GET/POST | `characters/{id}/customs-access`, `characters/{id}/customs-reports` | CustomsReportController | api | Registre de douane : droits, jours, bilan du jour, saisie ; voir « Registre de douane » |
 | GET/POST/PUT/DELETE | `characters/{id}/customs-lists`, `characters/{id}/customs-lists/{entry}` | CustomsListController | api | listes rouge/verte |
 | POST | `characters/{id}/customs-preview` | CustomsReportController@preview | api | Relevé unique : couleurs des pseudos collés + guet du dernier bilan de la ville, **sans rien enregistrer** ; `throttle:30,1` |
+| GET | `characters/{id}/customs-province` | CustomsReportController@province | api | Vue d'ensemble de la province (PR 5) : couverture par ville (avec arrivées et départs en pseudos) + marques, groupes à surveiller et armées fusionnés, **lecture seule**, 403 `province_not_readable` sous deux villes lisibles, `?date=` = situation au jour D ; `throttle:30,1` |
 | GET/POST/PUT | `provinces/{id}/mine-prices` | MinePriceController | api | voir « Prix des mines » |
 | GET/PUT | `characters/{id}/inventory-settings/*` | InventoryController | api | 3 niveaux, version |
 | GET/PUT | `characters/{id}/inventory/*` | InventoryController | api | texte collé |
@@ -302,6 +303,8 @@ Briefs `brief-module-securite.md` ; fil `admin/echanges/module-securite/` (déci
 ⚠️ **Prod** : `migrate` (2 tables), `route:cache` (routes `customs-access`, `customs-reports`, `customs-lists` et web `customs/remove-pseudo`), aucun `config/*.php`/`.env`. **L'écriture ne s'ouvre qu'une fois le texte légal vérifié en ligne et `policy:notify` lancé.**
 
 **Relevé unique — `customs-preview`** (PR 3-2, fil `module-securite` 12 à 14, 22/11/2026) : le Relevé du guet (page publique) colle les cinq types ; avec un compte, il demande au serveur, **avant tout enregistrement**, la couleur des pseudos collés et le guet du dernier bilan de la ville (`CustomsReports::preview`). 🔴 **Rien n'est écrit ni journalisé** (test `CustomsPreviewTest`) : seuls les pseudos arrivent (≤ 2000, sans espace), seuls ceux **envoyés** reviennent colorés (jamais la liste), à la date d'ajout du jour du jeu, en minuscules. Droits : couleurs = droit de **lire les listes** (Q4), guet précédent = droit de **lire les bilans de la ville** (Q3) ; un simple joueur avec compte reçoit 422 `no_security_role`. Route couverte par `MandateApiErrors::covers`. ⚠️ **Prod : `route:cache`** (route ajoutée) ; aucun `migrate`, `config/*.php`, `.env` ni paquet.
+
+**Vue d'ensemble de la province — `customs-province`** (PR 5, fil `module-securite` 18 et 19, maquette validée par Greg le 23/11/2026) : `CustomsProvinceOverview`, **lecture seule et aucun droit nouveau** — seules les villes que le rôle lit déjà (`CustomsAccess::readableCities`), et la vue n'a de sens qu'à partir de **deux** villes lisibles (trio, douanier, dirigeant ; un maire simple, un juge, un procureur ou un joueur sans rôle : 403 bilingue `province_not_readable`). 🔴 **Fusion des dernières inscriptions, chaque ligne datée de son jour de bilan, jamais de différentiel entre villes** : par ville, le bilan le **plus récent qui contient la section** (guet, visions, armées/groupes — une ville peut avoir envoyé le guet hier et les armées il y a quatre jours), sans limite d'âge ; on ne fusionne PAS les listes d'habitants, seulement les **marques des listes** (un pseudo rouge ou vert, où et comment vu : habitant, vision, commandant, membre d'un groupe), les **groupes à surveiller** (seul « Groupe de … » alerte) et les **armées**, plus, par ville, la couverture (dernier bilan, nombre d'habitants, **nombre** de groupes — jamais leur détail) et les **PSEUDOS** des arrivées et des départs (Greg, 24/11/2026 : « pas juste les comptes »), comparés au bilan antérieur de la MÊME ville — des différences, jamais la liste des habitants. **Naviguer dans les jours** (Greg, 24/11/2026) : `?date=AAAA-MM-JJ` donne la situation **AU jour D** (pour chaque ville, ses bilans jusqu'à ce jour ; jamais le futur, ramené à aujourd'hui ; mal formée : 422) ; la réponse dit `as_of` (le jour demandé), `today` (le jour du jeu) et `days` (les 90 jours les plus récents qui ont un bilan dans une ville lisible, de quoi naviguer comme dans le Registre). Agrégé côté serveur : jamais le brut, jamais l'auteur, jamais la liste complète des habitants ; couleurs à la date de chaque bilan (`CustomsReports::present`) ; au plus 60 bilans lus par ville. ⚠️ **Prod : `route:cache`** (route ajoutée) ; aucun `migrate`, `config/*.php`, `.env` ni paquet. Tests : `Security/CustomsProvinceTest`.
 
 ## Icônes des items (05/11/2026)
 
