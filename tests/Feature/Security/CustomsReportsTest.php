@@ -127,9 +127,37 @@ test('le MÊME auteur complète les sections manquantes le même jour, sans touc
         ->and($first->refresh()->active)->toBeNull()
         ->and($first->replaced_by_id)->toBe($done['report']->id)
         ->and(CustomsReport::where('active', true)->count())->toBe(1);
+});
 
-    // Remplacer une section déjà saisie n'est pas permis à l'auteur : c'est le prévôt ou le connétable.
-    expect(fn () => $this->reports->record($officer, $this->city, ['guet' => customsGuet(['Corrige'])]))->toThrow(MandateRefusal::class);
+test('le MÊME auteur CORRIGE le sien le jour du jeu même (Greg, 24/11/2026) : la section remplacée, les autres gardées, l\'ancienne version en archive', function () {
+    $officer = ($this->officer)();
+    $first = $this->reports->record($officer, $this->city, ['guet' => customsGuet(['Ancien']), 'armies_groups' => customsArmies()])['report'];
+
+    $result = $this->reports->record($officer, $this->city, ['armies_groups' => customsArmies()]); // ses groupes ont changé après la première saisie
+
+    expect($result['mode'])->toBe('corrected')
+        ->and($result['report']->payload['sections']['guet'])->toBe($first->payload['sections']['guet'])
+        ->and(array_keys($result['report']->payload['sections']))->toBe(['guet', 'armies_groups'])
+        ->and($result['report']->character_id)->toBe($officer->id)
+        ->and($first->refresh()->active)->toBeNull()
+        ->and($first->replaced_by_id)->toBe($result['report']->id)
+        ->and(CustomsReport::where('active', true)->count())->toBe(1)
+        ->and(CustomsReport::count())->toBe(2); // rien n'est effacé
+
+    // Même le guet : l'auteur peut remplacer sa propre liste du jour.
+    $again = $this->reports->record($officer, $this->city, ['guet' => customsGuet(['Nouveau'])]);
+    expect($again['mode'])->toBe('corrected')
+        ->and($again['report']->payload['sections']['guet']['report']['villagers'][0]['pseudo'])->toBe('Nouveau');
+});
+
+test('l\'auteur ne corrige PAS le bilan d\'un jour passé, ni celui d\'un autre : seuls le prévôt et le connétable', function () {
+    $officer = ($this->officer)();
+    $other = ($this->officer)('Autre');
+    $this->reports->record($officer, $this->city, ['guet' => customsGuet()]);
+
+    expect(fn () => $this->reports->record($officer, $this->city, ['guet' => customsGuet(['Corrige'])], '2026-05-09')) // hier, le « jour du jeu » étant le 10->toThrow(MandateRefusal::class)
+        ->and(fn () => $this->reports->record($other, $this->city, ['armies_groups' => customsArmies()]))->toThrow(MandateRefusal::class)
+        ->and(CustomsReport::where('active', true)->count())->toBe(1);
 });
 
 test('le prévôt et le connétable CORRIGENT : la section remplacée, les autres gardées, l\'ancien bilan reste en historique', function (string $office) {
@@ -382,4 +410,54 @@ test('une entrée retirée ne laisse aucune trace dans l\'export', function () {
     app(CustomsWatchlist::class)->remove($prevot, $entry->id);
 
     expect(app(AccountExport::class)->build($prevot->user)['customs_activity'])->toBe([]);
+});
+
+test('une case vidée RETIRE la section du relevé du jour (Greg, 24/11/2026) : l\'auteur ou le trio ; jamais le guet ; l\'ancienne version reste en archive', function () {
+    $officer = ($this->officer)();
+    $first = $this->reports->record($officer, $this->city, ['guet' => customsGuet(), 'visions' => customsVisions(), 'armies_groups' => customsArmies()])['report'];
+
+    $result = $this->reports->record($officer, $this->city, [], null, ['visions']); // des visions inscrites par mégarde
+
+    expect($result['mode'])->toBe('corrected')
+        ->and(array_keys($result['report']->payload['sections']))->toBe(['guet', 'armies_groups'])
+        ->and($first->refresh()->active)->toBeNull()
+        ->and(array_keys($first->payload['sections']))->toBe(['guet', 'visions', 'armies_groups']) // l'archive garde tout
+        ->and(CustomsReport::where('active', true)->count())->toBe(1);
+
+    // Retirer et envoyer en même temps : l'envoi l'emporte ; le guet ne se retire pas ; rien à changer est refusé.
+    $with = $this->reports->record($officer, $this->city, ['visions' => customsVisions()], null, ['visions', 'guet']);
+    expect(array_keys($with['report']->payload['sections']))->toBe(['guet', 'armies_groups', 'visions']);
+    expect(fn () => $this->reports->record($officer, $this->city, [], null, ['guet']))->toThrow(MandateRefusal::class)
+        ->and(fn () => $this->reports->record($officer, $this->city, [], null, ['visions', 'armies_groups']))->not->toThrow(MandateRefusal::class)
+        ->and(fn () => $this->reports->record($officer, $this->city, [], null, ['visions']))->toThrow(MandateRefusal::class); // déjà retirée
+});
+
+test('retirer une section : pas le bilan d\'un autre, pas un jour passé (sauf le trio), pas sans relevé', function () {
+    $officer = ($this->officer)();
+    $other = ($this->officer)('Autre');
+
+    expect(fn () => $this->reports->record($officer, $this->city, [], null, ['visions']))->toThrow(MandateRefusal::class); // aucun relevé : rien à retirer, et rien à créer sans guet
+
+    $this->reports->record($officer, $this->city, ['guet' => customsGuet(), 'visions' => customsVisions()]);
+    expect(fn () => $this->reports->record($other, $this->city, [], null, ['visions']))->toThrow(MandateRefusal::class)
+        ->and(fn () => $this->reports->record($officer, $this->city, [], '2026-05-09', ['visions']))->toThrow(MandateRefusal::class)
+        ->and(array_keys(CustomsReport::where('active', true)->first()->payload['sections']))->toBe(['guet', 'visions']);
+
+    $prevot = ($this->seat)('prevot_des_marechaux');
+    expect($this->reports->record($prevot, $this->city, [], null, ['visions'])['mode'])->toBe('corrected');
+});
+
+test('l\'API : remove_sections retire une section ; rien à envoyer ni à retirer est refusé ; seules visions et armées se retirent ; le lendemain d\'un jour passé, le douanier n\'y touche pas', function () {
+    $officer = ($this->officer)('Douanier');
+    Passport::actingAs($officer->user);
+    $url = "/api/v1/characters/{$officer->id}/customs-reports";
+    $this->postJson($url, ['city_id' => $this->city->id, 'sections' => ['guet' => customsGuet(), 'visions' => customsVisions()]])->assertCreated();
+
+    $this->postJson($url, ['city_id' => $this->city->id])->assertUnprocessable(); // ni section ni retrait
+    $this->postJson($url, ['city_id' => $this->city->id, 'remove_sections' => ['guet']])->assertUnprocessable(); // le guet ne se retire pas
+    $done = $this->postJson($url, ['city_id' => $this->city->id, 'remove_sections' => ['visions']])->assertCreated();
+
+    expect($done->json('mode'))->toBe('corrected')
+        ->and($this->getJson("/api/v1/characters/{$officer->id}/customs-reports?city_id={$this->city->id}&date=2026-05-10")->json('report.sections_present'))->toBe(['guet'])
+        ->and($this->getJson("/api/v1/characters/{$officer->id}/customs-reports?city_id={$this->city->id}&date=2026-05-10")->json('report.can_correct'))->toBeTrue(); // l'auteur, le jour même
 });

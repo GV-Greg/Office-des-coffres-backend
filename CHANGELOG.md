@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-24] — PR #111 (Sécurité : l'auteur corrige son relevé du jour et peut en retirer une section)
+
+### Changed
+- **`CustomsReports::record`** (fil `admin/echanges/module-securite/22` et `23`, besoin de terrain de Greg : ses groupes avaient changé après sa première saisie) : l'auteur **complète ET remplace** ses propres sections le jour du jeu même ; l'ancienne version reste en archive (ajout seul). Le bilan d'un autre et les jours passés restent au prévôt et au connétable. `can_correct` de `present()` est vrai pour l'auteur le jour même.
+- Messages `report_exists` (FR/EN) : « seuls son auteur (le jour du jeu même), le prévôt et le connétable le corrigent ».
+
+### Added
+- **`remove_sections`** (visions, armées/groupes ; jamais le guet) : retire une section du relevé en vigueur, par qui peut corriger ; « rien à changer » est refusé (`report_nothing_to_change`). Tests (1029).
+
+### Removed
+- Le message `report_section_exists` (l'auteur peut maintenant remplacer ses sections).
+
+### Deploy notes
+- Aucune migration, route, `config/*.php`, `.env` ni paquet. **Le texte légal §6 est en ligne (front #162) et `policy:notify` devait passer avant ce merge.**
+
 ## [2026-11-24] — PR #112 (Politique : entrée du changelog — l'auteur corrige son bilan le jour du jeu même)
 
 ### Added
