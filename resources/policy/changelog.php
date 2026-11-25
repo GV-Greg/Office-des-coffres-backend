@@ -167,4 +167,17 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
+    // Réinitialisation du mot de passe (fil admin/echanges/mot-de-passe-oublie 01 à 03, textes validés par Greg le 24/11/2026, en ligne par front #164 le 25/11/2026).
+    // Une entrée propre à cette modification. NON substantielle (décision de Greg, 03 Q2) : aucun nouveau traitement ni destinataire — l'email de réinitialisation
+    // est déjà annoncé au §3 — le texte PRÉCISE une conservation (jeton haché, 60 minutes, nettoyage quotidien). Trace de la décision : la commande refuse de
+    // l'envoyer, aucun email aux comptes.
+    '2026-11-25-reinitialisation-mot-de-passe' => [
+        'date' => '2026-11-25',
+        'summary' => [
+            'fr' => "La réinitialisation du mot de passe est détaillée : le jeton du lien reçu par email est conservé haché, 60 minutes au plus, puis effacé ; choisir un nouveau mot de passe vous déconnecte de tous vos appareils et un email vous prévient du changement.",
+            'en' => 'Password reset is now detailed: the token of the link you receive by email is kept hashed for 60 minutes at most, then erased; choosing a new password signs you out of all your devices and an email warns you of the change.',
+        ],
+        'substantial' => false,
+        'decided_by' => 'Greg',
+    ],
 ];
