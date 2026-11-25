@@ -7,6 +7,46 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #115 (Le décompte de tests n'est plus recopié dans le README)
+
+### Changed
+- **Le décompte de tests n'est plus dans le `README.md`** : il s'affiche à la fin de `php artisan test` et dans la CI (il était la source de presque tous les conflits entre PR ouvertes en même temps). `ARCHITECTURE.md`, `TESTS.md` et `DECISIONS.md` n'y renvoient plus.
+- **`scripts/docs-sync-check.sh`** refuse désormais tout nombre recopié (« N tests verts ») dans un `.md`, sauf `CHANGELOG.md` (historique daté).
+
+### Deploy notes
+- Aucun code applicatif.
+
+## [2026-11-25] — PR #117 (Sondes de routes après déploiement)
+
+### Added
+- **`scripts/probe-routes.txt`** (11 routes, `MÉTHODE chemin code-attendu`) et **`scripts/probe-routes.sh`** : sonde la production, réessaie les 429 et les coupures, écrit les écarts dans `GITHUB_OUTPUT`. Testé contre la production et en contrôle négatif.
+- **`deploy.yml`** : étape « Sonder les routes de l'API » et **alerte sur le salon admin/mod** si des routes ne répondent pas comme prévu. **Non bloquante** : une route ajoutée est en 404 jusqu'au `route:cache`, ce qui est attendu.
+
+### Changed
+- `docs/ARCHITECTURE.md` : « Sondes de routes après déploiement » — **toute PR qui ajoute une route ajoute sa ligne** à `probe-routes.txt` ; `route:cache` **une fois le « Deploy » vert**.
+
+### Deploy notes
+- Aucun `route:cache`, migration, `config/*.php`, `.env` ni paquet. L'étape agit dès le déploiement suivant.
+
+## [2026-11-25] — PR #116 (`pint.json` et règle « Pint sur les fichiers créés seulement »)
+
+### Added
+- **`pint.json`** : le préréglage Laravel, sans le réalignement des `=>` (le code existant est aligné à la main). Mesuré sur `AuthController` : 134 lignes réformatées sans la config, 34 avec.
+
+### Changed
+- **`docs/ARCHITECTURE.md`**, « Contraintes projet » : lancer Pint **uniquement sur les fichiers créés** dans la PR (d'autres règles du préréglage — `new Foo()`, espaces autour de `.`, `single_quote` — réformatent encore des lignes existantes).
+
+### Deploy notes
+- Aucun code applicatif, migration, route, `config/*.php`, `.env` ni paquet.
+
+## [2026-11-25] — PR #114 (Modèle de PR : la case « Promesse légale »)
+
+### Added
+- **`.github/pull_request_template.md`** (section « Promesse légale », piste 7 du fil `ameliorations-cc`) : une PR qui tient une promesse d'un texte légal, ou en dépend, le dit avec le n° de la PR du texte. L'ordre dépend du sens (droit élargi → texte d'abord ; garde-fou annoncé → garde-fou d'abord) ; le contrôle automatique est dans `check-roadmap.sh` (section 6).
+
+### Deploy notes
+- Aucun code applicatif, migration, route, `config/*.php`, `.env` ni paquet.
+
 ## [2026-11-25] — PR #113 (« Mot de passe oublié » pour les joueurs : API, email de l'Office, nettoyage quotidien)
 
 ### Added

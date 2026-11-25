@@ -209,6 +209,43 @@ jobs:
 
           echo "✅ CORS restreint : l'Office est autorisé, une origine tierce ne l'est pas."
 
+      # Routes de l'API (scripts/probe-routes.txt, 25/11/2026). Une route AJOUTÉE reste en 404 en production tant que
+      # `php artisan route:cache` n'est pas lancé en SSH APRÈS le déploiement (back #57, #110, #113) ; le workflow ne peut pas le lancer. Cette étape NE BLOQUE PAS
+      # (le déploiement a réussi, une route neuve en 404 est attendue) : elle écrit un avertissement et alerte le salon admin/mod. Après le route:cache : `bash scripts/probe-routes.sh`.
+      - name: Sonder les routes de l'API
+        id: routes
+        if: steps.maintenance.outputs.mode != 'held'
+        run: |
+          bash scripts/probe-routes.sh || echo "::warning::Des routes ne répondent pas le code attendu (voir ci-dessus). Si ce déploiement ajoute des routes : lancez « php artisan route:cache » en SSH une fois le déploiement terminé, puis « bash scripts/probe-routes.sh »."
+
+      - name: Alerter le salon admin/mod (routes qui ne répondent pas)
+        if: steps.routes.outputs.failed != ''
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          DISCORD_ADMIN_WEBHOOK_URL: ${{ secrets.DISCORD_ADMIN_WEBHOOK_URL }}
+          ROUTES_FAILED: ${{ steps.routes.outputs.failed }}
+        with:
+          script: |
+            const webhook = process.env.DISCORD_ADMIN_WEBHOOK_URL
+            if (!webhook) { core.info('DISCORD_ADMIN_WEBHOOK_URL non configuré — alerte ignorée.'); return }
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const body = {
+              content: `⚠️ **Office des coffres — backend** : après le déploiement, des routes de l'API ne répondent pas comme prévu.`,
+              embeds: [{
+                color: 0xF59E0B,
+                description: `${process.env.ROUTES_FAILED}`.slice(0, 1500),
+                url: runUrl,
+                fields: [{ name: 'À faire', value: 'Si ce déploiement ajoute des routes : `php artisan route:cache` en SSH **une fois le déploiement terminé**, puis `bash scripts/probe-routes.sh`.' }, { name: 'Run', value: runUrl }]
+              }]
+            }
+            try {
+              const res = await fetch(webhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+              if (!res.ok) core.warning(`Discord a répondu ${res.status}`)
+            } catch (err) {
+              core.warning(`Alerte Discord admin échouée: ${err.message}`)
+            }
+
       - name: Notifier le salon admin/mod (succès ou échec)
         if: always()
         continue-on-error: true
