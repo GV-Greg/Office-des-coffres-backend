@@ -10,8 +10,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Résumé quotidien des changements de prix des mines d'une province, aux autres occupants des trois
- * postes qui les gèrent (brief admin/content/brief-prix-registre.md ; Greg, 15/10/2026 : un résumé à
- * 15:00 plutôt qu'un email par modification, et seulement s'il y a eu des changements). Bilingue,
+ * postes qui les gèrent (Greg, 15/10/2026 : un résumé à 15:00 plutôt qu'un email par modification, et seulement s'il y a eu des changements). Bilingue,
  * français puis anglais, comme tous les emails des joueurs. Lien vers le SITE des joueurs, jamais
  * vers l'administration.
  */

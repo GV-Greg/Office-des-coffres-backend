@@ -35,7 +35,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::delete('users/{user}', [DashboardController::class, 'destroyUser'])->name('users.destroy');
     Route::patch('characters/{character}/validate', [DashboardController::class, 'toggleValidation'])->name('characters.validate');
 
-    // Mandats (admin/content/brief-mandats.md, lot 1 ; arbitrages admin/echanges/mandats-lot1/).
+    // Mandats.
     Route::prefix('mandates')->name('mandates.')->controller(MandateAdminController::class)->group(function () {
         Route::get('/', 'pending')->name('pending');
         Route::get('running', 'running')->name('running');
@@ -68,7 +68,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         });
     });
 
-    // Icônes des items — référentiel admin (brief admin/content/brief-icones-items.md).
+    // Icônes des items — référentiel admin.
     // ⚠️ Routes ajoutées : route:cache en prod.
     Route::get('item-icons', [ItemIconController::class, 'index'])->name('item-icons.index');
     Route::post('item-icons', [ItemIconController::class, 'store'])->name('item-icons.store');
@@ -98,7 +98,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::delete('{announcement}', 'destroy')->where('announcement', '[0-9]+')->name('destroy');
     });
 
-    // Animation (admin/modules/animation/brief-coffres-scelles.md ; tour 12 du fil) : types d'activité, surveillance des
+    // Animation (tour 12) : types d'activité, surveillance des
     // activités récentes et recours de l'administration pour les activités SANS COMPTE seulement (clore, retirer avec
     // confirmation, lien de réinitialisation). Aucune gestion des activités privées des joueurs ici.
     Route::prefix('anim')->name('anim.')->controller(AnimAdminController::class)->group(function () {

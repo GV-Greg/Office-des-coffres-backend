@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Bilans de défense (module Sécurité, PR 3-1 ; fil admin/echanges/module-securite, décisions de Greg du 22/11/2026) : UN bilan par ville et par
+| Bilans de défense (module Sécurité, PR 3-1, du 22/11/2026) : UN bilan par ville et par
 | jour du jeu, brut + analyse du frontend dans un payload chiffré, jamais re-parsé, auteur jamais affiché, coloration à la lecture.
 */
 

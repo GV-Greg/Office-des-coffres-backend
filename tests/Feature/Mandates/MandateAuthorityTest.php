@@ -7,8 +7,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
-// Autorité des mandats : MandateAuthority est le SEUL point d'entrée des modules. Règles :
-// admin/content/brief-mandats.md et admin/echanges/mandats-lot1/ (Q1 à Q29).
+// Autorité des mandats : MandateAuthority est le SEUL point d'entrée des modules. Règles : voir backend/docs/ARCHITECTURE.md, « Mandats ».
 
 beforeEach(function () {
     Notification::fake();
@@ -168,7 +167,7 @@ test('holdsCouncilOffice distingue les titres, et un conseiller sans poste n\'en
         ->and($this->authority->activeCouncilMandate($plain))->not->toBeNull();
 });
 
-// ─── canManageMines (Registre des mines, fil admin/echanges/registre-mines, R1) ───────────────
+// ─── canManageMines (Registre des mines) ───────────────
 
 test('canManageMines renvoie la province du commissaire aux mines comme du bailli', function () {
     atGameTime('2026-05-10 12:00');

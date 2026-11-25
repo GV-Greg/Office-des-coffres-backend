@@ -174,7 +174,7 @@ Mécanisme en place et utilisé par les tables de module (relevés des mines, in
 
 ## Mandats (lot 1)
 
-Spéc. `admin/content/brief-mandats.md` ; **arbitrages** : `admin/echanges/mandats-lot1/` (Q1-Q29).
+Spéc. `admin/content/archives/brief-mandats.md` ; **arbitrages** : `admin/echanges/_clos/mandats-lot1/` (Q1-Q29).
 
 | Pièce | Rôle |
 |---|---|
@@ -216,7 +216,7 @@ Règles clés :
 
 ## Animation — Décode le code (27/10/2026, refondue 28/10)
 
-Brief `brief-coffres-scelles.md` ; **spéc. à jour : `admin/echanges/animation-coffres-scelles/12-synthese-cc.md`** (D1-D40). Organisateur scelle un coffre (5 chiffres), saisit les propositions, scoring Bulls-and-Cows.
+Brief `brief-coffres-scelles.md` ; **spéc. à jour : `admin/echanges/_clos/animation-coffres-scelles/12-synthese-cc.md`** (D1-D40). Organisateur scelle un coffre (5 chiffres), saisit les propositions, scoring Bulls-and-Cows.
 
 **Deux modes** (`is_anonymous`) : **Privé** (character_id, catégorie A, cascadeOnDelete, réouvrable) et **Sans compte** (slug + mot de passe, clôture définitive).
 

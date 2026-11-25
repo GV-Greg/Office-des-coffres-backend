@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Hash;
 
 // Le limiteur 'api' était déclaré dans AppServiceProvider sans jamais être branché : 65 essais
 // de mot de passe sur login donnaient 65 × 401 et aucun 429 (constat du 28/09/2026). Ces tests
-// prouvent que le CODE est protégé, pas la prod — la vérification en prod se rejoue à la main
-// (admin/content/brief-rate-limit.md).
+// prouvent que le CODE est protégé, pas la prod — la vérification en prod se rejoue à la main.
 
 // Compteurs du RateLimiter dans le cache : vidé explicitement, sinon l'ordre d'exécution
 // déciderait du résultat si le store de test cessait un jour d'être recréé à chaque test.

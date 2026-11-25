@@ -9,7 +9,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /*
-| Registre des mines — schéma (PR 1a, brief admin/content/brief-registre-mines.md §2, §3, §5).
+| Registre des mines — schéma (PR 1a).
 | La table ne reçoit encore aucune écriture applicative : ces tests tiennent les trois promesses du
 | schéma avant que l'API (PR 1b) ne s'appuie dessus.
 */

@@ -1,6 +1,6 @@
 <?php
 
-// Module Sécurité — messages de l'API des douaniers (brief admin/content/brief-module-securite.md ; fil admin/echanges/module-securite).
+// Module Sécurité — messages de l'API des douaniers.
 // Envoyés en FR et EN par MandateApiErrors : le frontend affiche `messages[sa langue]`, il n'a aucune table code → texte.
 return [
     'api' => [

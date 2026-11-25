@@ -8,9 +8,9 @@ return new class extends Migration
 {
     /**
      * Trace des envois de `policy:notify` : une ligne par entrée du journal envoyée, pour qu'aucune
-     * ne parte deux fois (fil admin/echanges/politique-promesses, Q6).
+     * ne parte deux fois.
      *
-     * ⚠️ Cette table est HORS de la taxinomie de admin/strategies/donnees-utilisateur.md tant
+     * ⚠️ Cette table est HORS de la taxinomie des données utilisateur tant
      * qu'elle ne porte aucun lien vers un compte : un identifiant d'entrée, une date, des nombres.
      * Ce n'est pas une donnée personnelle, c'est une trace d'exploitation.
      * 🔴 Ajouter une colonne par destinataire (« savoir qui a reçu quoi ») rouvre la question : la

@@ -42,7 +42,7 @@ class AccountDeletion
     }
 
     /**
-     * Catégorie B de admin/strategies/donnees-utilisateur.md : ces tables ne portent pas de FK vers
+     * Catégorie B de la stratégie des données utilisateur : ces tables ne portent pas de FK vers
      * `users`, la cascade ne les vide pas.
      */
     private function deleteTracesWithoutForeignKey(User $user): void

@@ -10,7 +10,7 @@ return new class extends Migration
      * Mandats de conseiller comtal (niveau province).
      *
      * Une table par niveau, avec une vraie FK (§5ter), jamais de propriétaire polymorphe. Une ligne
-     * porte la demande ET le mandat, distingués par `status`. Arbitrages : admin/echanges/mandats-lot1/.
+     * porte la demande ET le mandat, distingués par `status`.
      * Une table par migration : MySQL n'annule pas un CREATE TABLE, un échec au milieu d'une migration
      * à plusieurs tables laissait la base à moitié créée (constaté en dev le 03/10/2026).
      *

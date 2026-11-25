@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 
-// Notification des modifications substantielles de la politique (/legal/privacy §10 ; brief
-// admin/content/brief-politique-promesses.md §4 ; fil admin/echanges/politique-promesses, Q5-Q6).
+// Notification des modifications substantielles de la politique (legal/privacy).
 
 function policyEntry(array $overrides = []): array
 {

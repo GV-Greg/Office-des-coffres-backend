@@ -11,7 +11,7 @@ use App\Support\MandateLabels;
 use Illuminate\Support\Carbon;
 
 /**
- * Prix des mines par période (brief admin/content/brief-prix-registre.md). Lecture ET écriture : le
+ * Prix des mines par période. Lecture ET écriture : le
  * contrôleur ne valide que la forme. Un jeu de prix entre en vigueur à `effective_from` et reste en
  * vigueur jusqu'au suivant ; le bilan d'un jour utilise le jeu en vigueur CE jour-là.
  *

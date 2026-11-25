@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Relevé unique (PR 3-2 ; fil admin/echanges/module-securite 12 à 14) : `customs-preview` donne la couleur des pseudos collés (droit de LIRE les
+| Relevé unique (PR 3-2) : `customs-preview` donne la couleur des pseudos collés (droit de LIRE les
 | listes, Q4) et le guet du dernier bilan de la ville (droit de lire les bilans, Q3) — SANS rien enregistrer. Seuls les pseudos envoyés sont
 | servis, jamais la liste elle-même.
 */

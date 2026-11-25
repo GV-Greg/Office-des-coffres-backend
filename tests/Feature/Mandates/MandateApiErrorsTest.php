@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Laravel\Passport\Passport;
 
-// Réponses d'erreur de l'API des mandats (fil admin/echanges/mandats-lot2, Q1, Q6, Q8, Q9, Q10, Q11).
+// Réponses d'erreur de l'API des mandats.
 // Trois garde-fous, tous dans ce dépôt et en CI :
 //  1. tout refus de MandateWorkflow porte un code (statique) ;
 //  2. toute réponse d'erreur de l'API des mandats est complète : code + messages FR et EN (frontière) ;

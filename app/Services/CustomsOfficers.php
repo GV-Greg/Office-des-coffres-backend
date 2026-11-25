@@ -11,7 +11,7 @@ use App\Models\ProvinceSecuritySettings;
 use Illuminate\Support\Carbon;
 
 /**
- * SEUL écrivain des douaniers (module Sécurité ; brief admin/content/brief-module-securite.md §4 ; Greg, 21/11/2026).
+ * SEUL écrivain des douaniers (module Sécurité, Greg, 21/11/2026).
  *
  * - Le douanier DEMANDE (opt-in) ; il n'est jamais nommé d'office. Le trio valide, en cascade (MandateAuthority::customsDeciderLevel) ;
  *   l'administrateur est le niveau 3, hors de MandateAuthority.

@@ -15,7 +15,7 @@ use Laravel\Passport\RefreshToken;
 use Laravel\Passport\Token;
 
 /*
-  « Mot de passe oublié » pour les joueurs (fil admin/echanges/mot-de-passe-oublie, décisions de Greg du 24/11/2026). Chaque test garde un engagement du texte
+  « Mot de passe oublié » pour les joueurs (24/11/2026). Chaque test garde un engagement du texte
   légal (/legal/privacy §4 et §5) : jeton haché, 60 minutes, à usage unique, effacé à l'usage ou par le nettoyage quotidien, tous les appareils déconnectés,
   email d'avis ; et la règle des emails : un lien vers le SITE DES JOUEURS, jamais le domaine d'administration.
 */

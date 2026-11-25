@@ -5,7 +5,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
-// « Ma province » côté API (fil admin/echanges/mandats-historique) : résidence seule (07, Q11),
+// « Ma province » côté API : résidence seule (07, Q11),
 // même fusion que l'admin, rien de ce qui est réservé à l'admin.
 
 beforeEach(function () {

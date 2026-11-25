@@ -6,8 +6,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Notification d'administration interne : un événement lié aux comptes, adressé aux comptes `admin`
- * (brief admin/content/brief-notifications-admin.md, fil admin/echanges/notifications-admin). En
+ * Notification d'administration interne : un événement lié aux comptes, adressé aux comptes `admin`. En
  * français seulement, comme le récapitulatif des mandats : l'interface d'administration n'a pas de
  * bascule de langue. Courte et factuelle ; le contenu est composé par `App\Services\AdminNotifier`.
  * Jamais d'adresse email de joueur ni de mot de passe dans le corps.

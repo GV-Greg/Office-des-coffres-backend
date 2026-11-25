@@ -8,8 +8,8 @@ return new class extends Migration
 {
     /**
      * Registre des mines (privé) — relevés d'une province, tenus par son commissaire aux mines ou
-     * son bailli. Brief admin/content/brief-registre-mines.md §2, §3, §5 ; fil
-     * admin/echanges/registre-mines (PR 1a : la table ne stocke rien tant que l'API d'écriture,
+     * son bailli
+     * (PR 1a : la table ne stocke rien tant que l'API d'écriture,
      * PR 1b, n'existe pas — elle attend le texte de la politique en ligne et `policy:notify`).
      *
      * AXES EN CLAIR (filtrables, triables), PAYLOAD CHIFFRÉ (collage brut, relevé analysé, prix,

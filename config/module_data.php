@@ -12,7 +12,6 @@ return [
     | réinitialisation). La même rotation sur des données de module les rendrait définitivement
     | illisibles — d'où une clé qu'aucune commande du framework ne touche.
     |
-    | Voir admin/strategies/donnees-utilisateur.md §5.
     |
     */
 

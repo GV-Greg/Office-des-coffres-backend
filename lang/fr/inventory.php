@@ -1,6 +1,6 @@
 <?php
 
-// Inventaires — messages de l'API (fil admin/echanges/inventaire-scopes ; Greg, 11/11/2026). Envoyés en FR et EN par
+// Inventaires — messages de l'API (Greg, 11/11/2026). Envoyés en FR et EN par
 // MandateApiErrors : le frontend affiche `messages[sa langue]`, il n'a aucune table code → texte.
 return [
     'api' => [

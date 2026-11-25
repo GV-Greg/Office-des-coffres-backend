@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Registre des stocks — socle des deux registres de TERRITOIRE (fil admin/echanges/registre-stocks, 20/11/2026) : la province
+ * Registre des stocks — socle des deux registres de TERRITOIRE (20/11/2026) : la province
  * (commissaire au commerce) et la ville (maire). SEUL écrivain de son niveau ; une sous-classe dit le modèle, la clé du lieu, le
  * poste qui écrit et celui qui lit. Le niveau personnel n'a PAS de registre (Q4 : reporté).
  *

@@ -459,7 +459,7 @@ class AuthController extends BaseController
     }
 
     /**
-     * Passe par le password grant Passport (#13 de admin/strategies/cookies.md) : login()
+     * Passe par le password grant Passport : login()
      * garde sa propre validation (email vérifié, message d'erreur français) au lieu de
      * s'appuyer sur les erreurs génériques d'/oauth/token, puis délègue l'émission réelle
      * du couple access+refresh token à Passport plutôt que de réinventer la rotation.

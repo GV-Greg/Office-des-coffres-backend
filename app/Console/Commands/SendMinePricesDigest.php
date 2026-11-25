@@ -13,8 +13,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
 /**
- * Résumé quotidien des changements de prix des mines (brief admin/content/brief-prix-registre.md ;
- * Greg, 15/10/2026) : une province dont les prix n'ont pas bougé n'envoie rien. Fenêtre = depuis le
+ * Résumé quotidien des changements de prix des mines (Greg, 15/10/2026) : une province dont les prix n'ont pas bougé n'envoie rien. Fenêtre = depuis le
  * dernier passage RÉUSSI (cache), à défaut les dernières 24 h ; un passage manqué est donc rattrapé.
  * Destinataires : les occupants ACTUELS des trois postes, jamais l'auteur d'un changement pour ce
  * changement-là.

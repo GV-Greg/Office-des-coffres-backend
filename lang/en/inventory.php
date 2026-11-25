@@ -1,6 +1,6 @@
 <?php
 
-// Inventories — API messages (thread admin/echanges/inventaire-scopes; Greg, 11/11/2026). Sent in FR and EN by
+// Inventories — API messages (Greg, 11/11/2026). Sent in FR and EN by
 // MandateApiErrors: the frontend shows `messages[its language]`, it has no code → text table.
 return [
     'api' => [

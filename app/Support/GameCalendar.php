@@ -6,8 +6,8 @@ namespace App\Support;
  * Calendrier du jeu : le jour et le mois sont ceux du calendrier courant, l'année est celle du jeu
  * (2026 → 1474).
  *
- * ⚠️ JUMEAU de `src/modules/gameCalendar.js` (dépôt frontend) — décision du fil
- * `admin/echanges/mandats-historique` (05, issue (a) ; 10). Les deux copies doivent rester
+ * ⚠️ JUMEAU de `src/modules/gameCalendar.js` (dépôt frontend) — décision de l'historique des postes.
+ * Les deux copies doivent rester
  * IDENTIQUES, table d'ancrages et logique. Chaque dépôt a un test qui fige la table ET une poignée
  * de conversions calculées (`tests/Unit/GameCalendarTwinTest.php` ici) : qui modifie l'une casse
  * son propre test, dont le message dit de modifier l'autre.

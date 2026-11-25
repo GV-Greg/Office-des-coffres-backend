@@ -18,7 +18,6 @@ use RuntimeException;
  * est qu'un `SELECT *` en phpMyAdmin ne rende rien d'exploitable, et que lire suppose d'écrire
  * délibérément un script qui amorce Laravel.
  *
- * Voir admin/strategies/donnees-utilisateur.md §5.
  */
 class ModuleDataEncrypter extends Encrypter
 {
@@ -36,7 +35,7 @@ class ModuleDataEncrypter extends Encrypter
                 "MODULE_DATA_KEY est absente de l'environnement. Les données de module ne sont "
                 .'jamais chiffrées avec APP_KEY : une rotation de celle-ci les rendrait illisibles. '
                 .'Générer une clé avec : php -r "echo \'base64:\'.base64_encode(random_bytes(32)).PHP_EOL;" '
-                .'— voir admin/strategies/donnees-utilisateur.md §5.'
+                .'— voir backend/docs/ARCHITECTURE.md, « Chiffrement des données de module ».'
             );
         }
 
@@ -67,7 +66,7 @@ class ModuleDataEncrypter extends Encrypter
             throw new RuntimeException(
                 "{$name} est mal formée : elle doit s'écrire en entier, préfixe « base64: » compris, "
                 .'sans guillemets ni espace, et donner 32 octets une fois décodée ('.$cipher.'). '
-                .'Contrôle : php artisan module-data:check — voir admin/strategies/donnees-utilisateur.md §5.'
+                .'Contrôle : php artisan module-data:check — voir backend/docs/ARCHITECTURE.md, « Chiffrement des données de module ».'
             );
         }
 

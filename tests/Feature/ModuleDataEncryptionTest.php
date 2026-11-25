@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Schema;
 | Chiffrement des données de module
 |--------------------------------------------------------------------------
 |
-| Règle : admin/strategies/donnees-utilisateur.md §5.
 |
 | Aucune table de module n'existe encore — la décision de chiffrer se prend AVANT la première
 | migration, parce que chiffrer après coup imposerait une migration de données sur des lignes de

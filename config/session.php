@@ -57,7 +57,7 @@ return [
     | contre les chaînes de gadgets si APP_KEY fuit). Les sessions existantes
     | sont invalidées UNE fois : seul le panneau d'administration Blade (guard
     | `web`) en utilise, l'API joueurs passe par les jetons Passport. Accepté
-    | par Greg (brief admin/content/brief-laravel13.md).
+    | par Greg.
     |
     */
 

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Ce qui reste de l'historique des postes quand un compte ou un personnage est supprimé
-     * (fil admin/echanges/mandats-historique, Q6 → Greg : l'information est conservée ; Q16 → 12).
+     * (→ Greg : l'information est conservée ; → 12).
      *
      * ⚠️ Ce n'est PAS « l'historique » : tant qu'un personnage existe, le sien vit dans les tables
      * des mandats, justes par construction. Cette table ne reçoit que ce que la cascade va effacer,

@@ -52,7 +52,7 @@ return [
     */
 
     'channels' => [
-        // Rotation quotidienne (04/10/2026, brief admin/content/brief-politique-promesses.md §3) :
+        // Rotation quotidienne (04/10/2026) :
         // `single` faisait grandir laravel.log sans limite, alors que /legal/privacy §5 promet des
         // logs techniques « conservés 12 mois maximum, puis effacés ».
         'stack' => [

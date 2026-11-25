@@ -6,8 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 return new class extends Migration
 {
     /**
-     * Sème les 10 postes titrés en appelant le seeder IDEMPOTENT (arbitrage du 03/10/2026, fil
-     * admin/echanges/mandats-lot1, Q12).
+     * Sème les 10 postes titrés en appelant le seeder IDEMPOTENT (03/10/2026).
      *
      * ⚠️ Ce couplage migration → seeder est voulu, ne pas le « nettoyer » :
      *  - le déploiement ne lance ni migration ni seeder : un seeder à part serait un geste de plus

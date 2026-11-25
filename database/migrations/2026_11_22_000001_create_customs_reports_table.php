@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Bilans de défense du Registre de douane (module Sécurité ; brief admin/content/brief-module-securite.md §6-§7 ; fil
-     * admin/echanges/module-securite, décisions de Greg du 22/11/2026). UN bilan par ville et par jour du jeu.
+     * Bilans de défense du Registre de douane (module Sécurité ; -, du 22/11/2026). UN bilan par ville et par jour du jeu.
      *
      * AXES EN CLAIR (ville, jour, auteur), PAYLOAD CHIFFRÉ (MODULE_DATA_KEY) : par section (guet, visions, armées/groupes/contrôle de la zone), le
      * brut collé (liste des villageois sans préambule, collage armées/groupes, lignes des visions du jour) ET le JSON analysé par le parseur

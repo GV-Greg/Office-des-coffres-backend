@@ -6,7 +6,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * Lecture du journal des modifications de la politique (resources/policy/changelog.php), source
- * unique de `policy:notify` (fil admin/echanges/politique-promesses, Q6).
+ * unique de `policy:notify`.
  *
  * Les entrées peuvent être injectées (tests) ; sinon le fichier du dépôt fait foi.
  */

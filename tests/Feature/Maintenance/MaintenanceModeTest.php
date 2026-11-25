@@ -1,6 +1,6 @@
 <?php
 
-// Mode maintenance (brief admin/content/brief-mode-maintenance.md, 18/11/2026).
+// Mode maintenance (18/11/2026).
 //
 // Le fichier `storage/framework/down` est celui de `artisan down` : on l'écrit par le même
 // mécanisme (`maintenanceMode()->activate`) et on le retire après chaque test.

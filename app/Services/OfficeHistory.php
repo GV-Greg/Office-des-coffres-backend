@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Historique des postes d'une province : qui a tenu quel titre du conseil, qui a été maire de quelle
- * ville, de quand à quand, et comment ça s'est fini (fil admin/echanges/mandats-historique).
+ * ville, de quand à quand, et comment ça s'est fini.
  *
  * ⚠️ LA SEULE fonction de fusion des deux sources (exigence n°2 du 04) : les tables vivantes pour les
  * personnages qui existent, `office_history_archive` pour ceux qui ont été supprimés. Le Blade admin

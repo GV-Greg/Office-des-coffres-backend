@@ -9,8 +9,7 @@ use LogicException;
 use RuntimeException;
 
 /**
- * Règles de la purge des comptes (/legal/privacy §5 ; brief politique-promesses §2 ; fil
- * admin/echanges/politique-promesses). La commande accounts:purge ne fait qu'appeler ce service.
+ * Règles de la purge des comptes (legal/privacy). La commande accounts:purge ne fait qu'appeler ce service.
  *
  * Deux chemins, UNE colonne (users.deletion_notice_sent_at) et UN garde-fou :
  * - compte vérifié inactif : préavis à 11 mois sans passage, suppression à 12 mois et au plus tôt

@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Décode le code — l'activité d'un organisateur (fil admin/echanges/animation-coffres-scelles,
-     * tour 12). DEUX MODES dans la même table :
+     * Décode le code — l'activité d'un organisateur (tour 12). DEUX MODES dans la même table :
      *
      *  - PRIVÉ : `character_id` renseigné. ⚠️ **Catégorie A, cascadeOnDelete** (D21, Greg 28/10/2026) :
      *    quand le personnage ou son compte disparaît, l'activité, ses coffres, ses propositions et sa page

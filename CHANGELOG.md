@@ -164,7 +164,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 
 ### Changed
 - **409 `registry_needs_confirmation` puis `confirm_replace`** (contrat des mines) sur `POST inventory/province` et le registre de la ville : un autre texte le même jour n'est plus remplacé en silence (aucun appelant jusque-là). `replaced` devient l'auteur remplacé (`{id, pseudo, office_key, office_label, taken_on, saved_at}`) ou `null`, au lieu d'un booléen.
-- **Auteurs** (politique §3, front #143) : l'auteur d'une inscription en vigueur n'est jamais nommé (`by_me`) ; le pseudo n'apparaît que pour le rédacteur remplacé (`replaced`) et pour l'exemplaire à remplacer (`existing` du 409). Le bailli n'écrit pas ; pas de registre personnel (fil `admin/echanges/registre-stocks/`, Q1-Q6).
+- **Auteurs** (politique §3, front #143) : l'auteur d'une inscription en vigueur n'est jamais nommé (`by_me`) ; le pseudo n'apparaît que pour le rédacteur remplacé (`replaced`) et pour l'exemplaire à remplacer (`existing` du 409). Le bailli n'écrit pas ; pas de registre personnel (fil `admin/echanges/_clos/registre-stocks/`, Q1-Q6).
 
 ### Deploy notes
 - ⚠️ **`php artisan migrate`** (table `city_inventory_snapshots`) **et `php artisan route:cache` en SSH** (route ajoutée : sinon 404 ; sonde : `…/inventory/city/registry` doit répondre **401** sans jeton). Aucun `config/*.php` ni `.env`, aucun paquet.
@@ -173,7 +173,7 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 ## [2026-11-20] — PR #99 (Journal de politique : « Registre des stocks »)
 
 ### Added
-- Entrée `2026-11-20-registre-des-stocks` dans `resources/policy/changelog.php` (`substantial: true`, `decided_by: Greg`) : l'Office conserve un historique daté des inventaires municipaux et comtaux, enregistrés à l'initiative du titulaire (Registre des stocks) ; le pseudo du rédacteur précédent reste visible dans l'historique ; rien ne change pour l'inventaire personnel ni pour les lecteurs (§6). Résumé FR/EN de Cowork (fil `admin/echanges/registre-stocks/`), texte légal en ligne par front #143.
+- Entrée `2026-11-20-registre-des-stocks` dans `resources/policy/changelog.php` (`substantial: true`, `decided_by: Greg`) : l'Office conserve un historique daté des inventaires municipaux et comtaux, enregistrés à l'initiative du titulaire (Registre des stocks) ; le pseudo du rédacteur précédent reste visible dans l'historique ; rien ne change pour l'inventaire personnel ni pour les lecteurs (§6). Résumé FR/EN de Cowork (fil `admin/echanges/_clos/registre-stocks/`), texte légal en ligne par front #143.
 
 ### Deploy notes
 - Aucune migration, route ni config. **`php artisan policy:notify` se lance à la main (Greg), pas avant que le texte front #143 soit déployé** ; la `date` de l'entrée (20/11/2026) est celle de la mise en ligne.
@@ -474,7 +474,7 @@ Aucune migration, route ni config.
 
 ## [2026-10-16] — PR #63 (Registre des mines : prix par période et résumé quotidien)
 
-Brief `admin/content/brief-prix-registre.md`, décisions de Greg des 14 et 15/10/2026.
+Brief `admin/content/archives/brief-prix-registre.md`, décisions de Greg des 14 et 15/10/2026.
 
 ### Added
 - Table `province_mine_prices` (catégorie C) : prix des cinq ressources et taux horaire d'une province **à partir d'une
@@ -529,7 +529,7 @@ se sont remplacés entre eux, et l'historique des niveaux s'est lu à l'envers.
 
 ## [2026-10-10] — PR #60 (Registre des mines, PR 4a : lecture)
 
-Brief `admin/content/brief-registre-mines.md` §7 ; fil `admin/echanges/registre-mines` (R4).
+Brief `admin/content/archives/brief-registre-mines.md` §7 ; fil `admin/echanges/_clos/registre-mines` (R4).
 
 ### Added
 - `GET /api/v1/characters/{character}/mine-registry/reports` → `App\Services\MineRegistryReader` :
@@ -565,7 +565,7 @@ première inscription au Registre des mines.
 
 ## [2026-10-08] — PR #57 (Registre des mines, PR 1b : écriture)
 
-Brief `admin/content/brief-registre-mines.md` §3, §6 ; fil `admin/echanges/registre-mines` (R3, R3 bis).
+Brief `admin/content/archives/brief-registre-mines.md` §3, §6 ; fil `admin/echanges/_clos/registre-mines` (R3, R3 bis).
 Ouverte après `policy:notify 2026-10-08-registre-des-mines` (texte d'abord).
 
 ### Added
@@ -587,7 +587,7 @@ Ouverte après `policy:notify 2026-10-08-registre-des-mines` (texte d'abord).
 
 ## [2026-10-08] — PR #55 (Registre des mines, PR 1a : schéma)
 
-Brief `admin/content/brief-registre-mines.md` §2, §3, §5 ; fil `admin/echanges/registre-mines` (07 :
+Brief `admin/content/archives/brief-registre-mines.md` §2, §3, §5 ; fil `admin/echanges/_clos/registre-mines` (07 :
 feu vert de Greg pour la PR 1a seule). **Ne stocke rien** : l'API d'écriture (PR 1b) attend le texte
 de la politique en ligne et `policy:notify`.
 
@@ -638,7 +638,7 @@ aucun domaine `odc-admin` dans un email de joueur — il ressemble à de l'hame�
 
 ## [2026-10-04] — PR #51 (première entrée du journal de la politique, purge activée)
 
-Étape 5 du brief `admin/content/brief-politique-promesses.md`, après la mise en ligne du texte
+Étape 5 du brief `admin/content/archives/brief-politique-promesses.md`, après la mise en ligne du texte
 (front #79).
 
 ### Changed
@@ -659,7 +659,7 @@ Correctif de la PR #49, après un incident en prod le 04/10/2026 (rien envoyé, 
 
 ## [2026-10-04] — PR #49 (purge des comptes inactifs et non confirmés, en simulation)
 
-Étape 4 du brief `admin/content/brief-politique-promesses.md` (§2).
+Étape 4 du brief `admin/content/archives/brief-politique-promesses.md` (§2).
 
 ### Added
 - **`accounts:purge`** (09:00 Paris, heartbeat `accounts`, `--dry-run`) : préavis à 11 mois sans
@@ -685,7 +685,7 @@ Correctif de la PR #47.
 
 ## [2026-10-04] — PR #47 (rotation des journaux, 180 jours)
 
-Étape 3 du brief `admin/content/brief-politique-promesses.md` (§3).
+Étape 3 du brief `admin/content/archives/brief-politique-promesses.md` (§3).
 
 ### Changed
 - Journaux applicatifs : canal `stack` → `daily`, **180 jours** écrits en dur (le défaut était 14),
@@ -695,7 +695,7 @@ Correctif de la PR #47.
 
 ## [2026-10-04] — PR #46 (notification des modifications de la politique, §10)
 
-Étape 2 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
+Étape 2 du brief `admin/content/archives/brief-politique-promesses.md` (fil `admin/echanges/_clos/politique-promesses`).
 
 ### Added
 - **`php artisan policy:notify <id>`** : lancée à la main, jamais planifiée ; refuse une entrée
@@ -707,7 +707,7 @@ Correctif de la PR #47.
 
 ## [2026-10-04] — PR #45 (dernier passage des comptes, `last_seen_at`)
 
-Étape 1 du brief `admin/content/brief-politique-promesses.md` (fil `admin/echanges/politique-promesses`).
+Étape 1 du brief `admin/content/archives/brief-politique-promesses.md` (fil `admin/echanges/_clos/politique-promesses`).
 
 ### Added
 - **`users.last_seen_at`** (indexée) et **`deletion_notice_sent_at`** : mesure de l'inactivité promise
@@ -728,16 +728,16 @@ Correctif de la PR #47.
 ### Changed
 - Le dev passe de MySQL 5.7 à **MariaDB 11.4.13** (conteneur `odc-db`) ; README à jour, version de
   prod écrite comme fait daté. Répétition du déploiement sur la structure de prod : les six
-  migrations `2026_10_03_*` s'appliquent, 23 tables (brief `admin/content/brief-mariadb-dev.md`).
+  migrations `2026_10_03_*` s'appliquent, 23 tables (brief `admin/content/archives/brief-mariadb-dev.md`).
 
 ## [2026-10-04] — PR #44 (mandats de maire et de conseiller comtal, historique des postes)
 
-Lots 1 à 3 du brief `admin/content/brief-mandats.md` et historique des postes, livrés ensemble.
+Lots 1 à 3 du brief `admin/content/archives/brief-mandats.md` et historique des postes, livrés ensemble.
 
 #### Historique des postes
 
 ### Added
-- **Historique des postes par province** (fil `admin/echanges/mandats-historique`) : onglet admin
+- **Historique des postes par province** (fil `admin/echanges/_clos/mandats-historique`) : onglet admin
   « Historique » (conseil par titre, maires par ville, réattributions en évidence, villes sans
   mandat comptées) et API `characters/{id}/province` pour la page joueur « Ma province ». Une seule
   fonction de fusion (`OfficeHistory`).
@@ -770,7 +770,7 @@ Lots 1 à 3 du brief `admin/content/brief-mandats.md` et historique des postes, 
 
 ### Added
 - **Tâches planifiées des mandats** (`routes/console.php`, chaque jour à 09:00 Paris ; fil
-  `admin/echanges/mandats-lot3/`) : rappel bilingue au joueur 2 jours après la fin effective de son
+  `admin/echanges/_clos/mandats-lot3/`) : rappel bilingue au joueur 2 jours après la fin effective de son
   mandat, tant qu'il est renouvelable, et jamais à un maire dont la mairie a un successeur validé
   (`mandates:send-reminders`), récapitulatif quotidien de la file de vérification aux comptes
   `admin` tant qu'il reste des lignes en retard (`mandates:verification-digest`), purge des refus
@@ -784,8 +784,8 @@ Lots 1 à 3 du brief `admin/content/brief-mandats.md` et historique des postes, 
 #### Lot 1 — modèle, gestes et administration
 
 ### Added
-- **Mandats de maire et de conseiller comtal, lot 1** (`admin/content/brief-mandats.md`, arbitrages
-  `admin/echanges/mandats-lot1/`). Un joueur demande la validation de son poste, l'administrateur
+- **Mandats de maire et de conseiller comtal, lot 1** (`admin/content/archives/brief-mandats.md`, arbitrages
+  `admin/echanges/_clos/mandats-lot1/`). Un joueur demande la validation de son poste, l'administrateur
   la vérifie, et le mandat devient une autorité datée que les modules liront par
   `App\Services\MandateAuthority`.
   - Schéma : `council_offices` (10 postes, semés par une migration qui appelle le seeder

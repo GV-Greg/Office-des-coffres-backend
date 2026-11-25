@@ -135,7 +135,7 @@ Ce qui change vraiment : un jeton d'accès volé meurt au prochain renouvellemen
 (`RefreshTokenGrant` révoque l'ancien), au plus 1 h au lieu de 15 min. Sans « Rester connecté »,
 la session peut durer jusqu'à ~13 h au lieu de 12 h, le dernier jeton d'accès survivant au refresh
 token. 4 h étaient envisagées, 1 h a été retenue par Greg comme compromis. Ce n'est pas la cause de
-la lenteur, qui se cherche du côté de MySQL (`admin/content/brief-sonde-latence.md`).
+la lenteur, qui se cherche du côté de MySQL (`admin/content/archives/brief-sonde-latence.md`).
 
 ## Reset complet de la base prod plutôt que migration corrective (incident du 05/08/2026)
 
@@ -231,9 +231,9 @@ Raisonnement complet : `admin/strategies/donnees-utilisateur.md` §5.
 
 ## Mandats : une seule fin effective, et un historique des postes dès le lot 1 (03/10/2026)
 
-**Contexte** — Le brief `admin/content/brief-mandats.md` prévoyait un `ended_at` à côté de
+**Contexte** — Le brief `admin/content/archives/brief-mandats.md` prévoyait un `ended_at` à côté de
 `holds_until`, un `council_office_id` sur le mandat et aucun historique des postes. Vingt-neuf
-questions, arbitrées par Greg et Cowork dans `admin/echanges/mandats-lot1/`, ont montré trois
+questions, arbitrées par Greg et Cowork dans `admin/echanges/_clos/mandats-lot1/`, ont montré trois
 défauts : deux dates de fin effective imposaient un `min()` à chaque lecture (le premier lecteur
 qui l'oublie lit un mandat révoqué comme actif) ; un poste change jusqu'à deux fois par jour et
 **tous** les postes sont vidés à chaque élection de dirigeant, si bien qu'un poste stocké sur le
@@ -260,7 +260,7 @@ constaté par un autre geste (Q23 à Q28).
 ## Registre des mines : prix par période, gérés à part (14-15/10/2026)
 
 **Contexte** — Les prix et le taux horaire étaient embarqués dans chaque relevé, à la saisie : un prix faux
-faussait tous les bilans qui en dépendent, sans correction possible (brief `admin/content/brief-prix-registre.md`).
+faussait tous les bilans qui en dépendent, sans correction possible (brief `admin/content/archives/brief-prix-registre.md`).
 
 **Décision** (Greg) —
 - **Approche 1** : une table `province_mine_prices` gérée à part, `effective_from` seul (pas de `effective_to`),
@@ -299,7 +299,7 @@ zéro à plusieurs postes dans le temps), mais le début du premier poste n'est 
 
 ## Gestion du compte en self-service : email, mot de passe, pseudo (29/10/2026)
 
-**Contexte** — Back #75 (brief `admin/content/brief-compte-self-service.md`). Un joueur pouvait supprimer son compte (art. 17 RGPD)
+**Contexte** — Back #75 (brief `admin/content/archives/brief-compte-self-service.md`). Un joueur pouvait supprimer son compte (art. 17 RGPD)
 mais pas changer son email ni son mot de passe, et son pseudo était figé depuis l'inscription.
 
 ### Mot de passe actuel obligatoire
@@ -357,7 +357,7 @@ email au changement de mot de passe (mentionnée dans le brief, hors scope back 
 ## Migration vers Laravel 13, PHP 8.4, Pest 4 (18/11/2026)
 
 **Décision** — Le backend passe de Laravel 12.71 à **13.43**, de PHP 8.2 à **8.4**, de Pest 3 à **4** (PHPUnit 11 → 12) et Passport 13.7 à **13.12**
-(`phpseclib` 3 → 4, seulement tiré par Passport). Brief `admin/content/brief-laravel13.md` ; migration suivie à la lettre de la commande
+(`phpseclib` 3 → 4, seulement tiré par Passport). Brief `admin/content/archives/brief-laravel13.md` ; migration suivie à la lettre de la commande
 `upgrade-laravel-v13` de Laravel Boost (invite MCP lue directement, sans installer de fichiers de consignes dans le dépôt).
 
 - **PHP 8.4 d'abord, en prod** : Greg a basculé o2switch avant le merge (8.4.27 vérifié en SSH). Laravel 13 et Pest 4 exigent PHP ≥ 8.3 ; `composer.json` exige `^8.4`.
@@ -378,7 +378,7 @@ email au changement de mot de passe (mentionnée dans le brief, hors scope back 
 
 **Contexte** — Le jeu change de jour à **04:00 heure de Paris** (heure locale, toute l'année), pas à minuit. Constaté le 20/11/2026 avec le mandat n°5 de Buldo
 (Ventadour) : fin calculée à 00:00, donc « sorti de fonction » 4 h trop tôt, et le niveau « Ville » de l'inventaire disparu pendant la nuit. Source : **constat
-joueur (Greg, 20/11/2026)** ; aucune documentation officielle publique identifiée (recherche de Cowork). Fil `admin/echanges/mandats-heure-bascule/` ; remplace la
+joueur (Greg, 20/11/2026)** ; aucune documentation officielle publique identifiée (recherche de Cowork). Fil `admin/echanges/_clos/mandats-heure-bascule/` ; remplace la
 réponse Q11 de `mandats-lot1` (« 00:00 heure de Paris »), qui ne connaissait pas la bascule.
 
 **Décision** — `MandateCalendar::GAME_DAY_STARTS_AT_HOUR = 4`, en **constante de classe** (jamais `config/*.php` : un fichier de config modifié ou ajouté n'est pas

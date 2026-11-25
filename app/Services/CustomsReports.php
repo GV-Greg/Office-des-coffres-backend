@@ -11,7 +11,7 @@ use App\Support\MandateCalendar;
 use Illuminate\Support\Facades\DB;
 
 /**
- * SEUL écrivain des bilans de défense (Registre de douane ; fil admin/echanges/module-securite, décisions de Greg du 22/11/2026).
+ * SEUL écrivain des bilans de défense (Registre de douane, du 22/11/2026).
  *
  * - UN bilan par ville et par jour du jeu, tenu PAR LA BASE (`active`). Un douanier qui arrive sur une ville déjà saisie voit le bilan et n'en
  *   saisit pas un second (Q5). Le MÊME auteur COMPLÈTE et CORRIGE le sien le même jour (24/11/2026) ; remplacer le bilan d'un autre, ou saisir un

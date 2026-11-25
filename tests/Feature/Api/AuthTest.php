@@ -406,7 +406,7 @@ test('la suppression efface le jeton de réinitialisation de mot de passe', func
 test('la suppression efface les codes OAuth d\'autorisation et de device du compte', function () {
     // Le projet n'utilise ni l'un ni l'autre de ces grants, mais Passport expose leurs routes
     // par défaut et leur user_id n'est qu'une colonne indexée : rien ne garantit que ces tables
-    // restent vides (catégorie B de admin/strategies/donnees-utilisateur.md).
+    // restent vides.
     $user = User::factory()->create(['password' => bcrypt('password123')]);
     $autre = User::factory()->create();
     $client = (string) Str::uuid();

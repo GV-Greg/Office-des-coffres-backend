@@ -25,7 +25,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('map', [MapController::class, 'index']);
 
-    // Icônes des items — lecture publique (brief admin/content/brief-icones-items.md).
+    // Icônes des items — lecture publique.
     // ⚠️ Routes ajoutées : route:cache en prod.
     Route::get('item-icons', [ItemIconController::class, 'lookup']);
 
@@ -145,7 +145,7 @@ Route::prefix('v1')->group(function () {
         Route::post('characters', [CharacterController::class, 'store']);
         Route::patch('characters/{character}', [CharacterController::class, 'update']);
 
-        // Mandats (admin/content/brief-mandats.md, lot 1) : toujours les personnages du porteur
+        // Mandats : toujours les personnages du porteur
         // du jeton, 404 pour ceux d'un autre compte.
         Route::get('mandates', [MandateController::class, 'index']);
         // « Ma province » : historique des postes de la province de résidence du personnage.
@@ -154,7 +154,7 @@ Route::prefix('v1')->group(function () {
         // Registre des mines : ce que le personnage peut faire maintenant, et dans quelle province.
         Route::get('characters/{character}/mine-registry', [MineReportController::class, 'access'])
             ->where('character', '[0-9]+');
-        // Inventaires (fil admin/echanges/inventaire-scopes et inventaire-bilans, 11/11/2026) : réglages et texte collé aux trois
+        // Inventaires (11/11/2026) : réglages et texte collé aux trois
         // niveaux — personnage, ville (maire), province (commissaire au commerce ; le dirigeant lit). ⚠️ Routes ajoutées : route:cache en prod.
         Route::get('characters/{character}/inventory-scopes', [InventorySettingsController::class, 'scopes'])
             ->where('character', '[0-9]+');
@@ -186,7 +186,7 @@ Route::prefix('v1')->group(function () {
         // seule, relevés fenêtrés pour un mandat passé. ⚠️ Route ajoutée : route:cache en prod.
         Route::get('characters/{character}/mine-registry/mandates/{mandate}', [MineReportController::class, 'mandate'])
             ->where(['character' => '[0-9]+', 'mandate' => '[0-9]+']);
-        // Registre des mines, lot 2 — prix par période (brief admin/content/brief-prix-registre.md).
+        // Registre des mines, lot 2 — prix par période.
         // Pas de DELETE : un prix faux se corrige. ⚠️ Routes ajoutées : route:cache en prod.
         Route::get('provinces/{province}/mine-prices', [MinePriceController::class, 'index'])
             ->where('province', '[0-9]+');
@@ -198,7 +198,7 @@ Route::prefix('v1')->group(function () {
             Route::put('provinces/{province}/mine-prices/{price}', [MinePriceController::class, 'update'])
                 ->where(['province' => '[0-9]+', 'price' => '[0-9]+']);
         });
-        // Animation — Décode le code (brief admin/modules/animation/brief-coffres-scelles.md).
+        // Animation — Décode le code.
         // Autorisation par PROPRIÉTÉ (DecodeWorkflow), jamais par poste. ⚠️ Routes ajoutées : route:cache en prod.
         Route::get('characters/{character}/decode-activities', [DecodeActivityController::class, 'index'])
             ->where('character', '[0-9]+');
@@ -242,7 +242,7 @@ Route::prefix('v1')->group(function () {
             Route::post('mandates/council/{id}/office', [MandateController::class, 'declareOffice'])
                 ->where('id', '[0-9]+');
         });
-        // Sécurité — douaniers (module « Salle des gardes », fil admin/echanges/module-securite). Demande opt-in, validée par le trio.
+        // Sécurité — douaniers (module « Salle des gardes »). Demande opt-in, validée par le trio.
         // ⚠️ Routes ajoutées : route:cache en prod ; une route protégée répond 401 sans jeton, jamais 404.
         Route::get('characters/{character}/customs', [CustomsController::class, 'show'])->where('character', '[0-9]+');
         // Registre de douane (PR 3-1) : bilans de défense et listes rouge/verte. Droits : App\Services\CustomsAccess. Noms `customs-reports` et
@@ -275,7 +275,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('admin/characters/{character}/pseudo', [AdminCharacterController::class, 'updatePseudo'])
                 ->where('character', '[0-9]+');
 
-            // Icônes des items — CRUD admin (brief admin/content/brief-icones-items.md).
+            // Icônes des items — CRUD admin.
             Route::get('admin/item-icons', [ItemIconController::class, 'index']);
             Route::post('admin/item-icons', [ItemIconController::class, 'store']);
             Route::put('admin/item-icons/{icon}', [ItemIconController::class, 'update'])

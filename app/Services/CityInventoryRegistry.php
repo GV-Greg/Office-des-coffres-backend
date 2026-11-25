@@ -10,7 +10,7 @@ use App\Models\MayorMandate;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Historique des inventaires d'une VILLE (fil admin/echanges/registre-stocks, 20/11/2026) : la mémoire de la ville, transmise d'un maire
+ * Historique des inventaires d'une VILLE (20/11/2026) : la mémoire de la ville, transmise d'un maire
  * au suivant. Mécanique commune : voir InventoryRegistry. Distinct du dernier inventaire collé de `city_inventory_settings` (un seul
  * exemplaire, remplacé à chaque collage) : ici, un exemplaire par jour, inscrit par un geste volontaire.
  *

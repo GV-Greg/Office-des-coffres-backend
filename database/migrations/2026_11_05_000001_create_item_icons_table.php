@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Référentiel des icônes d'items (brief admin/content/brief-icones-items.md). Associe un
+     * Référentiel des icônes d'items. Associe un
      * nom d'item normalisé à l'ID numérique de l'icône sur le CDN de Celsius Online. L'URL
      * complète est construite à la volée par ItemIcon::iconUrl() — aucun fichier image stocké.
      *

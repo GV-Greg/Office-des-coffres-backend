@@ -16,8 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Décode le code — gestes de l'organisateur (brief admin/modules/animation/brief-coffres-scelles.md ; fil
- * admin/echanges/animation-coffres-scelles, synthèse du tour 12). SEUL écrivain des activités et des secrets ; les
+ * Décode le code — gestes de l'organisateur (tour 12). SEUL écrivain des activités et des secrets ; les
  * contrôleurs ne valident que la forme.
  *
  * 🔴 Autorisation PAR PROPRIÉTÉ, jamais par poste (premier module du projet sans Spatie ni mandat) : un geste de gestion

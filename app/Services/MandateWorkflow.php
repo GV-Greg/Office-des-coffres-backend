@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Tous les gestes qui écrivent un mandat ou un poste — ceux du joueur et ceux de l'administrateur.
- * Arbitrages : admin/content/brief-mandats.md et admin/echanges/mandats-lot1/ (Q1 à Q29).
  *
  * Trois invariants tiennent ici, et seulement ici :
  *  1. holds_until, holds_until_set_by et l'ended_at de la période de poste en cours s'écrivent

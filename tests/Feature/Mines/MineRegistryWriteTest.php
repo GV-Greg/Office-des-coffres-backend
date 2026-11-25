@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Registre des mines — écriture (PR 1b ; brief admin/content/brief-registre-mines.md §3, §6 ; fil
-| admin/echanges/registre-mines R3 et R3 bis). Trois cas imposés par le fil : identique → refus,
+| Registre des mines — écriture (PR 1b). Trois cas imposés par le fil : identique → refus,
 | tronqué → refus, un jour de plus ou une valeur corrigée → accepté et remplacement visible.
 */
 

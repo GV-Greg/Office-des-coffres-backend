@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Chiffreur dédié aux données de module, alimenté par MODULE_DATA_KEY et jamais par
-        // APP_KEY (admin/strategies/donnees-utilisateur.md §5). Résolu paresseusement : une
+        // APP_KEY. Résolu paresseusement : une
         // installation sans MODULE_DATA_KEY doit continuer de fonctionner tant qu'aucun module
         // chiffré n'est utilisé — aucune table de module n'existe encore.
         $this->app->singleton(ModuleDataEncrypter::class, static function ($app): ModuleDataEncrypter {
@@ -121,7 +121,7 @@ class AppServiceProvider extends ServiceProvider
             SendEmailVerificationNotification::class,
         );
 
-        // Migration Sanctum → Passport (admin/strategies/cookies.md item #13) : access token
+        // Migration Sanctum → Passport (#13) : access token
         // court (1 h, voir docs/DECISIONS.md) dans tous les cas, refresh token long par défaut (30 j) — AuthController
         // raccourcit explicitement l'expiration du refresh token à 12h après coup si
         // "remember_me" n'est pas coché, Passport n'ayant pas de notion de durée conditionnelle
@@ -161,7 +161,7 @@ class AppServiceProvider extends ServiceProvider
                         'key:generate est désactivée en production sur ce projet. Faire tourner '
                         .'APP_KEY déconnecte tout le monde, et un --force sur MODULE_DATA_KEY '
                         .'rendrait les données de module illisibles. '
-                        .'Voir admin/strategies/donnees-utilisateur.md §5.'
+                        .'Voir backend/docs/ARCHITECTURE.md, « Chiffrement des données de module ».'
                     );
 
                     return self::FAILURE;

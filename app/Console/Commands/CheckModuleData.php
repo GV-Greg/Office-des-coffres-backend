@@ -9,7 +9,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Contrôle de la clé des données de module (admin/strategies/donnees-utilisateur.md §5). À lancer
+ * Contrôle de la clé des données de module. À lancer
  * après TOUT changement de MODULE_DATA_KEY ou de MODULE_DATA_PREVIOUS_KEYS, après `config:cache`.
  *
  * Né de l'incident du 09/10/2026 : une clé collée sans son préfixe `base64:` a donné un « Server

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mode maintenance de la production, SANS SSH (brief admin/content/brief-mode-maintenance.md).
+# Mode maintenance de la production, SANS SSH.
 #
 # Le déploiement n'a que du FTP : `php artisan down` n'est pas à portée. Or `artisan down` n'écrit
 # qu'un fichier JSON, `storage/framework/down`, que le middleware de Laravel lit à chaque requête.

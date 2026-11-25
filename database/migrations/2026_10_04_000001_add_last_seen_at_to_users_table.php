@@ -9,8 +9,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Mesure de l'inactivité (admin/content/brief-politique-promesses.md §2.1 ; fil
-     * admin/echanges/politique-promesses). Écrites par App\Support\LastSeen, seul écrivain.
+     * Mesure de l'inactivité. Écrites par App\Support\LastSeen, seul écrivain.
      *
      * - last_seen_at : dernier passage authentifié, au plus une écriture par jour.
      * - deletion_notice_sent_at : préavis de suppression (inactivité) OU rappel de confirmation

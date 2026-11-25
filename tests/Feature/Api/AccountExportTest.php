@@ -8,7 +8,6 @@ use Laravel\Passport\Passport;
 |--------------------------------------------------------------------------
 | GET auth/account/export — export art. 20 RGPD
 |--------------------------------------------------------------------------
-| Brief : admin/content/brief-export-donnees.md (§ Tests, Lot 1).
 */
 
 describe('GET auth/account/export', function () {

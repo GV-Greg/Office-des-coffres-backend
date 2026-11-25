@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notification;
  * note interne.
  *
  * Envoi SYNCHRONE, volontairement : une file (ShouldQueue) ferait basculer failed_jobs en
- * catégorie B (admin/strategies/donnees-utilisateur.md §3).
+ * catégorie B.
  *
  * Garde-fou : MandateLanguageTest rend CHAQUE type dans les deux langues et échoue si une clé
  * brute (« mandates.… ») apparaît — __() la renvoie quand une traduction manque.

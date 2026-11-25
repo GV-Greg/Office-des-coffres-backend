@@ -10,7 +10,7 @@ use App\Support\CustomsPseudo;
 use App\Support\MandateCalendar;
 
 /**
- * SEUL écrivain des listes rouge et verte d'une province (Registre de douane ; fil admin/echanges/module-securite, décisions de Greg).
+ * SEUL écrivain des listes rouge et verte d'une province (Registre de douane).
  *
  * - Droits : App\Services\CustomsAccess. Le trio écrit ; maire et douanier SEULEMENT sans trio connu ; le juge n'ajoute qu'au rouge.
  * - L'AUTEUR retire sa propre entrée, même quand le trio est actif (P4). Un retrait SUPPRIME la ligne (choix B, 22/11/2026).

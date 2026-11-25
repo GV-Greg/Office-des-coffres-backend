@@ -7,7 +7,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Lien de réinitialisation du mot de passe (fil admin/echanges/mot-de-passe-oublie, validé par Greg le 24/11/2026) : à usage unique, valable
+ * Lien de réinitialisation du mot de passe (validé le 24/11/2026) : à usage unique, valable
  * `auth.passwords.users.expire` minutes (60). Le joueur CHOISIT lui-même son nouveau mot de passe sur le site : aucun mot de passe ne circule par
  * email. Bilingue FR puis EN, gabarit commun des emails ; le lien pointe vers le site des joueurs.
  */

@@ -18,8 +18,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Module Sécurité — douaniers (brief admin/content/brief-module-securite.md §4 ; fil admin/echanges/module-securite, réponses de Greg
-| du 21/11/2026). Le douanier DEMANDE (opt-in), le trio valide en cascade (niveau 1 prévôt/connétable, niveau 2 capitaine/comte/maire
+| Module Sécurité — douaniers (21/11/2026). Le douanier DEMANDE (opt-in), le trio valide en cascade (niveau 1 prévôt/connétable, niveau 2 capitaine/comte/maire
 | seulement sans prévôt ni connétable connu, niveau 3 administrateur) ; seule la saisie d'un bilan remet le compteur d'inactivité à zéro.
 */
 

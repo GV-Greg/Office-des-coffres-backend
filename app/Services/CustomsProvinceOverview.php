@@ -9,7 +9,7 @@ use App\Support\MandateCalendar;
 use Illuminate\Support\Collection;
 
 /**
- * Vue d'ensemble de la province (module Sécurité, PR 5 ; fil admin/echanges/module-securite 18 et 19, maquette validée par Greg le 23/11/2026).
+ * Vue d'ensemble de la province (module Sécurité, PR 5, maquette validée le 23/11/2026).
  * LECTURE SEULE, **aucun droit nouveau** : la vue ne montre que ce que le rôle lit déjà ville par ville (`CustomsAccess::readableCities`).
  *
  * Fusion des DERNIÈRES inscriptions de chaque ville, **chaque ligne datée de son jour de bilan**, **jamais de différentiel entre villes** (décision de

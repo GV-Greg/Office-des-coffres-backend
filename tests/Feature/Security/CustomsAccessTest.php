@@ -7,7 +7,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 
 /*
-| Matrice d'accès du Registre de douane (brief admin/content/brief-module-securite.md §3, corrigée par Greg les 21 et 22/11/2026) :
+| Matrice d'accès du Registre de douane (corrigée les /11/2026) :
 | App\Services\CustomsAccess. Le repli « sans trio connu » est le mode COURANT d'une province, jamais étendu à un conseiller sans titre.
 */
 

@@ -1,4 +1,4 @@
-{{-- Référentiel admin des icônes d'items (brief admin/content/brief-icones-items.md).
+{{-- Référentiel admin des icônes d'items.
      Les icônes ne sont jamais hébergées sur ODC — seul l'ID Celsius est stocké, l'URL CDN est
      construite à la volée. Mention de propriété Celsius visible en bas de page. --}}
 <x-app-layout>

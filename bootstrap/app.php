@@ -36,7 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
 
         // Dernier passage authentifié (App\Support\LastSeen), écrit après la réponse : mesure de
-        // l'inactivité promise par /legal/privacy §5 (fil admin/echanges/politique-promesses).
+        // l'inactivité promise par /legal/privacy §5.
         $middleware->appendToGroup('api', RecordLastSeen::class);
         $middleware->appendToGroup('web', RecordLastSeen::class);
     })

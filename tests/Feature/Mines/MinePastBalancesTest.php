@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Registre des mines — bilans de mandat PASSÉS (brief admin/modules/economie/brief-bilans-passes-mines.md ; fil admin/echanges/bilans-passes-mines,
-| décisions de Greg et Cowork du 22/11/2026). Un ancien titulaire relit, en LECTURE SEULE, les relevés de la fenêtre de SON mandat — du début de la
+| Registre des mines — bilans de mandat PASSÉS (22/11/2026). Un ancien titulaire relit, en LECTURE SEULE, les relevés de la fenêtre de SON mandat — du début de la
 | fenêtre « prédécesseur » (in_office_from − 30 j) à la fin du mandat (holds_until exclu) — jamais le travail de ses successeurs. Mandats `approved`
 | seulement (jamais `revoked`). Un mandat EN COURS garde le comportement d'avant : aucune borne haute.
 */

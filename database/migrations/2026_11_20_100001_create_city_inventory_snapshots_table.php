@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Registre des stocks, niveau VILLE (Cowork et Greg, 20/11/2026, fil admin/echanges/registre-stocks, Q1-A : une table par
-     * niveau, chacune avec sa vraie FK). Jumelle de `province_inventory_snapshots` : la mémoire de la ville, transmise d'un maire
+     * Registre des stocks, niveau VILLE (Cowork, 20/11/2026, -A : une table par niveau, chacune avec sa vraie FK). Jumelle de `province_inventory_snapshots` : la mémoire de la ville, transmise d'un maire
      * au suivant — le dernier inventaire collé de `city_inventory_settings` reste un seul exemplaire remplacé, celui-ci en est
      * l'HISTORIQUE, inscrit par un geste volontaire du maire (« Inscrire au registre »).
      *

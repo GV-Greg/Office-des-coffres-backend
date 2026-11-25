@@ -18,7 +18,6 @@ use Illuminate\Support\Carbon;
  * Chaque section est une méthode privée : pour qu'un module ajoute la sienne,
  * il suffit d'ajouter une méthode ici — le contrôleur n'a pas à bouger.
  *
- * Brief : admin/content/brief-export-donnees.md (Lot 1).
  */
 class AccountExport
 {

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Vue d'ensemble de la province (PR 5 ; fil admin/echanges/module-securite 18 et 19, maquette validée par Greg le 23/11/2026) : couverture par ville
+| Vue d'ensemble de la province (PR 5, maquette validée le 23/11/2026) : couverture par ville
 | et, FUSIONNÉS, les pseudos marqués, les groupes à surveiller et les armées — chaque ligne datée de son jour de bilan, jamais de différentiel entre
 | villes. LECTURE SEULE, aucun droit nouveau : seules les villes que le rôle lit déjà.
 */

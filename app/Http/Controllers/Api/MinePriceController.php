@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Prix des mines par période (brief admin/content/brief-prix-registre.md). Ne valide que la FORME :
+ * Prix des mines par période. Ne valide que la FORME :
  * les règles vivent dans App\Services\MinePrices et MandateAuthority. L'acteur est le personnage du
  * compte qui occupe un poste dans la province de la route — les routes ne portent pas de personnage.
  */
