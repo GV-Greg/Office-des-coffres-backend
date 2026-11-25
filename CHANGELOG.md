@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #117 (Sondes de routes après déploiement)
+
+### Added
+- **`scripts/probe-routes.txt`** (11 routes, `MÉTHODE chemin code-attendu`) et **`scripts/probe-routes.sh`** : sonde la production, réessaie les 429 et les coupures, écrit les écarts dans `GITHUB_OUTPUT`. Testé contre la production et en contrôle négatif.
+- **`deploy.yml`** : étape « Sonder les routes de l'API » et **alerte sur le salon admin/mod** si des routes ne répondent pas comme prévu. **Non bloquante** : une route ajoutée est en 404 jusqu'au `route:cache`, ce qui est attendu.
+
+### Changed
+- `docs/ARCHITECTURE.md` : « Sondes de routes après déploiement » — **toute PR qui ajoute une route ajoute sa ligne** à `probe-routes.txt` ; `route:cache` **une fois le « Deploy » vert**.
+
+### Deploy notes
+- Aucun `route:cache`, migration, `config/*.php`, `.env` ni paquet. L'étape agit dès le déploiement suivant.
+
 ## [2026-11-25] — PR #116 (`pint.json` et règle « Pint sur les fichiers créés seulement »)
 
 ### Added
