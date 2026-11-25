@@ -1,8 +1,8 @@
 # Tests — Office des Coffres (backend)
 
 Référence structurelle chargée à la demande (voir `admin/strategies/tests.md` pour le
-raisonnement complet). Décompte de tests à jour dans `README.md` — source unique, jamais dupliqué
-ici (Docs #6).
+raisonnement complet). Le décompte s'affiche à la fin de la suite et dans la CI : plus recopié dans
+le `README.md` (25/11/2026, Docs #6).
 
 ## Principe : adapter la portée du test au périmètre du changement
 

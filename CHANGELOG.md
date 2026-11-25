@@ -7,6 +7,15 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #115 (Le décompte de tests n'est plus recopié dans le README)
+
+### Changed
+- **Le décompte de tests n'est plus dans le `README.md`** : il s'affiche à la fin de `php artisan test` et dans la CI (il était la source de presque tous les conflits entre PR ouvertes en même temps). `ARCHITECTURE.md`, `TESTS.md` et `DECISIONS.md` n'y renvoient plus.
+- **`scripts/docs-sync-check.sh`** refuse désormais tout nombre recopié (« N tests verts ») dans un `.md`, sauf `CHANGELOG.md` (historique daté).
+
+### Deploy notes
+- Aucun code applicatif.
+
 ## [2026-11-25] — PR #117 (Sondes de routes après déploiement)
 
 ### Added
