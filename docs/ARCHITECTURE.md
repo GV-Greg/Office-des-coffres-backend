@@ -334,7 +334,7 @@ Marqueur `{quand}`/`{when}` remplacé par l'API (dates formatées, « cette sema
 
 ## Tests
 
-`docker exec odc-backend php artisan test` — décompte dans `README.md` (source unique). `CharacterFactory` utilise `RAND()` MySQL → passer `city_id: null` en test (incompatible SQLite). Factories Kingdom/Province/City disponibles. Lien signé : `URL::temporarySignedRoute(…)` plutôt que parser l'email.
+`docker exec odc-backend php artisan test` — le décompte s'affiche à la fin de la suite et dans la CI : **plus recopié** dans le `README.md` (25/11/2026, `scripts/docs-sync-check.sh` le refuse). `CharacterFactory` utilise `RAND()` MySQL → passer `city_id: null` en test (incompatible SQLite). Factories Kingdom/Province/City disponibles. Lien signé : `URL::temporarySignedRoute(…)` plutôt que parser l'email.
 
 ## Contraintes projet
 

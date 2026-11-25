@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Enforcement de admin/strategies/docs.md #10 (Docs #6/#7) : un seul décompte de
-# tests dans le repo (README.md, source unique), et docs/ARCHITECTURE.md pas trop
+# Enforcement de admin/strategies/docs.md #10 (Docs #6/#7) : AUCUN décompte de tests
+# recopié dans la doc (depuis le 25/11/2026), et docs/ARCHITECTURE.md pas trop
 # périmée par rapport au code qu'elle décrit.
 #
 # Usage : ./scripts/docs-sync-check.sh (depuis n'importe où, chemins résolus
@@ -15,29 +15,20 @@ cd "$ROOT_DIR"
 FAILED=0
 COUNT_PATTERN='[0-9]+/[0-9]+ (tests? )?verts?|[0-9]+ tests? verts?'
 
-echo "== Décompte de tests : une seule valeur dans tout le repo =="
+echo "== Décompte de tests : aucun nombre recopié dans la doc =="
 
-# Toutes les mentions "N tests verts" / "N/M verts" dans tous les .md du repo (hors
-# vendor/node_modules) — pas seulement README.md : docs/TESTS.md a le droit de
-# répéter le même chiffre (sa table de temps de référence en dépend), l'enjeu est
-# la dérive (deux chiffres différents qui se contredisent), pas la simple présence.
-MATCHES_WITH_LOC=$(grep -rnoE "$COUNT_PATTERN" --include='*.md' --exclude-dir=vendor --exclude-dir=node_modules . 2>/dev/null || true)
-MATCHES_ONLY=$(grep -rhoE "$COUNT_PATTERN" --include='*.md' --exclude-dir=vendor --exclude-dir=node_modules . 2>/dev/null || true)
+# Piste 5 de admin/echanges/ameliorations-cc (arbitrée par Cowork le 25/11/2026) : le décompte (« 1719 tests verts ») n'est PLUS recopié dans les README — il
+# s'affiche à la fin de la suite et dans la CI. Recopié, c'était la source de presque tous les conflits entre PR ouvertes en même temps (deux PR = deux
+# chiffres), et une valeur toujours à retoucher. Ce contrôle refuse donc toute réapparition, dans tout .md sauf CHANGELOG.md (l'historique daté d'une PR
+# a le droit de dire « 1719 tests » : c'est un fait passé, pas un décompte à tenir à jour).
+MATCHES_WITH_LOC=$(grep -rnoE "$COUNT_PATTERN" --include='*.md' --exclude='CHANGELOG.md' --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor . 2>/dev/null || true)
 
-if [ -z "$MATCHES_ONLY" ]; then
-  echo "  ok — aucune mention trouvée"
+if [ -z "$MATCHES_WITH_LOC" ]; then
+  echo "  ok — aucun décompte recopié (il s'affiche à la fin de la suite et dans la CI)"
 else
-  UNIQUE_NUMS=$(echo "$MATCHES_ONLY" | grep -oE '[0-9]+' | sort -un | uniq)
-  UNIQUE_COUNT=$(echo "$UNIQUE_NUMS" | grep -c . || true)
-  TOTAL_MENTIONS=$(echo "$MATCHES_ONLY" | grep -c . || true)
-
-  if [ "$UNIQUE_COUNT" -gt 1 ]; then
-    echo "  ⨯ Plusieurs décomptes différents trouvés :"
-    echo "$MATCHES_WITH_LOC" | sed 's/^/      /'
-    FAILED=1
-  else
-    echo "  ok — une seule valeur ($(echo "$UNIQUE_NUMS" | tr '\n' ' ' | sed 's/ $//')) sur $TOTAL_MENTIONS mention(s)"
-  fi
+  echo "  ⨯ Un décompte de tests est recopié dans la doc — le retirer (il s'affiche à la fin de la suite) :"
+  echo "$MATCHES_WITH_LOC" | sed 's/^/      /'
+  FAILED=1
 fi
 
 echo ""
