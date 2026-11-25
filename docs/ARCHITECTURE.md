@@ -340,3 +340,4 @@ Marqueur `{quand}`/`{when}` remplacé par l'API (dates formatées, « cette sema
 
 - **Aucun texte en dur** — `__()` partout, `lang/fr` complet, `lang/en` seulement pour l'anglais réel. Blade en français, sans bascule de langue.
 - Ne jamais committer `.env`/credentials.
+- **Pint** — Lancer Pint uniquement sur les fichiers **créés** dans la PR. Ne jamais lancer Pint sur un fichier existant dont on ne modifie que quelques lignes — le réalignement noie le diff. (`pint.json` n'impose plus l'alignement des `=>`, mais la règle reste : fichiers créés seulement.)
