@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 /*
-| Douaniers — niveau 3 : l'administrateur, « sur demande » (brief admin/content/brief-module-securite.md §4.1). Page Blade /customs,
+| Douaniers — niveau 3 : l'administrateur, « sur demande ». Page Blade /customs,
 | réservée au rôle admin ; même service que l'API.
 */
 

@@ -10,7 +10,7 @@ use App\Support\MandateCalendar;
 use Illuminate\Support\Collection;
 
 /**
- * Matrice d'accès du Registre de douane (brief admin/content/brief-module-securite.md §3, corrigée par Greg les 21 et 22/11/2026). SEUL endroit
+ * Matrice d'accès du Registre de douane (corrigée les /11/2026). SEUL endroit
  * qui dit qui lit et qui écrit quoi ; les services (CustomsReports, CustomsWatchlist) et les contrôleurs le consultent, le frontend ne le recode pas.
  *
  * | Rôle (maintenant, dans la province) | Bilans                      | Listes                                                  |

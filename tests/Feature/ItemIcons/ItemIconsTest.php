@@ -10,7 +10,6 @@ use Laravel\Passport\Passport;
 |--------------------------------------------------------------------------
 | Référentiel des icônes d'items
 |--------------------------------------------------------------------------
-| Brief : admin/content/brief-icones-items.md. Fil : admin/echanges/icones-items/.
 | Trois surfaces : la page Blade (session, rôle admin), l'API JSON admin (Passport, rôle admin)
 | et la lecture publique. Aucune image n'est stockée : seul l'ID Celsius l'est.
 */

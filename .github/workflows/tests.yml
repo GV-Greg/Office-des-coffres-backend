@@ -64,7 +64,7 @@ jobs:
       - name: Run tests
         run: php artisan test
 
-  # Le moteur de la prod (brief admin/content/brief-mariadb-dev.md, §6). La suite Pest tourne sur
+  # Le moteur de la prod. La suite Pest tourne sur
   # SQLite, qui accepte ce que MariaDB refuse (cas réel : un second `timestamp` NOT NULL, refusé par
   # MySQL 5.7, trouvé à la main). Ce job ne fait QUE `migrate` sur MariaDB 11.4.13 : deploy.yml
   # appelle ce workflow, donc une migration qui ne passe pas sur le moteur de prod bloque la mise en

@@ -11,8 +11,7 @@ use Illuminate\Validation\ValidationException;
 use LogicException;
 
 /**
- * Forme de TOUTE réponse d'erreur de l'API des mandats (fil admin/echanges/mandats-lot2, Q1, Q8,
- * Q9, Q10). Un seul endroit porte les trois garanties :
+ * Forme de TOUTE réponse d'erreur de l'API des mandats. Un seul endroit porte les trois garanties :
  *
  *  1. COMPLÈTE : chaque champ en erreur porte un `code` et ses `messages` {fr, en} — qu'il vienne
  *     d'un refus métier (MandateRefusal) ou de la validation de forme de Laravel (Q10) ; un 404 ou

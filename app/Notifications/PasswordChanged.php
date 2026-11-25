@@ -6,7 +6,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * « Votre mot de passe a été modifié » (fil admin/echanges/mot-de-passe-oublie, Q5 : à chaque changement — réinitialisation ET profil). Alerte un
+ * « Votre mot de passe a été modifié » (à chaque changement — réinitialisation ET profil). Alerte un
  * propriétaire dont le compte serait pris. Bilingue FR puis EN ; ne dit JAMAIS le mot de passe ni un lien.
  */
 class PasswordChanged extends Notification

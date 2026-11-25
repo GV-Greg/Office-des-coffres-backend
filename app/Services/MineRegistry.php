@@ -11,8 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Écriture du Registre des mines (PR 1b ; brief admin/content/brief-registre-mines.md §3, §6 ; fil
- * admin/echanges/registre-mines, R3 et R3 bis). TOUTES les règles d'écriture vivent ici, le
+ * Écriture du Registre des mines (PR 1b). TOUTES les règles d'écriture vivent ici, le
  * contrôleur ne valide que la forme.
  *
  * - Autorisation : `MandateAuthority::canManageMines()` — la province est celle du POSTE, jamais la

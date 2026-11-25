@@ -7,7 +7,6 @@ use Laravel\Passport\Passport;
 |--------------------------------------------------------------------------
 | GET auth/account/export/pdf — export art. 15 RGPD (lisible par un humain)
 |--------------------------------------------------------------------------
-| Brief : admin/content/brief-export-donnees.md (§ Tests, Lot 2 PDF).
 | Même règle que l'export JSON : porteur du jeton, throttle 6/min.
 */
 

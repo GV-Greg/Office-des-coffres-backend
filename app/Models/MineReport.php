@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Relevé du Registre des mines (brief admin/content/brief-registre-mines.md). Axes en clair,
+ * Relevé du Registre des mines. Axes en clair,
  * `payload` chiffré par MODULE_DATA_KEY. Ajout seul : jamais de suppression, un remplacement —
  * `active` = true en vigueur, NULL remplacé (voir la migration). L'écriture passera par un service
  * unique (PR 1b) ; ce modèle ne porte aucune règle.

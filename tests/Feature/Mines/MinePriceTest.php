@@ -16,8 +16,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Passport\Passport;
 
 /*
-| Registre des mines, lot 2 — prix par période (brief admin/content/brief-prix-registre.md ;
-| décisions de Greg des 14 et 15/10/2026). Trois postes égaux écrivent, le dirigeant lit seulement ;
+| Registre des mines, lot 2 — prix par période (10/2026). Trois postes égaux écrivent, le dirigeant lit seulement ;
 | un prix se corrige jusqu'à 7 jours après la fin du poste qui le couvre ; résumé quotidien par email.
 */
 

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Association nom d'item normalisé ↔ ID icône Celsius (brief admin/content/brief-icones-items.md).
+ * Association nom d'item normalisé ↔ ID icône Celsius.
  * L'URL CDN est construite à la volée par iconUrl() — aucune image stockée côté ODC.
  */
 class ItemIcon extends Model

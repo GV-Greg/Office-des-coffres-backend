@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Passport\Passport;
 
 /*
-| Porte unique de suppression (fil admin/echanges/mandats-historique, 11-12).
+| Porte unique de suppression.
 |
 | L'historique des postes SURVIT à la suppression d'un compte (décision de Greg, 03/10/2026) : il
 | est archivé par App\Services\AccountDeletion juste avant la cascade. La cascade SQL ne prévient

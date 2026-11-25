@@ -12,8 +12,7 @@ use Illuminate\Support\Facades\URL;
 use Laravel\Passport\Passport;
 use Symfony\Component\HttpFoundation\Response;
 
-// Mesure de l'inactivité (brief-politique-promesses §2.1-2.2 ; fil admin/echanges/politique-promesses,
-// E1, Q2, Q7). « Connexion » = toute requête authentifiée, API comme panneau Blade.
+// Mesure de l'inactivité (2.2, E1). « Connexion » = toute requête authentifiée, API comme panneau Blade.
 
 beforeEach(function () {
     $this->seed(PassportClientSeeder::class);

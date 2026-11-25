@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Enforcement de admin/strategies/docs.md #10 (Docs #6/#7) : AUCUN décompte de tests
+# Enforcement de la stratégie de documentation (Docs #6/#7) : AUCUN décompte de tests
 # recopié dans la doc (depuis le 25/11/2026), et docs/ARCHITECTURE.md pas trop
 # périmée par rapport au code qu'elle décrit.
 #
@@ -68,6 +68,24 @@ else
       fi
     fi
   fi
+fi
+
+echo ""
+echo "== Aucune référence au dossier admin/ dans le code =="
+
+# Piste 3 de admin/echanges/ameliorations-cc (arbitrée par Cowork le 25/11/2026 ; Greg : « mettre des références de briefing dans le code, c'est pas très bon »).
+# Le dossier admin/ est HORS du dépôt : un chemin vers lui dans un commentaire ne mène nulle part pour qui clone le dépôt, et il pourrit à chaque archivage
+# (plus de 250 références cassées le 25/11/2026). Le code dit son « pourquoi » lui-même ; la doc du dépôt (docs/, README, CHANGELOG) peut renvoyer à admin/.
+CODE_REFS=$(grep -rnE 'admin/(echanges|content|modules|strategies|suivi|jeu|archives|exemples)/|admin/(roadmap|registre-traitements|index-briefs)\.md' \
+  --include='*.js' --include='*.mjs' --include='*.vue' --include='*.php' --include='*.yml' --include='*.yaml' --include='*.sh' \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=vendor --exclude-dir=storage --exclude-dir=.git --exclude='docs-sync-check.sh' . 2>/dev/null || true)
+
+if [ -z "$CODE_REFS" ]; then
+  echo "  ok — aucune référence à admin/ dans le code"
+else
+  echo "  ⨯ Une référence à admin/ dans le code — l'expliquer dans le commentaire lui-même, ou la mettre dans la doc du dépôt :"
+  echo "$CODE_REFS" | sed 's/^/      /' | head -20
+  FAILED=1
 fi
 
 exit $FAILED

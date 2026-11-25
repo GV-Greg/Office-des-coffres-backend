@@ -20,7 +20,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 /*
-| Mandats — tâches quotidiennes (admin/content/brief-mandats.md, lot 3 ; fil admin/echanges/mandats-lot3).
+| Mandats — tâches quotidiennes.
 |
 | ⚠️ PRÉREQUIS EN PROD : O2Switch ne lance rien seul. Ces tâches n'ont d'effet qu'une fois créée,
 | dans cPanel → Tâches cron, la ligne :
@@ -58,8 +58,7 @@ Schedule::command('mines:prices-digest')
     ->dailyAt(config('mandates.price_digest_at'))->timezone(config('mandates.timezone'));
 
 /*
-| Animation — Décode le code : fermeture des activités restées 30 jours sans action (brief
-| admin/modules/animation/brief-coffres-scelles.md). Une fois par jour, heartbeat `decode`.
+| Animation — Décode le code : fermeture des activités restées 30 jours sans action. Une fois par jour, heartbeat `decode`.
 */
 Schedule::command('anim:close-inactive')
     ->dailyAt(config('mandates.schedule_at'))->timezone(config('mandates.timezone'));

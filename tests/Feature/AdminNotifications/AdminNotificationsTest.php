@@ -17,7 +17,6 @@ use Laravel\Passport\Passport;
 |--------------------------------------------------------------------------
 | Notifications d'administration
 |--------------------------------------------------------------------------
-| Brief : admin/content/brief-notifications-admin.md. Fil : admin/echanges/notifications-admin/.
 | Arbitrages de Greg (17/11/2026) : comptes `admin` destinataires, compte signalé à la CONFIRMATION
 | de l'adresse (jamais avec l'adresse), renouvellements inclus, français seul.
 */

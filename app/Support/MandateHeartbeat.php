@@ -6,8 +6,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Horodatage du dernier passage RÉUSSI de chaque tâche quotidienne (mandats, journaux ; fil
- * admin/echanges/mandats-lot3, Q5 et Q6).
+ * Horodatage du dernier passage RÉUSSI de chaque tâche quotidienne (mandats, journaux).
  *
  * Pourquoi il existe : une file vide n'envoie aucun email — c'est voulu — mais le silence devient
  * alors ambigu : « rien à signaler » ou « le planificateur est mort ». L'horodatage, écrit EN FIN

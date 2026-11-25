@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Référentiel admin des icônes d'items (brief admin/content/brief-icones-items.md).
+ * Référentiel admin des icônes d'items.
  * Les icônes ne sont jamais stockées sur ODC — seul l'ID Celsius est conservé, l'URL
  * CDN est construite à la volée. Mention de propriété Celsius visible dans la vue.
  */

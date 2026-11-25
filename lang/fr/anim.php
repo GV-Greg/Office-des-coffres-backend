@@ -1,7 +1,6 @@
 <?php
 
-// Module Animation — Décode le code (brief admin/modules/animation/brief-coffres-scelles.md ;
-// fil admin/echanges/animation-coffres-scelles, synthèse du tour 12). Messages de l'API envoyés en FR et EN par
+// Module Animation — Décode le code (tour 12). Messages de l'API envoyés en FR et EN par
 // MandateApiErrors : le frontend affiche `messages[sa langue]`, il n'a aucune table code → texte.
 // Vocabulaire (D34) : « personnage » pour un pseudo ou un nom inscrit, « joueur » pour la personne (email, connexion).
 return [

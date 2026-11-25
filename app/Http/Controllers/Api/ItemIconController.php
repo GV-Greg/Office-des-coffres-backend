@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Référentiel des icônes d'items (brief admin/content/brief-icones-items.md).
+ * Référentiel des icônes d'items.
  * Les routes admin (index/store/update/destroy) exigent role:admin dans api.php.
  * L'endpoint public lookup() n'exige aucune authentification.
  */

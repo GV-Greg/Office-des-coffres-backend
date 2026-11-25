@@ -1,6 +1,6 @@
 <?php
 
-// Rétention des journaux applicatifs (brief admin/content/brief-politique-promesses.md §3) :
+// Rétention des journaux applicatifs :
 // /legal/privacy §5 promet des logs techniques « conservés 12 mois maximum, puis effacés ».
 // Décision de Greg du 04/10/2026 : rotation quotidienne, 180 jours.
 //

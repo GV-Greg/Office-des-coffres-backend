@@ -5,8 +5,7 @@
 |
 | La politique de confidentialité écrit, pour les listes rouge/verte et les bilans de défense : « Aucune interface d'administration du
 | site ne permet de consulter les listes ni les bilans : cette restriction est inscrite dans le code, vérifiée automatiquement à chaque
-| livraison ». Ce test est cette vérification — il DOIT exister avant que le texte soit en ligne (texte validé par Greg le 22/11/2026,
-| fil admin/echanges/module-securite/, v2 de admin/content/policy-securite-draft-v2.md).
+| livraison ». Ce test est cette vérification — il DOIT exister avant que le texte soit en ligne (validé le 22/11/2026, |, v2).
 |
 | ⚠️ NOMS RÉSERVÉS : les tables et les classes ci-dessous n'existent pas encore (PR 3-1). La PR 3-1 doit les créer sous ces noms, ou mettre
 | ce test à jour AVANT de merger — sinon la promesse de la politique ne garderait plus rien. Le « contrôle positif » plus bas prouve que

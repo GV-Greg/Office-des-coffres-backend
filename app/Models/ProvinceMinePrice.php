@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Jeu de prix des mines d'une province, en vigueur à partir de `effective_from` (brief
- * admin/content/brief-prix-registre.md). Aucune règle ici : l'autorisation vit dans
+ * Jeu de prix des mines d'une province, en vigueur à partir de `effective_from`. Aucune règle ici : l'autorisation vit dans
  * MandateAuthority, l'écriture dans App\Services\MinePrices.
  */
 class ProvinceMinePrice extends Model

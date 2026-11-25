@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
  * `reported_at`). Une colonne chiffrée n'est ni indexable, ni triable, ni filtrable en SQL : le
  * cipher utilise un IV aléatoire, donc la même valeur produit un chiffré différent à chaque
  * écriture et même l'égalité ne fonctionne pas. On chiffre le contenu, jamais les axes — voir
- * admin/strategies/donnees-utilisateur.md §5.
  *
  * Usage :
  *   protected function casts(): array

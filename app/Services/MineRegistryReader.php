@@ -10,8 +10,7 @@ use App\Support\MandateLabels;
 use Illuminate\Support\Carbon;
 
 /**
- * Lecture du Registre des mines (PR 4 ; brief admin/content/brief-registre-mines.md §7 ; fil
- * admin/echanges/registre-mines, R4). Le serveur sert les FAITS — relevés déchiffrés, estampilles,
+ * Lecture du Registre des mines (PR 4). Le serveur sert les FAITS — relevés déchiffrés, estampilles,
  * dates du mandat du lecteur — ; les analyses (état du parc, niveaux, bilans) se calculent côté site
  * avec le parseur qui a produit le relevé (modules/mineParser.js), sans redemander de collage.
  *
@@ -41,8 +40,7 @@ class MineRegistryReader
     }
 
     /**
-     * Le registre vu par UN mandat, en cours OU passé (bilans de mandat passés ; brief
-     * admin/modules/economie/brief-bilans-passes-mines.md, fil admin/echanges/bilans-passes-mines, 22/11/2026). Le mandat doit
+     * Le registre vu par UN mandat, en cours OU passé (bilans de mandat passés, 22/11/2026). Le mandat doit
      * appartenir au personnage ET lui avoir donné un poste de MINE_READER_OFFICES — en cours (le mandat de
      * `mineReaderMandate`) ou passé (`pastMineReaderMandates`) ; sinon null, jamais un autre mandat.
      *

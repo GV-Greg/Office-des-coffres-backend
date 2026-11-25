@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * « Ma province » (fil admin/echanges/mandats-historique, 04 §11, 07 Q11) : l'historique des postes
+ * « Ma province » : l'historique des postes
  * de la province de RÉSIDENCE d'un personnage du joueur — résidence seule, décision de Greg.
  *
  * Même fonction de fusion que l'admin (OfficeHistory). Dates réelles uniquement (Q15) : le frontend

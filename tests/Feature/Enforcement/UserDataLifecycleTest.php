@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Schema;
 | Garde-fou — cycle de vie des données utilisateur
 |--------------------------------------------------------------------------
 |
-| Règle : admin/strategies/donnees-utilisateur.md (§2 et §4).
 |
 | Le 19/09/2026, `password_reset_tokens` a survécu à une suppression de compte en prod : une
 | adresse email restait en base après un effacement art. 17. Ce n'était pas une erreur de code,
@@ -21,7 +20,7 @@ use Illuminate\Support\Facades\Schema;
 | ⚠️ Limite assumée (stratégie §4) : ce test vérifie qu'une table est *déclarée*, pas que son
 | effacement *fonctionne*. L'introspection des clés étrangères diffère entre SQLite (CI) et
 | MariaDB (prod), et une table MyISAM ignorerait ses contraintes sans rien signaler. Seule une
-| vérification en prod attrape ça — voir admin/content/verif-prod-suppression-compte.md.
+| vérification en prod attrape ça.
 */
 
 // Chaque table portant un lien vers un compte, avec sa catégorie. Toute entrée ajoutée ici
@@ -139,7 +138,7 @@ $categories = <<<'TXT'
 
 $howToFix = <<<TXT
 
-    → Règle : admin/strategies/donnees-utilisateur.md
+    → Règle : la stratégie des données utilisateur (backend/docs/ARCHITECTURE.md, « Schéma de la base »)
     → Les quatre catégories possibles :
     {$categories}
 

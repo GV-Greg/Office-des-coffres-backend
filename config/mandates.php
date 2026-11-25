@@ -1,8 +1,7 @@
 <?php
 
 /*
-| Mandats — durées et règles chiffrées (admin/content/brief-mandats.md, §5quinquies de
-| admin/strategies/donnees-utilisateur.md). Un seul fichier : un test vérifie que les calculs
+| Mandats — durées et règles chiffrées. Un seul fichier : un test vérifie que les calculs
 | lisent ces valeurs.
 |
 | Ce sont des JOURS FIXES, pas des mois du calendrier : addDays, jamais addMonth. Ils se comptent
@@ -49,7 +48,7 @@ return [
     // Une demande en attente n'est JAMAIS purgée : c'est une tâche de l'administrateur.
     'rejected_retention_months' => 3,
 
-    // ─── Registre des mines, lot 2 : prix par période (brief admin/content/brief-prix-registre.md) ─
+    // ─── Registre des mines, lot 2 : prix par période ─
 
     // Un jeu de prix reste modifiable par celui qui tenait le poste à sa date d'effet jusqu'à ce
     // nombre de jours APRÈS la fin effective de ce poste ; passé ce délai, il est verrouillé.

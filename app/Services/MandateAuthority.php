@@ -16,11 +16,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * SEUL point d'entrée des modules pour savoir qui a le droit d'écrire au titre d'un poste
- * (admin/strategies/donnees-utilisateur.md §5quinquies). Ne répond que « maintenant » : pas de
+ * SEUL point d'entrée des modules pour savoir qui a le droit d'écrire au titre d'un poste. Ne répond que « maintenant » : pas de
  * paramètre de date (Q10).
  *
- * ⚠️ DEUX LIMITES À NE PAS « RÉPARER » (tour 05 du fil admin/echanges/mandats-lot1) :
+ * ⚠️ DEUX LIMITES À NE PAS « RÉPARER » (tour 05) :
  *
  * 1. Une province SANS AUCUNE autorité de poste est un état LÉGITIME. À chaque élection d'un
  *    dirigeant, tous les postes sont vidés jusqu'à ses nominations — un à deux jours tous les
@@ -67,8 +66,7 @@ class MandateAuthority
     public const MINE_OFFICES = ['commissaire_mines', 'bailli'];
 
     /**
-     * Province dont le personnage peut gérer les mines MAINTENANT, ou null (fil
-     * admin/echanges/registre-mines, R1). C'est la province du MANDAT qui porte le poste, jamais la
+     * Province dont le personnage peut gérer les mines MAINTENANT, ou null. C'est la province du MANDAT qui porte le poste, jamais la
      * résidence — un mandat peut être tenu hors de la province de résidence. Vérifiée par le TITRE,
      * jamais par l'appartenance au conseil (§5quinquies). Un personnage n'a qu'un mandat de conseil
      * en cours et un poste à la fois : au plus une province.
@@ -106,8 +104,7 @@ class MandateAuthority
     }
 
     /**
-     * Mandats de conseil PASSÉS par lesquels le personnage a consulté le Registre des mines (brief
-     * admin/modules/economie/brief-bilans-passes-mines.md ; fil admin/echanges/bilans-passes-mines, 22/11/2026) :
+     * Mandats de conseil PASSÉS par lesquels le personnage a consulté le Registre des mines (22/11/2026) :
      * mandats `approved` — JAMAIS `revoked`, une révocation retire l'accès à ce que le mandat a fait —, déjà entrés en
      * fonction, TERMINÉS (`holds_until` échu), qui ont eu au moins une période de poste de MINE_READER_OFFICES.
      * Pas de limite de temps : tant que les relevés existent, le bilan reste lisible — mais seulement ceux de la
@@ -143,8 +140,7 @@ class MandateAuthority
     }
 
     /**
-     * Postes qui gèrent les PRIX des mines d'une province (brief admin/content/brief-prix-registre.md ;
-     * Greg, 14/10/2026) : le commissaire au commerce, le commissaire aux mines et le bailli, TOUS ÉGAUX
+     * Postes qui gèrent les PRIX des mines d'une province (Greg, 14/10/2026) : le commissaire au commerce, le commissaire aux mines et le bailli, TOUS ÉGAUX
      * — ni hiérarchie, ni repli. Le dirigeant lit, il n'écrit pas.
      */
     public const PRICE_OFFICES = ['commissaire_commerce', 'commissaire_mines', 'bailli'];
@@ -247,7 +243,7 @@ class MandateAuthority
      */
 
     /**
-     * Inventaires (fil admin/echanges/inventaire-scopes et inventaire-bilans ; Greg et Cowork, 11/11/2026).
+     * Inventaires (Greg, 11/11/2026).
      *
      * VILLE : le maire en fonction, lecture et écriture — la ville de son MANDAT. PROVINCE : le commissaire au commerce
      * SEUL écrit (ni le commissaire aux mines ni le bailli, à la différence des prix) ; il lit, avec le dirigeant de la
@@ -288,7 +284,7 @@ class MandateAuthority
     }
 
     /**
-     * Module Sécurité (brief admin/content/brief-module-securite.md ; fil admin/echanges/module-securite/, Greg le 21/11/2026).
+     * Module Sécurité (Greg le 21/11/2026).
      *
      * TRIO de sécurité : prévôt des maréchaux, connétable, capitaine. VALIDATION des douaniers en cascade : niveau 1 = prévôt et/ou
      * connétable ; niveau 2 = capitaine, dirigeant (comte) ou maire d'une ville de la province, SEULEMENT si ni prévôt ni connétable

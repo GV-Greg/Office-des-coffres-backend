@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Listes rouge et verte d'une PROVINCE (module Sécurité, Registre de douane ; fil admin/echanges/module-securite, Greg le 22/11/2026).
+     * Listes rouge et verte d'une PROVINCE (module Sécurité, Registre de douane, Greg le 22/11/2026).
      * Une entrée = un pseudo de personnage (texte libre : le personnage peut n'avoir aucun compte sur l'Office) et une raison facultative.
      *
      * AXES EN CLAIR (province, couleur, jour d'ajout, auteur), PAYLOAD CHIFFRÉ {pseudo, reason} : la coloration compare en mémoire,

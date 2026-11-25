@@ -1,7 +1,6 @@
 <?php
 
-// Registre des mines — messages de l'API (brief admin/content/brief-registre-mines.md ; fil
-// admin/echanges/registre-mines). Envoyés en FR et EN par MandateApiErrors : le frontend affiche
+// Registre des mines — messages de l'API. Envoyés en FR et EN par MandateApiErrors : le frontend affiche
 // `messages[sa langue]`, il n'a aucune table code → texte.
 return [
     'api' => [

@@ -5,7 +5,7 @@
 | Journal des modifications de la politique de confidentialité (/legal/privacy)
 |--------------------------------------------------------------------------
 |
-| SOURCE UNIQUE (fil admin/echanges/politique-promesses, Q6 : aucune copie dans admin/). Lu par
+| SOURCE UNIQUE (aucune copie dans admin). Lu par
 | App\Support\PolicyChangelog, envoyé par `php artisan policy:notify <id>` — commande lancée À LA
 | MAIN par Greg, jamais planifiée (brief-politique-promesses §4.3).
 |
@@ -45,8 +45,7 @@ return [
         'decided_by' => 'Greg',
     ],
     // Page « Vos données, outil par outil » (front #90, en ligne le 11/10/2026) — une entrée propre à
-    // cette modification (Greg, 07/10 : une par PR de politique). Résumé validé par Greg tel quel
-    // (fil admin/echanges/pages-donnees-joueur, 10 et 12).
+    // cette modification (Greg, 07/10 : une par PR de politique). Résumé validé par Greg tel quel.
     '2026-10-11-vos-donnees' => [
         'date' => '2026-10-11',
         'summary' => [
@@ -71,7 +70,6 @@ return [
     // Prix des mines de la province (front #94, en ligne le 16/10/2026 ; les prix eux-mêmes, back #63, en ligne le 15/10) — une
     // entrée propre à cette modification (Greg, 07/10 : une par PR de politique). « Substantielle » : décision de Greg, 16/10/2026
     // (donnée nouvelle liée à un compte, destinataire nouveau — l'email quotidien —, durée sans limite). Texte :
-    // admin/content/policy-prix-registre-draft.md.
     '2026-10-16-prix-des-mines' => [
         'date' => '2026-10-16',
         'summary' => [
@@ -84,7 +82,7 @@ return [
     // Décode le code, activité du module Animation (back #72, front #101 — à dater de leur mise en ligne) — une entrée propre à
     // cette modification. « Substantielle » : décision de Greg, 28/10/2026 (données nouvelles : mot de passe hors compte, email
     // facultatif, empreinte d'IP en mode public ; l'activité privée disparaît avec le personnage ou le compte). Texte :
-    // admin/content/policy-coffres-scelles.md. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
+    // Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
     '2026-10-28-decode-le-code' => [
         'date' => '2026-10-28',
         'summary' => [
@@ -99,8 +97,8 @@ return [
     // propre à cette modification. « Substantielle » : nouveau traitement (la Grille des lots : données du mode sans compte
     // identiques à celles de Décode le code, lots et noms de personnages conservés 5 ans après la clôture) et réécriture du
     // chapitre en un texte unique — sans mention d'un changement de la clôture à 30 jours (Cowork et Greg, 11/11/2026 : le
-    // texte en ligne la décrivait déjà pour les deux modes). Texte : admin/content/policy-animation.md ; fil
-    // admin/echanges/animation-textes-legaux/. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE ; le type `rewards`
+    // texte en ligne la décrivait déjà pour les deux modes).
+    // Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE ; le type `rewards`
     // ne s'active (bouton de /anim) qu'après.
     '2026-11-11-animation-grille-des-lots' => [
         'date' => '2026-11-11',
@@ -115,7 +113,7 @@ return [
     // des cookies part avec `feat/inventory-legal` — à dater de sa mise en ligne, la date ci-dessous est provisoire). Une entrée propre à
     // cette modification. « Substantielle » : nouveau traitement (réglages et texte des inventaires collés enregistrés pour un compte,
     // chiffrés ; historique de la province) et nouveaux destinataires (le maire lit l'inventaire de sa ville, le commissaire au commerce
-    // et le dirigeant celui de leur province). Texte : fil admin/echanges/inventaire-scopes/02-reponse-cowork.md, validé par Greg le
+    // et le dirigeant celui de leur province). Texte validé par Greg le
     // 11/11/2026. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
     '2026-11-11-gestion-des-stocks' => [
         'date' => '2026-11-11',
@@ -126,8 +124,7 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
-    // Registre des stocks (fil admin/echanges/registre-stocks, texte de Cowork du 20/11/2026, PR 0 du brief
-    // brief-registre-et-reorganisation-sdc ; écriture ouverte par la PR 2). Une entrée propre à cette modification. « Substantielle » :
+    // Registre des stocks (20/11/2026, PR 0 du -registre-et-reorganisation-sdc ; écriture ouverte par la PR 2). Une entrée propre à cette modification. « Substantielle » :
     // nouveau traitement (l'inventaire d'une ville s'ajoute à l'historique de la province : instantanés datés conservés et transmis au
     // successeur du poste) et pseudo du rédacteur remplacé visible. Pas de nouveau destinataire (le maire lit sa ville, le commissaire
     // au commerce et le dirigeant leur province) ; rien pour l'inventaire personnel (reporté) ni pour le bailli (Q2 : n'écrit pas).
@@ -142,9 +139,8 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
-    // La Salle des gardes (module Sécurité ; fil admin/echanges/module-securite, texte validé par Greg le 22/11/2026, PR 3-0 : front #148 et
-    // back #105, en ligne le 22/11/2026). Une entrée propre à cette modification. Le module n'écrit encore rien (écriture ouverte par la PR 3-1) :
-    // l'email dit « conservera quand ce module ouvrira ». Texte de l'entrée : admin/content/policy-notify-securite-draft.md.
+    // La Salle des gardes (module Sécurité, validé le 22/11/2026, PR 3-0 : front #148 et back #105, en ligne le 22/11/2026). Une entrée propre à cette modification. Le module n'écrit encore rien (écriture ouverte par la PR 3-1) :
+    // l'email dit « conservera quand ce module ouvrira ».
     '2026-11-22-salle-des-gardes' => [
         'date' => '2026-11-22',
         'summary' => [
@@ -154,8 +150,7 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
-    // La Salle des gardes — l'auteur d'un bilan le corrige le jour du jeu même (fil admin/echanges/module-securite 22 et 23, texte validé par Greg
-    // et Cowork le 24/11/2026, en ligne par front #162 le 24/11/2026). Une entrée propre à cette modification. « Substantielle » : elle change qui peut
+    // La Salle des gardes — l'auteur d'un bilan le corrige le jour du jeu même (validé le 24/11/2026, en ligne par front #162 le 24/11/2026). Une entrée propre à cette modification. « Substantielle » : elle change qui peut
     // modifier une donnée (jusqu'ici seuls le prévôt et le connétable corrigeaient un bilan déjà saisi) ; aucun nouveau traitement ni destinataire.
     // Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE — c'est le cas — et AVANT de livrer le code backend (feat/customs-author-corrects).
     '2026-11-24-correction-releve-du-jour' => [
@@ -167,7 +162,7 @@ return [
         'substantial' => true,
         'decided_by' => 'Greg',
     ],
-    // Réinitialisation du mot de passe (fil admin/echanges/mot-de-passe-oublie 01 à 03, textes validés par Greg le 24/11/2026, en ligne par front #164 le 25/11/2026).
+    // Réinitialisation du mot de passe (textes validés le 24/11/2026, en ligne par front #164 le 25/11/2026).
     // Une entrée propre à cette modification. NON substantielle (décision de Greg, 03 Q2) : aucun nouveau traitement ni destinataire — l'email de réinitialisation
     // est déjà annoncé au §3 — le texte PRÉCISE une conservation (jeton haché, 60 minutes, nettoyage quotidien). Trace de la décision : la commande refuse de
     // l'envoyer, aucun email aux comptes.

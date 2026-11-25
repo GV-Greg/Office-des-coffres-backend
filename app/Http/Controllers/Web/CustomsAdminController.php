@@ -13,8 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * Niveau 3 de la cascade de validation des douaniers : l'administrateur, « sur demande » (brief admin/content/brief-module-securite.md
- * §4.1). Dernier recours quand ni le trio ni le niveau 2 ne peuvent trancher. Même service que l'API : App\Services\CustomsOfficers.
+ * Niveau 3 de la cascade de validation des douaniers : l'administrateur, « sur demande ». Dernier recours quand ni le trio ni le niveau 2 ne peuvent trancher. Même service que l'API : App\Services\CustomsOfficers.
  */
 class CustomsAdminController extends Controller
 {

@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Registre des mines, lot 2 — prix et taux horaire d'une province, PAR PÉRIODE (brief
-     * admin/content/brief-prix-registre.md ; décisions de Greg du 14/10/2026). Un jeu de prix entre en
+     * Registre des mines, lot 2 — prix et taux horaire d'une province, PAR PÉRIODE (14/10/2026). Un jeu de prix entre en
      * vigueur à `effective_from` et le reste jusqu'à ce qu'un jeu postérieur le remplace : pas de
      * `effective_to`. Les bilans se recalculent JOUR PAR JOUR avec le jeu en vigueur ce jour-là.
      *

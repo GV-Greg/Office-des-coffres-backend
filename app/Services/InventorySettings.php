@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 /**
- * SEUL écrivain des réglages d'inventaire, aux trois niveaux (fil admin/echanges/inventaire-scopes ; Greg, 11/11/2026) :
+ * SEUL écrivain des réglages d'inventaire, aux trois niveaux (Greg, 11/11/2026) :
  *
  *  - `personal` : le PERSONNAGE lui-même (catégorie A, supprimé avec lui) ;
  *  - `city` : la ville du MANDAT du maire en fonction (catégorie C) ;

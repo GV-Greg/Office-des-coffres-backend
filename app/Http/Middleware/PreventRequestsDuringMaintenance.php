@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance as Middleware;
 
 /**
- * Mode maintenance (brief admin/content/brief-mode-maintenance.md, 18/11/2026).
+ * Mode maintenance (18/11/2026).
  *
  * Branché dans bootstrap/app.php à la place du middleware de Laravel (`replace`).
  *

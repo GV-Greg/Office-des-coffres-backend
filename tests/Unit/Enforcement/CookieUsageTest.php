@@ -2,7 +2,7 @@
 
 use Symfony\Component\Finder\Finder;
 
-// Garde-fou de admin/strategies/cookies.md §9 : le backend ne stocke rien côté cookie HTTP ou
+// Garde-fou de la stratégie cookies : le backend ne stocke rien côté cookie HTTP ou
 // session applicative (voir backend/docs/ARCHITECTURE.md, "Cookies/consentement : aucun
 // stockage backend"). Ce test échoue si un futur ajout introduit un usage direct sans passer
 // par une revue explicite de cette liste.

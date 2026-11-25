@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 
 // Lot 3 : rappels, récapitulatif de la file de vérification, purge des refus, battement du
-// planificateur (admin/content/brief-mandats.md ; fil admin/echanges/mandats-lot3).
+// planificateur.
 
 beforeEach(function () {
     Notification::fake();

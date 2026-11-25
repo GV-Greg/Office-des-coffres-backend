@@ -1,5 +1,5 @@
 {{--
-    Alerte du planificateur des mandats (fil admin/echanges/mandats-lot3, Q5-Q6).
+    Alerte du planificateur des mandats.
 
     ⚠️ Incluse à DEUX endroits, qui n'ont pas le même rôle :
       - dashboard.blade.php : LE GARDE-FOU. Première page après connexion, Greg ne peut pas l'éviter.

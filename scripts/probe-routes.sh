@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sonde les routes de l'API listées dans scripts/probe-routes.txt (piste 4 de admin/echanges/ameliorations-cc, arbitrée par Cowork le 25/11/2026).
+# Sonde les routes de l'API listées dans scripts/probe-routes.txt (arbitrée le 25/11/2026).
 #
 # Usage : bash scripts/probe-routes.sh            (production)
 #         PROBE_BASE=http://localhost:8000/api/v1 bash scripts/probe-routes.sh

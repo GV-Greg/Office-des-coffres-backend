@@ -1,6 +1,6 @@
 name: Maintenance
 
-# Ferme ou rouvre l'Office à la main (brief admin/content/brief-mode-maintenance.md, 18/11/2026).
+# Ferme ou rouvre l'Office à la main (18/11/2026).
 #
 # Usage pour essayer une mise à jour AVANT d'ouvrir au public :
 #   1. lancer ce workflow, action « down » ;

@@ -16,7 +16,7 @@ use Laravel\Passport\Token;
 use Throwable;
 
 /**
- * « Mot de passe oublié » pour les joueurs (fil admin/echanges/mot-de-passe-oublie, décisions de Greg du 24/11/2026 : toutes les recommandations).
+ * « Mot de passe oublié » pour les joueurs (24/11/2026 : toutes les recommandations).
  *
  * - `forgot` : réponse TOUJOURS identique, que le compte existe ou non (Q7 : on ne révèle pas quelles adresses ont un compte) ; l'email part
  *   au gabarit de l'Office, avec un lien vers le SITE DES JOUEURS (jamais le domaine d'administration). Limiteur `password-reset`.

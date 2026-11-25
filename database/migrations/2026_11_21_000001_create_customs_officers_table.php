@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Douaniers (module Sécurité, « Registre de douane » ; brief admin/content/brief-module-securite.md §4, fil
-     * admin/echanges/module-securite/, réponses de Greg 02-greg-reponses.md Q3).
+     * Douaniers (module Sécurité, « Registre de douane »).
      *
      * Un douanier n'existe PAS en jeu : c'est un rôle de l'Office, que le joueur DEMANDE (opt-in) et que le trio de sécurité
      * valide — jamais une nomination d'office. Une ligne porte la demande ET le rôle, distingués par `status` comme les mandats,

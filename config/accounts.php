@@ -5,7 +5,6 @@
 | Purge des comptes (accounts:purge) — /legal/privacy §5
 |--------------------------------------------------------------------------
 |
-| Brief admin/content/brief-politique-promesses.md §2 ; fil admin/echanges/politique-promesses.
 | Durées décidées par Greg le 04/10/2026. ⚠️ Ce sont des durées PROMISES : toute modification oblige
 | à relire la politique, et reste sans effet en prod avant `php artisan config:cache`.
 */

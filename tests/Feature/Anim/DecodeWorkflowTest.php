@@ -11,8 +11,7 @@ use App\Support\AnimSlug;
 use Illuminate\Support\Carbon;
 
 /*
-| Décode le code — gestes de l'organisateur PRIVÉ (brief admin/modules/animation/brief-coffres-scelles.md ; tour 12 du
-| fil : slug pour tous, un seul niveau de lieu, suppression avec le personnage). Autorisation par PROPRIÉTÉ.
+| Décode le code — gestes de l'organisateur PRIVÉ (tour 12 du | : slug pour tous, un seul niveau de lieu, suppression avec le personnage). Autorisation par PROPRIÉTÉ.
 */
 
 beforeEach(function () {

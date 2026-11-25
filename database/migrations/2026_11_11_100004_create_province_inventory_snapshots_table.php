@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Inventaire de la province — HISTORIQUE des collages du commissaire au commerce, pour ses bilans (Cowork et
-     * Greg, 11/11/2026, fil admin/echanges/inventaire-bilans : « B pour la province, C ailleurs »). Calquée sur
+     * Inventaire de la province — HISTORIQUE des collages du commissaire au commerce, pour ses bilans (Cowork, 11/11/2026, : « B pour la province, C ailleurs »). Calquée sur
      * `mine_reports` : la mémoire de la province, transmise d'un commissaire au suivant.
      *
      * AXES EN CLAIR (province, jour, poste, auteur), PAYLOAD CHIFFRÉ (le texte collé, EncryptedModuleData). Le

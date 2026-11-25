@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /*
-| Le jour du jeu commence à 04:00 (fil admin/echanges/mandats-heure-bascule/, validé par Cowork le 20/11/2026) : la migration décale de +4 h
+| Le jour du jeu commence à 04:00 (validé le 20/11/2026) : la migration décale de +4 h
 | les instants que l'ANCIENNE règle avait posés à 00:00 heure de Paris — et seulement ceux-là.
 */
 

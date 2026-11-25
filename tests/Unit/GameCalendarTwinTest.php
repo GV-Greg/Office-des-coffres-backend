@@ -6,8 +6,7 @@ use App\Support\GameCalendar;
  * ⚠️ TEST JUMEAU. Le même test existe dans le dépôt frontend
  * (`tests/common/gameCalendarTwin.unit.test.js`), sur `src/modules/gameCalendar.js`.
  * Il fige la table d'ancrages ET des conversions calculées : une divergence de donnée OU de
- * logique entre les deux copies échoue dans le dépôt où elle a été introduite
- * (fil admin/echanges/mandats-historique, 10).
+ * logique entre les deux copies échoue dans le dépôt où elle a été introduite.
  *
  * Si ce test échoue parce que vous avez VOLONTAIREMENT changé le calendrier : faites le même
  * changement dans le jumeau frontend, et mettez à jour les deux tests ensemble.

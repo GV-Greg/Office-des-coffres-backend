@@ -19,8 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 
-// Purge des comptes (/legal/privacy §5 ; brief admin/content/brief-politique-promesses.md §2 ; fil
-// admin/echanges/politique-promesses, Q3-Q4, Q8-Q9). Horloge forcée : en prod, rien ne peut agir
+// Purge des comptes (legal/privacy). Horloge forcée : en prod, rien ne peut agir
 // avant l'automne 2027 (§2.5) — ces tests sont le seul endroit où on la voit travailler.
 
 const PURGE_NOW = '2026-10-04 09:00:00';

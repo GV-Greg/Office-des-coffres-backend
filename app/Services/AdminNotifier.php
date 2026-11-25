@@ -16,8 +16,7 @@ use Spatie\Permission\Exceptions\RoleDoesNotExist;
 use Throwable;
 
 /**
- * Notifications d'administration (brief admin/content/brief-notifications-admin.md, arbitrages de
- * Greg du 17/11/2026, fil admin/echanges/notifications-admin) : un email aux comptes `admin` quand
+ * Notifications d'administration (17/11/2026) : un email aux comptes `admin` quand
  * un compte est confirmé, un personnage créé, un poste demandé ou renouvelé.
  *
  * Pas de couche d'événements : le projet n'en a aucune, et trois points d'appel ne la justifient pas.

@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Module Animation — types d'activité (brief admin/modules/animation/brief-coffres-scelles.md ;
-     * fil admin/echanges/animation-coffres-scelles). Référentiel sans lien vers un compte : `key` est
+     * Module Animation — types d'activité. Référentiel sans lien vers un compte : `key` est
      * la clé de traduction (`decode` aujourd'hui, `grid` et `chicken_race` plus tard), `is_active`
      * permet à l'administration de masquer un type sans le supprimer.
      */

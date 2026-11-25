@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Schema;
 | Nouvelle table dans UserDataLifecycleTest → la déclarer ici aussi.
 | Une table absente de cette liste fait passer le test au rouge.
 |
-| Brief : admin/content/brief-export-donnees.md (§ Construire pour les modules à venir).
 | Implémentation : App\Services\AccountExport.
 */
 
@@ -114,9 +113,7 @@ test('toute table liée à un compte a une décision d\'export déclarée',
 
         expect($undeclared)->toBe([], sprintf(
             "Table(s) liée(s) à un compte sans décision d'export : %s.\n" .
-            "Déclarer 'exported' ou 'excluded' (avec la raison) dans AccountExportCoverageTest.\n" .
-            "Voir : admin/content/brief-export-donnees.md (§ Construire pour les modules à venir)\n" .
-            "et admin/strategies/donnees-utilisateur.md.",
+            "Déclarer 'exported' ou 'excluded' (avec la raison) dans AccountExportCoverageTest.",
             implode(', ', $undeclared)
         ));
     });

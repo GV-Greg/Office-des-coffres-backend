@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * API des douaniers (module Sécurité, brief admin/content/brief-module-securite.md §4). Ne valide que la FORME : les règles vivent
+ * API des douaniers (module Sécurité). Ne valide que la FORME : les règles vivent
  * dans App\Services\CustomsOfficers et MandateAuthority. Toujours les personnages du porteur du jeton : un personnage d'un autre
  * compte répond 404, jamais 403.
  */
