@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #118 (Plus aucun renvoi à `admin/` dans le code)
+
+### Changed
+- **Code** (commentaires, migrations, workflows, messages de test) : les chemins `admin/…` sont **retirés**, le « pourquoi » reste dans le commentaire. Les messages d'erreur de chiffrement et de couverture d'export pointent désormais vers `docs/ARCHITECTURE.md`.
+- **Doc** (CHANGELOG, ARCHITECTURE, DECISIONS) : chemins réécrits vers `admin/content/archives/` et `admin/echanges/_clos/`.
+
+### Added
+- **`scripts/docs-sync-check.sh`** : refuse toute référence `admin/…` dans le code (`admin/` est hors dépôt et pourrit à l'archivage ; plus de 250 chemins cassés le 24/11).
+
+### Deploy notes
+- Changements de commentaires et de documentation ; aucun comportement modifié.
+
 ## [2026-11-25] — PR #115 (Le décompte de tests n'est plus recopié dans le README)
 
 ### Changed
