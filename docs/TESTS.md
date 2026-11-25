@@ -41,6 +41,20 @@ commande sous-jacente : `composer test:filter -- AuthTest`.
   dans les scripts — à rouvrir si un vrai besoin se présente, avec une recherche du nom exact du
   paquet (ou une implémentation maison via `git diff --name-only` + `--filter`).
 
+### Passe rapide (`scripts/test-fast.sh`, depuis l'hôte, pas via `docker exec`)
+
+En dev, `./backend` est monté dans le conteneur depuis `/mnt/d` (pont 9P vers Windows) : chaque fichier PHP lu en paie le prix. Mesuré le 25/11/2026, même commit, même machine : la suite complète prend **294 à 299 s sur ce montage et 48 s sur une copie interne au conteneur** (÷ 6) ; `vendor/` était déjà dans un volume Docker. Le script copie le code (tar, ≈ 2 s) dans `/tmp/odc-be` du conteneur, y copie `vendor/` **une seule fois** (si `composer.lock` change : l'autoloader de Composer résout le code à partir du dossier qui contient `vendor/`, un lien symbolique relirait donc le montage), puis lance `php artisan test` :
+
+```bash
+bash scripts/test-fast.sh                           # toute la suite (≈ 50 s, 58 s à froid)
+bash scripts/test-fast.sh tests/Feature/Security    # un dossier ou un fichier (≈ 8 s)
+bash scripts/test-fast.sh --filter=CustomsProvince  # tout argument va à `php artisan test`
+```
+
+Le dossier de travail et la base de dev ne sont jamais touchés (tests sur SQLite en mémoire, `APP_ENV=testing` imposé par `phpunit.xml`). Le code de sortie est celui de `php artisan test`. La copie ignore `.git`, `node_modules`, `vendor/`, les caches de configuration, de routes et de vues, et les journaux ; elle vit dans `/tmp` du conteneur et se refait seule si le conteneur est recréé. **La CI reste la référence.**
+
+⚠️ **`--parallel` n'est pas fiable en l'état** (mesuré le 25/11/2026 : 9,5 s sur la copie, 62 s sur le montage, **mais des échecs en 503**) : `Maintenance/MaintenanceModeTest` écrit le vrai `storage/framework/down`, **partagé entre tous les processus**, et les autres tests reçoivent le mode maintenance. À corriger (chemin de stockage par processus) avant de s'en servir ; `composer test:parallel` ci-dessus date d'avant ce test.
+
 ## Temps de référence (mesurés le 09/08/2026, machine de dev)
 
 | Suite | Fichiers | Tests | Durée |
