@@ -7,6 +7,17 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #116 (`pint.json` et règle « Pint sur les fichiers créés seulement »)
+
+### Added
+- **`pint.json`** : le préréglage Laravel, sans le réalignement des `=>` (le code existant est aligné à la main). Mesuré sur `AuthController` : 134 lignes réformatées sans la config, 34 avec.
+
+### Changed
+- **`docs/ARCHITECTURE.md`**, « Contraintes projet » : lancer Pint **uniquement sur les fichiers créés** dans la PR (d'autres règles du préréglage — `new Foo()`, espaces autour de `.`, `single_quote` — réformatent encore des lignes existantes).
+
+### Deploy notes
+- Aucun code applicatif, migration, route, `config/*.php`, `.env` ni paquet.
+
 ## [2026-11-25] — PR #114 (Modèle de PR : la case « Promesse légale »)
 
 ### Added
