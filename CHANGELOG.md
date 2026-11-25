@@ -7,6 +7,18 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #119 (Passe rapide de Pest : `scripts/test-fast.sh`)
+
+### Added
+- **`scripts/test-fast.sh`**, lancé depuis l'hôte : copie le code (`tar`, ≈ 2 s) dans `/tmp/odc-be` du conteneur `odc-backend`, y copie `vendor/` **une seule fois** (relancé si `composer.lock` change : l'autoloader de Composer résout le code à partir du dossier qui contient `vendor/`, un lien symbolique relirait donc le montage lent), puis lance `php artisan test` ; tout argument lui est passé. Mesuré le 25/11/2026, même commit et même machine : suite complète **294 à 299 s sur le montage `/mnt/d` (9P), 48 s sur la copie interne** (÷ 6).
+- Garde-fous : dossier de copie hors de `/tmp` du conteneur refusé, conteneur arrêté refusé, dossier de travail et base de dev jamais touchés (SQLite en mémoire), code de sortie = celui de `php artisan test`.
+
+### Changed
+- `docs/TESTS.md` : section « Passe rapide » et avertissement : **`--parallel` n'est pas fiable en l'état** (`Maintenance/MaintenanceModeTest` écrit le vrai `storage/framework/down`, partagé entre processus, et les autres tests reçoivent un 503). **La CI ne change pas** et reste la référence.
+
+### Deploy notes
+- Aucun code applicatif, migration, route, `config/*.php`, `.env` ni paquet.
+
 ## [2026-11-25] — PR #118 (Plus aucun renvoi à `admin/` dans le code)
 
 ### Changed
