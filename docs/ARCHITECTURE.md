@@ -326,6 +326,10 @@ Brief `brief-mode-maintenance.md`. **Pas de SSH** : `scripts/maintenance.sh` dé
 - Tests : `MaintenanceModeTest`.
 - ⚠️ Prod : créer `MAINTENANCE_SECRET` dans GitHub Secrets.
 
+## Sondes de routes après déploiement (25/11/2026)
+
+Piste 4 de `admin/echanges/ameliorations-cc/` (arbitrée par Cowork). Une route **ajoutée** reste en **404** en production tant que `php artisan route:cache` n'est pas lancé en SSH **après** le déploiement (back #57, #110, #113) ; le workflow n'a pas de SSH. `scripts/probe-routes.txt` (une ligne par route : `MÉTHODE chemin code-attendu`) est lu par `scripts/probe-routes.sh`, appelé par l'étape « Sonder les routes de l'API » de `deploy.yml` : elle **ne bloque pas** (une route neuve en 404 est attendue), écrit un avertissement et **alerte le salon admin/mod** avec la liste. 🔴 **Toute PR qui ajoute une route ajoute sa ligne** (le seul geste à ne pas oublier) ; vérifier le code réel avec le script avant de commiter. Jamais `auth/login` dans la liste (limiteur anti-force-brute, et O2Switch laisse les 429 pendre) ; jamais une route qui écrit ou envoie un email avec un corps vide. ⚠️ `route:cache` **une fois le « Deploy » vert** : lancé pendant l'envoi des fichiers, il ne voit pas les nouvelles routes (vécu le 25/11/2026). Après lui : `bash scripts/probe-routes.sh`.
+
 ## Annonces du site (18/11/2026, back #91, mergée le 18/11/2026)
 
 Annonce de maintenance défilante. Table `site_announcements` : message FR/EN (500 car.), échéance `exact`/`period`/null, visibilité `visible_from`/`visible_until`, `is_active`. Dates en UTC, saisies à Paris.
@@ -340,3 +344,4 @@ Marqueur `{quand}`/`{when}` remplacé par l'API (dates formatées, « cette sema
 
 - **Aucun texte en dur** — `__()` partout, `lang/fr` complet, `lang/en` seulement pour l'anglais réel. Blade en français, sans bascule de langue.
 - Ne jamais committer `.env`/credentials.
+- **Pint** — Lancer Pint uniquement sur les fichiers **créés** dans la PR. Ne jamais lancer Pint sur un fichier existant dont on ne modifie que quelques lignes — le réalignement noie le diff. (`pint.json` n'impose plus l'alignement des `=>`, mais la règle reste : fichiers créés seulement.)
