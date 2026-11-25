@@ -1,0 +1,27 @@
+# Routes sondées après chaque déploiement (scripts/probe-routes.sh, étape « Sonder les routes de l'API » de deploy.yml).
+# Une ligne par route : MÉTHODE chemin code-attendu   (chemin relatif à /api/v1 ; un POST part avec un corps vide « {} »).
+#
+# POURQUOI : une route ajoutée reste en 404 en production tant que `php artisan route:cache` n'est pas lancé en SSH APRÈS le déploiement (back #57,
+# #110, #113 ; le 25/11/2026 un route:cache lancé PENDANT l'envoi des fichiers ne les voyait pas). Le déploiement ne peut pas le lancer (pas de SSH) :
+# il alerte donc, et `bash scripts/probe-routes.sh` re-vérifie ensuite à la main.
+#
+# RÈGLES : une route protégée répond 401 SANS jeton (jamais 404) ; une route à validation répond 422 SANS corps ; jamais de route qui écrit ou qui envoie
+# un email avec un corps vide. À CHAQUE PR QUI AJOUTE UNE ROUTE : ajouter sa ligne ici (c'est le seul geste à ne pas oublier). Vérifier le code réel
+# avec le script avant de commiter : un code attendu faux donne une fausse alerte à chaque déploiement.
+
+# Publiques (lecture)
+GET   map                               200
+GET   announcements/current             200
+GET   anim/activity-types               200
+
+# Authentification (jamais `auth/login` : il porte le limiteur anti-force-brute, et O2Switch laisse les 429 pendre sans réponse)
+GET   auth/me                           401
+POST  auth/register                     422
+POST  auth/forgot-password              422
+POST  auth/reset-password               422
+
+# Protégées par jeton, un par module (le chemin avec un id de personnage quelconque : l'authentification passe avant)
+GET   characters/1/customs-access       401
+GET   characters/1/customs-province     401
+GET   characters/1/mine-registry        401
+GET   characters/1/inventory-scopes     401
