@@ -65,6 +65,8 @@ dans `deploy.yml`.
 | POST | `auth/register` | AuthController@register | — | email+password, envoie vérification |
 | GET | `auth/verify-email/{id}/{hash}` | AuthController@verifyEmail | signé | marque vérifié, token, redirige FRONTEND_URL |
 | POST | `auth/resend-verification` | AuthController@resendVerification | — | |
+| POST | `auth/forgot-password` | PasswordResetController@forgot | — | réponse **toujours identique** (pas d'oracle) ; `throttle:password-reset` (3/min par adresse, 10/h par IP) ; voir « Mot de passe oublié » |
+| POST | `auth/reset-password` | PasswordResetController@reset | — | jeton+email+nouveau mot de passe ; **une seule** réponse 422 `invalid_token` ; `throttle:password-reset-confirm` (10/min par IP) |
 | POST | `auth/login` | AuthController@login | — | par **email**, 403 si non vérifié |
 | POST | `auth/refresh` | AuthController@refresh | — | renouvelle access+refresh |
 | POST | `auth/logout` | AuthController@logout | api | révoque token courant+refresh |
@@ -153,6 +155,10 @@ Fond `slate-800`, logo PNG du **site des joueurs**, carte claire liseré orange,
 ## Gestion des utilisateurs (admin)
 
 `DashboardController` + `users.blade.php`. Liste paginée (14), recherche email OU pseudo. Hard delete (pas de soft delete). Pas d'édition, pas de reset password admin, pas de gestion de rôles. Tests : `DashboardTest`.
+
+## Mot de passe oublié (24/11/2026)
+
+Fil `admin/echanges/mot-de-passe-oublie/` (état des lieux 01, questions 02, **réponses de Greg 03 : toutes les recommandations**) ; texte légal `Legal.Privacy` §4 (ligne du jeton) et §5 (`PasswordReset`), **non substantiel**, en ligne avant le code. `PasswordResetController` : `forgot` répond **toujours pareil** (Q7), l'envoi qui échoue est journalisé par sa classe, jamais l'adresse ; `reset` (broker de Laravel, jeton **haché** en base `password_reset_tokens`, **60 min**, à usage unique) : mot de passe changé, **email confirmé** si ce n'était pas fait (Q4), **tous les jetons Passport révoqués** (Q6), email d'avis `PasswordChanged` (Q5, aussi depuis le profil), jeton faux / adresse inconnue / expiré = **la même réponse**. `User::sendPasswordResetNotification` envoie `PasswordResetLink` (gabarit de l'Office, FR puis EN) avec `App\Support\PasswordResetLink` : lien vers le **site des joueurs** (`/reset-password?token&email`), **jamais** le domaine d'administration — y compris pour le formulaire Blade de l'administration. 🔴 **`auth:clear-resets` est planifié chaque jour** (promesse « nettoyage quotidien » du §5). ⚠️ **Prod** : `route:cache` (2 routes) ; aucune migration, `config/*.php`, `.env` ni paquet. Tests : `Api/PasswordResetTest`.
 
 ## Inscription / vérification d'email
 

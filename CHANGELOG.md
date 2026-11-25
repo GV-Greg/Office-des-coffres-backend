@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-25] — PR #113 (« Mot de passe oublié » pour les joueurs : API, email de l'Office, nettoyage quotidien)
+
+### Added
+- **`POST auth/forgot-password`** (`PasswordResetController@forgot`, fil `admin/echanges/mot-de-passe-oublie/` — décisions de Greg `03`) : réponse **toujours identique**, que le compte existe ou non (pas d'oracle) ; l'envoi qui échoue est journalisé par sa classe, jamais l'adresse ; limiteur `password-reset` (**3/min par adresse, 10/h par IP**).
+- **`POST auth/reset-password`** : jeton **haché** (`password_reset_tokens`), **60 minutes**, à usage unique ; mot de passe changé, **email confirmé** si ce n'était pas fait, **tous les jetons Passport révoqués** (déconnecte tous les appareils), email d'avis ; jeton faux / adresse inconnue / expiré = **une seule** réponse 422 `invalid_token` ; limiteur `password-reset-confirm` (10/min par IP).
+- **`PasswordResetLink`** (email de l'Office, FR puis EN) : lien vers le **site des joueurs** (`/reset-password?token&email`), **jamais** le domaine d'administration — y compris pour le formulaire Blade de l'administration (`User::sendPasswordResetNotification`). **`PasswordChanged`** : avis aussi après un changement depuis le profil.
+- **`auth:clear-resets` planifié chaque jour** (promesse « nettoyage quotidien » de la Politique §5, en ligne par `front #164`).
+- Entrée **non substantielle** `2026-11-25-reinitialisation-mot-de-passe` du journal de politique (trace de la décision de Greg ; aucun `policy:notify`, aucun email aux comptes). 1064 tests.
+
+### Changed
+- Les tests Breeze du formulaire Blade (`Auth/PasswordResetTest`) passent à la nouvelle notification.
+
+### Deploy notes
+- 🔴 **`php artisan route:cache` en SSH après le déploiement** (2 routes ajoutées) ; sonde : `auth/forgot-password` sans corps répond **422**, jamais 404. Aucune migration, `config/*.php`, `.env` ni paquet. Frontend associé : `front #165` (pages).
+
 ## [2026-11-24] — PR #110 (Sécurité : la Table des douanes, API de la vue d'ensemble de la province)
 
 ### Added

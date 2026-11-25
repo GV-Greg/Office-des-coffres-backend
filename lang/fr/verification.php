@@ -28,4 +28,20 @@ return [
         'warning'    => "Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement l'administrateur.",
         'salutation' => "Ludiquement,\nGregory pour l'Office des coffres",
     ],
+    'password_reset' => [
+        'subject'    => 'Réinitialisation de votre mot de passe',
+        'greeting'   => 'Bonjour,',
+        'intro'      => "Vous avez demandé à choisir un nouveau mot de passe pour votre compte sur l'Office des coffres. Cliquez sur le bouton ci-dessous pour le choisir.",
+        'expires'    => 'Ce lien expire dans :minutes minutes et ne sert qu\'une fois.',
+        'not_you'    => "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : votre mot de passe reste inchangé.",
+        'action'     => 'Choisir un nouveau mot de passe',
+        'salutation' => "Ludiquement,\nGregory pour l'Office des coffres",
+    ],
+    'password_changed_notice' => [
+        'subject'    => 'Votre mot de passe a été modifié',
+        'greeting'   => 'Bonjour,',
+        'intro'      => "Le mot de passe de votre compte sur l'Office des coffres vient d'être modifié.",
+        'warning'    => "Si vous n'êtes pas à l'origine de ce changement, contactez immédiatement l'administrateur.",
+        'salutation' => "Ludiquement,\nGregory pour l'Office des coffres",
+    ],
 ];
