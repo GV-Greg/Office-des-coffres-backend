@@ -120,7 +120,10 @@ class DashboardController extends Controller
         return Character::where('is_validated', false)->count();
     }
 
-    /** Mandats `running` dont `holds_until` tombe dans les 7 prochains jours et sans renouvellement en cours. */
+    /**
+     * Mandats `running` qui arrivent à leur fin dans les 7 prochains jours, sans renouvellement en cours : la fin effective pour un
+     * maire, le TERME pour un conseiller (après lui, il attend son successeur).
+     */
     private function expiringMandates(): Collection
     {
         $soon = [Carbon::now(), Carbon::now()->addDays(7)];
@@ -141,7 +144,7 @@ class DashboardController extends Controller
             ]);
 
         $councils = CouncilMandate::running()
-            ->whereBetween('holds_until', $soon)
+            ->whereBetween('valid_until', $soon)
             ->whereNotExists(fn ($q) => $q->selectRaw(1)
                 ->from('council_mandates as r')
                 ->whereColumn('r.renews_id', 'council_mandates.id')
@@ -152,7 +155,7 @@ class DashboardController extends Controller
                 'pseudo'  => $m->character?->pseudo ?? __('dashboard.deleted_character'),
                 'type'    => __('dashboard.mandate_council'),
                 'lieu'    => $m->province?->province_name ?? '?',
-                'expires' => $m->holds_until->setTimezone(config('mandates.timezone'))->format('d/m/Y'),
+                'expires' => $m->valid_until->setTimezone(config('mandates.timezone'))->format('d/m/Y'),
             ]);
 
         return $mayors->concat($councils)->sortBy('expires')->values();

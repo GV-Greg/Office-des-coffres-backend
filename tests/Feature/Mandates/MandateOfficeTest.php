@@ -180,13 +180,12 @@ test('Q19 — une période naît fermée à la fin du mandat, avec fin_du_mandat
         ->and($period->end_reason)->toBe('fin_du_mandat');
 });
 
-test('Q19 — prolongation, passation et révocation déplacent holds_until ET la fin de la période en cours', function (string $gesture) {
+test('Q19 — passation et révocation déplacent holds_until ET la fin de la période en cours', function (string $gesture) {
     atGameTime('2026-03-01 12:00');
     $mandate = approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-01-03', '2026-01-05', 'juge');
     atGameTime('2026-03-05 12:00');
 
     match ($gesture) {
-        'extension' => mandateWorkflow()->extendProvince($this->map['provinceA'], 'vote en cours'),
         'handover' => mandateWorkflow()->handover($this->map['provinceA'], '2026-03-05', [$mandate->id], []),
         'revocation' => mandateWorkflow()->revoke($mandate, 'revolte', '2026-03-05', null, null),
     };
@@ -196,7 +195,7 @@ test('Q19 — prolongation, passation et révocation déplacent holds_until ET l
     expect($mandate->holds_until_set_by)->toBe($gesture)
         ->and($period->ended_at->equalTo($mandate->holds_until))->toBeTrue()
         ->and($period->end_reason)->toBe('fin_du_mandat');
-})->with(['extension', 'handover', 'revocation']);
+})->with(['handover', 'revocation']);
 
 test('Q19 — une période terminée par un événement de poste ne suit plus holds_until', function () {
     atGameTime('2026-03-05 12:00');
@@ -204,7 +203,7 @@ test('Q19 — une période terminée par un événement de poste ne suit plus ho
     mandateWorkflow()->setOffice($mandate, null, 'retire_par_le_dirigeant');
     $closedAt = $mandate->officePeriods()->first()->ended_at->copy();
 
-    mandateWorkflow()->extendProvince($this->map['provinceA'], 'vote en cours');
+    mandateWorkflow()->setHoldsUntil($mandate, $mandate->holds_until->copy()->addDays(2), 'nominal');
 
     expect($mandate->officePeriods()->first()->ended_at->equalTo($closedAt))->toBeTrue();
 });

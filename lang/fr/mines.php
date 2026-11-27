@@ -11,7 +11,7 @@ return [
         'mine_report_future' => 'Ce relevé porte une date à venir : il ne peut pas être inscrit.',
         'price_not_authorized' => "Seuls le commissaire au commerce, le commissaire aux mines et le bailli de la province gèrent ses prix, et l'Office ne connaît pas ce poste pour ce personnage.",
         'price_not_reader' => "Seuls le commissaire au commerce, le commissaire aux mines, le bailli et le dirigeant de la province consultent ses prix, et l'Office ne connaît pas un tel poste pour ce personnage.",
-        'price_locked' => 'Ce jeu de prix ne peut plus être modifié : il a été fixé avant votre poste, ou votre poste est terminé depuis plus de :days jours.',
+        'price_locked' => 'Ce prix ne peut plus être modifié : le terme de votre mandat est passé, ou il date d\'avant votre poste.',
         'price_not_found' => "Ce jeu de prix n'existe pas dans cette province.",
         'price_exists' => 'Un jeu de prix existe déjà au :date dans cette province : modifiez-le plutôt que d\'en créer un second.',
         'price_future' => 'Un jeu de prix ne peut pas porter une date à venir.',

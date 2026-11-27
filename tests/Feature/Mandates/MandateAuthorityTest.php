@@ -253,33 +253,7 @@ test('canReadMines vérifie le TITRE : un autre poste ou un conseiller sans post
         ->and($this->authority->canReadMines($plain))->toBeNull();
 });
 
-// ─── Prolongation et passation (règle 2 bis) ───────────────────────────────────────────────
-
-test('la prolongation ajoute 2 jours aux conseillers en prolongation, exige une note et ne touche jamais la fin nominale', function () {
-    atGameTime('2026-03-05 12:00');
-    $character = mandatePlayer($this->map['cityA']);
-    $mandate = approvedCouncil($character, $this->map['provinceA'], '2026-03-01', '2026-03-03');
-    $validUntil = $mandate->valid_until->copy();
-    $holdsUntil = $mandate->holds_until->copy();
-
-    Carbon::setTestNow($validUntil->copy()->addHour());
-    $count = mandateWorkflow()->extendProvince($this->map['provinceA'], 'https://forum.example/vote');
-
-    $mandate->refresh();
-    expect($count)->toBe(1)
-        ->and($mandate->valid_until->equalTo($validUntil))->toBeTrue()
-        ->and($mandate->holds_until->equalTo(MandateCalendar::addGameDays($holdsUntil, 2)))->toBeTrue()
-        ->and($mandate->holds_until_set_by)->toBe('extension')
-        ->and($mandate->note)->toContain('https://forum.example/vote');
-});
-
-test('la prolongation ne s\'applique qu\'aux conseillers déjà en prolongation', function () {
-    atGameTime('2026-03-05 12:00');
-    approvedCouncil(mandatePlayer($this->map['cityA']), $this->map['provinceA'], '2026-03-01', '2026-03-03');
-
-    expect(fn () => mandateWorkflow()->extendProvince($this->map['provinceA'], 'note'))
-        ->toThrow(ValidationException::class);
-});
+// ─── Passation (règle 2 bis) ───────────────────────────────────────────────────────────────
 
 test('la passation clôt les sortants et met en fonction les entrants à la même seconde, sans trou ni chevauchement', function () {
     atGameTime('2026-03-05 12:00');

@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
  * vigueur jusqu'au suivant ; le bilan d'un jour utilise le jeu en vigueur CE jour-là.
  *
  * Autorisation : `MandateAuthority::canManagePrices()` pour écrire maintenant, et
- * `canEditPriceOn()` pour la date visée (poste tenu à cette date, grâce de 7 jours). Pas de
+ * `canEditPriceOn()` pour la date visée (poste tenu à cette date, jusqu'au terme du mandat). Pas de
  * suppression : un prix faux se corrige.
  */
 class MinePrices
@@ -77,7 +77,7 @@ class MinePrices
     {
         $province = $price->province;
         if (! $this->authority->canEditPrice($actor, $price)) {
-            throw MandateRefusal::make('price', 'mines.api.price_locked', ['days' => config('mandates.price_edit_grace_days')]);
+            throw MandateRefusal::make('price', 'mines.api.price_locked');
         }
 
         $date = $data['effective_from'] ?? $price->effective_from->toDateString();
@@ -135,7 +135,7 @@ class MinePrices
         }
         // Pas de prix daté du futur : sa date d'effet ne tomberait dans aucune période de poste connue,
         // et il serait impossible à corriger. Pas de prix antidaté hors de SA période non plus : sans
-        // cela, le verrou de 7 jours se contournerait en écrivant dans le passé d'un autre.
+        // cela, le verrou du terme se contournerait en écrivant dans le passé d'un autre.
         if ($date > MandateCalendar::today()) {
             throw MandateRefusal::make('effective_from', 'mines.api.price_future');
         }

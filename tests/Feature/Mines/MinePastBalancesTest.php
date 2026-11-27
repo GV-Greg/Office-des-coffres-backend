@@ -17,11 +17,11 @@ beforeEach(function () {
     Notification::fake();
     $this->map = mandateMap();
     $this->province = $this->map['provinceA'];
-    // Un mandat du 01/03 : il court 60 jours (fin le 30/04), donc TERMINÉ à la date du jeu ci-dessous.
+    // Un mandat du 01/03 : 60 jours (terme fin avril) puis 30 jours d'attente au plus, donc TERMINÉ à la date du jeu ci-dessous.
     atGameTime('2026-03-05 12:00');
     $this->holder = mandatePlayer($this->map['cityB'], ['pseudo' => 'Ancien']);
     $this->mandate = approvedCouncil($this->holder, $this->province, '2026-02-27', '2026-03-01', 'commissaire_mines');
-    atGameTime('2026-05-10 12:00');
+    atGameTime('2026-06-10 12:00');
     $this->mandate->refresh();
 });
 
@@ -60,7 +60,7 @@ test('un ancien commissaire lit son mandat : fenêtre [in_office_from − 30 j, 
     pastReport(['reported_at' => '2026-04-10', 'character_id' => $this->holder->id]); // pendant le mandat
     $last = pastReport(['reported_at' => date('Y-m-d', strtotime($holdsDay.' -1 day'))]); // dernier jour du mandat
     pastReport(['reported_at' => $holdsDay, 'character_id' => $successor->id]);       // le jour où le successeur entre : plus le sien
-    pastReport(['reported_at' => '2026-05-05', 'character_id' => $successor->id]);    // POSTÉRIEUR : jamais servi
+    pastReport(['reported_at' => '2026-06-05', 'character_id' => $successor->id]);    // POSTÉRIEUR : jamais servi
     Passport::actingAs($this->holder->user);
 
     $response = readMandate($this, $this->holder, $this->mandate)->assertOk();
@@ -96,7 +96,7 @@ test('un ancien DIRIGEANT lit aussi (lecture seule) ; un ancien conseiller sans 
     $leaderMandate = approvedCouncil($leader, $this->province, '2026-02-27', '2026-03-01', 'leader');
     $judge = mandatePlayer($this->map['cityB'], ['pseudo' => 'Juge']);
     $judgeMandate = approvedCouncil($judge, $this->province, '2026-02-27', '2026-03-01', 'juge');
-    atGameTime('2026-05-10 12:00');
+    atGameTime('2026-06-10 12:00');
     pastReport();
 
     Passport::actingAs($leader->user);
@@ -112,7 +112,7 @@ test('un mandat RÉVOQUÉ est refusé : une révocation retire l\'accès à ce q
     $mandate = approvedCouncil($revoked, $this->province, '2026-02-27', '2026-03-01', 'commissaire_mines');
     atGameTime('2026-03-25 12:00');
     mandateWorkflow()->revoke($mandate, 'demission', '2026-03-20', 'Parti.', 'fr');
-    atGameTime('2026-05-10 12:00');
+    atGameTime('2026-06-10 12:00');
     pastReport();
     Passport::actingAs($revoked->user);
 
@@ -187,15 +187,15 @@ test('`access` : past_mandates liste les mandats terminés (poste, province, pé
 test('`access` : un mandat passé par personnage, le plus récent d\'abord ; office_key = le DERNIER poste éligible tenu', function () {
     // Même personnage, deux mandats successifs : le premier avec réattribution commissaire_mines → bailli → juge (non éligible).
     $twice = mandatePlayer($this->map['cityB'], ['pseudo' => 'Deux']);
-    atGameTime('2026-01-05 12:00');
-    $first = approvedCouncil($twice, $this->province, '2025-12-27', '2026-01-01', 'commissaire_mines');
-    atGameTime('2026-01-15 12:00');
+    atGameTime('2025-12-05 12:00');
+    $first = approvedCouncil($twice, $this->province, '2025-11-27', '2025-12-01', 'commissaire_mines');
+    atGameTime('2025-12-15 12:00');
     mandateWorkflow()->setOffice($first, 'bailli');
-    atGameTime('2026-02-01 12:00');
+    atGameTime('2026-01-01 12:00');
     mandateWorkflow()->setOffice($first, 'juge');
     atGameTime('2026-03-05 12:00');
     $second = approvedCouncil($twice, $this->province, '2026-02-27', '2026-03-05', 'leader');
-    atGameTime('2026-05-10 12:00');
+    atGameTime('2026-06-10 12:00');
     Passport::actingAs($twice->user);
 
     $past = $this->getJson("/api/v1/characters/{$twice->id}/mine-registry")->assertOk()->json('past_mandates');
@@ -207,11 +207,11 @@ test('`access` : un mandat passé par personnage, le plus récent d\'abord ; off
 
 test('la fenêtre ne dépend que du mandat : un autre mandat passé du même personnage a la sienne', function () {
     $twice = mandatePlayer($this->map['cityB'], ['pseudo' => 'Deux']);
-    atGameTime('2026-01-05 12:00');
-    $first = approvedCouncil($twice, $this->province, '2025-12-27', '2026-01-01', 'commissaire_mines');
+    atGameTime('2025-12-05 12:00');
+    $first = approvedCouncil($twice, $this->province, '2025-11-27', '2025-12-01', 'commissaire_mines');
     atGameTime('2026-03-05 12:00');
     approvedCouncil($twice, $this->province, '2026-02-27', '2026-03-05', 'commissaire_mines');
-    atGameTime('2026-05-10 12:00');
+    atGameTime('2026-06-10 12:00');
     pastReport(['reported_at' => '2026-01-20']);  // dans la fenêtre du 1er mandat (01/01), hors de celle du 2e
     pastReport(['reported_at' => '2026-04-10']);  // dans la fenêtre du 2e, après la fin du 1er
     Passport::actingAs($twice->user);

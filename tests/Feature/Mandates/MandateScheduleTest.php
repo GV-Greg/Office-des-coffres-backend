@@ -127,9 +127,7 @@ test('contrôle positif : une demande concurrente encore en attente n\'empêche 
 test('un conseiller est rappelé 2 jours après sa passation, pas après son 60e jour, et le texte dit la date effective', function () {
     $player = mandatePlayer($this->map['cityA']);
     $mandate = approvedCouncil($player, $this->map['provinceA'], '2026-05-01', '2026-05-01');
-    // Fin nominale le 30/06 ; prolongé, puis passation le 03/07.
-    Carbon::setTestNow($mandate->valid_until->copy()->addHour());
-    mandateWorkflow()->extendProvince($this->map['provinceA'], 'vote en cours');
+    // Fin nominale le 30/06 ; en attente du successeur, puis passation le 03/07.
     atGameTime('2026-07-03 12:00');
     mandateWorkflow()->handover($this->map['provinceA'], '2026-07-03', [$mandate->id], []);
     Notification::fake();

@@ -1,7 +1,7 @@
 # Architecture technique — Backend (Laravel 13)
 
 > Référence structurelle chargée automatiquement (voir `CLAUDE.md` racine). Mise à jour :
-> 23/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
+> 27/11/2026. Vérifier le code avant de citer un détail précis si ce fichier date de plus de
 > quelques semaines.
 
 Laravel 13 (PHP 8.4) + Passport (OAuth2) + Spatie Permission + MariaDB 11.4.13. Hébergement
@@ -190,6 +190,7 @@ Règles clés :
 - **Début de période** (Greg, 16/10) : titre inscrit AVEC mandat en fonction → tenu depuis **entrée en fonction du mandat** (`OfficeStart`), sauf si un autre mandat l'a tenu dans l'intervalle. `mandates:realign-office-starts` (simulation par défaut).
 - Poste uniquement sur mandat **en fonction**. Gagner un poste le retire au détenteur. **Tous vidés** à l'élection d'un dirigeant.
 - Réponse négative de `MandateAuthority` = « l'Office ne connaît pas », pas « siège vacant ».
+- 🔴 **Attente du successeur** (Greg, 27/11/2026, politique §6) : un conseiller reste en poste après son terme (`valid_until`) tant qu'aucun successeur n'est connu, `council_grace_days` = **30** au plus (statut `extended`) ; la passation ou un autre titulaire du poste y met fin plus tôt. Tous les droits du poste, **sauf écrire un prix** (`canManagePrices` / `canEditPriceOn` s'arrêtent au terme). Plus de prolongation manuelle. Rappel de renouvellement : 2 j après la passation, sinon 4 j après le terme. `mandates:apply-council-prolongation` (simulation par défaut) aligne les mandats en cours.
 - `character_id` en `cascadeOnDelete` (catégorie A).
 - ⚠️ Prod : déploiement ne lance pas les migrations ; 10 titres anglais **relevés en jeu** (Connétable = Sergeant, etc.).
 
@@ -212,7 +213,7 @@ Règles clés :
 
 **Registre — bilans de mandat passés** (fil `admin/echanges/bilans-passes-mines/`, décisions de Greg et Cowork du 22/11/2026) : un ancien titulaire relit, **en lecture seule**, les relevés de **son** mandat. `MandateAuthority::pastMineReaderMandates()` (règle d'**historique**, à part des méthodes « maintenant » — Q10 intact) : mandats `approved` (🔴 **jamais `revoked`**), entrés en fonction, **terminés** (`holds_until` échu), avec au moins une période de `MINE_READER_OFFICES` ; `lastMineReaderOffice()` = le dernier poste éligible tenu. `MineRegistryReader::readForMandate()` ; `readFor()` l'appelle avec le mandat en cours. 🔴 **Fenêtrage d'un mandat PASSÉ** : relevés de `in_office_from` − 30 j à `holds_until` **exclu** (le jour où le successeur entre n'est plus le sien) ; **aucun relevé postérieur** (sans cette borne, un ancien titulaire lirait pour toujours le travail de ses successeurs). Un mandat **en cours** garde l'ancien comportement (aucune borne haute). La réponse garde le format de `reports` et ajoute `read_only`, `window`, `mandate.id` et `mandate.ended_at`. `access` ajoute `past_mandates` (une entrée par mandat). **Hors scope** : le poste vidé pendant un mandat qui continue (élection d'un dirigeant) — le successeur nommé fera le bilan. Texte légal : front #153. ⚠️ **Prod** : `route:cache` ; aucune migration, `config/*.php`, `.env` ni paquet. Tests : `Mines/MinePastBalancesTest`.
 
-**Prix des mines** (lot 2, brief `brief-prix-registre.md`) : `MinePrices` seul écrivain. `PRICE_OFFICES` (commerce, mines, bailli — tous égaux, dirigeant lit seul). Autorisation : mandat **approuvé** dont la fenêtre recouvre le jour de Paris, et fin < 7j grâce. Prix futur ou hors période refusé. `mines:prices-digest` 15:00 Paris (un email par occupant, pas ses propres changements). ⚠️ Prod : `route:cache`, `config:cache`.
+**Prix des mines** (lot 2, brief `brief-prix-registre.md`) : `MinePrices` seul écrivain. `PRICE_OFFICES` (commerce, mines, bailli — tous égaux, dirigeant lit seul). Autorisation : mandat **approuvé** dont la fenêtre (entrée en fonction → **terme**) recouvre le jour de Paris, terme non passé (verrou au terme, attente du successeur comprise). Prix futur ou hors période refusé. `mines:prices-digest` 15:00 Paris (un email par occupant, pas ses propres changements). ⚠️ Prod : `route:cache`, `config:cache`.
 
 ## Animation — Décode le code (27/10/2026, refondue 28/10)
 

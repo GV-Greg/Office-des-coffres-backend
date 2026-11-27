@@ -175,4 +175,15 @@ return [
         'substantial' => false,
         'decided_by' => 'Greg',
     ],
+    // Postes du conseil — l'attente du successeur (textes et plan validés par Greg le 27/11/2026 ; le texte passe AVANT le code).
+    // « Substantielle » : les accès liés à un poste durent plus longtemps. Ne s'envoie (`policy:notify`) qu'une fois le texte EN LIGNE.
+    '2026-11-27-attente-du-successeur' => [
+        'date' => '2026-11-27',
+        'summary' => [
+            'fr' => "À la fin de son mandat, un conseiller reste désormais en poste tant qu'aucun successeur n'est connu de l'Office, pendant 30 jours au plus, et garde les accès liés à son poste. Il ne peut plus ajouter ni corriger un prix : les prix des mines se verrouillent au terme du mandat.",
+            'en' => 'When their term ends, a councillor now stays in office as long as the Office knows no successor, for 30 days at most, and keeps the access that comes with their office. They can no longer add or correct a price: mine prices lock when the term ends.',
+        ],
+        'substantial' => true,
+        'decided_by' => 'Greg',
+    ],
 ];

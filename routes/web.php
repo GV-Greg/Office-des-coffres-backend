@@ -45,7 +45,6 @@ Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
         Route::post('batch-approve', 'batchApprove')->name('batch-approve');
 
         Route::prefix('provinces/{province}')->name('provinces.')->group(function () {
-            Route::post('extend', 'extend')->name('extend');
             Route::post('handover', 'handover')->name('handover');
             Route::post('clear-offices', 'clearOffices')->name('clear-offices');
         });
