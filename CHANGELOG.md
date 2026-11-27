@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [À dater au merge] — PR à venir (L'attente du successeur devient une souplesse : la fin enregistrée ne change plus)
+## [2026-11-27] — PR #121 (L'attente du successeur devient une souplesse : la fin enregistrée ne change plus)
 
 ### Changed
 - La fin enregistrée d'un mandat de conseil redevient **terme + 2 jours** (`council_grace_days`). L'attente du successeur (**30 jours après le terme au plus**, `council_waiting_days`) est appliquée **à la lecture des droits** (`App\Support\CouncilWaiting`), sans rien écrire ; elle s'arrête dès qu'un conseiller entre en fonction depuis le terme, qu'un nouveau dirigeant reçoit son poste, qu'un autre mandat reçoit le poste, ou après une passation enregistrée ou une révocation. Les prix restent verrouillés au terme.
