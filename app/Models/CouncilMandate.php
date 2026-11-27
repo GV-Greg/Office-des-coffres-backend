@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\CouncilWaiting;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 class CouncilMandate extends Mandate
 {
@@ -52,14 +53,24 @@ class CouncilMandate extends Mandate
         return $this->office_requested_at !== null;
     }
 
-    /** Période EN VIGUEUR maintenant (started_at ≤ maintenant < ended_at), ou null. */
+    /**
+     * « En fonction maintenant », pour un conseiller : sa fin enregistrée n'est pas passée, OU il attend son successeur
+     * (souplesse de `App\Support\CouncilWaiting`).
+     */
+    public function scopeInOfficeNow(Builder $query): Builder
+    {
+        $waiting = CouncilWaiting::mandateIds();
+
+        return $query->where(fn (Builder $either) => $either
+            ->where(fn (Builder $running) => parent::scopeInOfficeNow($running))
+            ->orWhereIn($this->qualifyColumn('id'), $waiting));
+    }
+
+    /** Période EN VIGUEUR maintenant (voir CouncilOfficePeriod::scopeInForce), ou null. */
     public function currentPeriod(): ?CouncilOfficePeriod
     {
-        $now = Carbon::now();
-
         return $this->officePeriods()
-            ->where('started_at', '<=', $now)
-            ->where('ended_at', '>', $now)
+            ->inForce()
             ->with('office')
             ->first();
     }

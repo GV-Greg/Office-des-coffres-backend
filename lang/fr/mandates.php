@@ -83,7 +83,6 @@ return [
         'reminder_subject' => 'Mandat de :character à renouveler',
         'reminder' => "Le mandat de votre personnage :character, :post, s'est terminé le :date (:date_jeu). Réélu ? Renouvelez-le depuis votre profil.",
         'reminder_detail' => "Ce mandat s'est terminé le :date (:date_jeu). Réélu ? Renouvelez-le depuis votre profil.",
-        'reminder_waiting_detail' => "Ce mandat est arrivé à son terme le :date (:date_jeu). Réélu ? Renouvelez-le depuis votre profil.",
         'comment_fr' => "Commentaire de l'administrateur (rédigé en français) :",
         'comment_en' => "Commentaire de l'administrateur (rédigé en anglais) :",
         'action' => 'Voir mon profil',

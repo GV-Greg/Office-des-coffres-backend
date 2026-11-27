@@ -395,7 +395,7 @@ test('un même changement n\'est jamais renvoyé le lendemain', function () {
 test('un poste vacant ou un titulaire sans compte ne produit aucune notification fantôme', function () {
     atGameTime('2026-05-10 15:00');
     Cache::flush();
-    CouncilMandate::where('character_id', $this->bailli->id)->update(['holds_until' => Carbon::now()->subDay()]);
+    CouncilMandate::where('character_id', $this->bailli->id)->update(['holds_until' => Carbon::now()->subDay(), 'holds_until_set_by' => 'handover']);
     Passport::actingAs($this->mines->user);
     $this->postJson(pricesUrl($this), priceBody())->assertCreated();
 

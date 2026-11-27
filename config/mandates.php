@@ -15,11 +15,15 @@ return [
     'mayor_days' => 30,
     'council_days' => 60,
 
-    // Un conseiller reste en poste après le terme de son mandat tant que l'Office ne connaît pas de successeur, ce nombre de
-    // jours AU PLUS (Greg, 27/11/2026 : l'élection du dirigeant demande la majorité des conseillers et peut tarder). La passation,
-    // ou un autre titulaire du poste, y met fin plus tôt. Pendant cette attente, tous les droits du poste, SAUF modifier un prix.
+    // Le nouveau conseil n'entre en fonction qu'à l'élection du dirigeant ; les 12 élus ont deux
+    // jours pour l'élire (wiki officiel, vérifié le 03/10/2026). C'est la fin ENREGISTRÉE d'un mandat de conseil.
+    'council_grace_days' => 2,
+
+    // Souplesse (Greg, 27/11/2026) : l'élection du dirigeant demande la majorité et peut tarder. Tant que l'Office ne connaît
+    // pas de successeur, un conseiller garde les droits de son poste (sauf écrire un prix) jusqu'à ce nombre de jours après le
+    // TERME. Appliquée à la lecture des droits (App\Support\CouncilWaiting), jamais écrite en base.
     // ⚠️ Promesse de la politique de confidentialité (§6) : la changer, c'est changer le texte.
-    'council_grace_days' => 30,
+    'council_waiting_days' => 30,
 
     // 12 sièges, 10 postes titrés (dirigeant compris) : deux conseillers sans portefeuille.
     'council_unassigned_seats' => 2,
@@ -42,10 +46,6 @@ return [
     // l'élection est en cours et le joueur ne sait pas s'il est réélu (décision de Greg, 03/10/2026,
     // fil mandats-lot3, tour 07).
     'reminder_after_days' => 2,
-
-    // Conseil sans passation enregistrée : sa fin effective peut être loin ; le rappel part ce nombre de jours après son TERME,
-    // pour que le conseiller réélu renouvelle à temps (Greg, 27/11/2026).
-    'council_reminder_after_days' => 4,
 
     // Purge des refus : un `rejected` vit ce nombre de mois après sa décision (processed_at).
     // Une demande en attente n'est JAMAIS purgée : c'est une tâche de l'administrateur.

@@ -127,21 +127,21 @@ test('contrôle positif : une demande concurrente encore en attente n\'empêche 
 test('un conseiller est rappelé 2 jours après sa passation, pas après son 60e jour, et le texte dit la date effective', function () {
     $player = mandatePlayer($this->map['cityA']);
     $mandate = approvedCouncil($player, $this->map['provinceA'], '2026-05-01', '2026-05-01');
-    // Fin nominale le 30/06 ; en attente du successeur, puis passation le 03/07.
-    atGameTime('2026-07-03 12:00');
-    mandateWorkflow()->handover($this->map['provinceA'], '2026-07-03', [$mandate->id], []);
+    // Fin nominale le 30/06, passation le 01/07.
+    atGameTime('2026-07-01 12:00');
+    mandateWorkflow()->handover($this->map['provinceA'], '2026-07-01', [$mandate->id], []);
     Notification::fake();
 
-    atGameTime('2026-07-02 12:00'); // 2 jours après la fin NOMINALE : encore trop tôt
+    atGameTime('2026-07-02 12:00'); // 2 jours après le terme, 1 après la passation : encore trop tôt
     $this->artisan('mandates:send-reminders');
     Notification::assertNothingSent();
 
-    atGameTime('2026-07-05 04:00'); // 2 jours après la passation (04:00, début du jour du jeu)
+    atGameTime('2026-07-03 04:00'); // 2 jours après la passation (04:00, début du jour du jeu)
     $this->artisan('mandates:send-reminders');
     Notification::assertSentTo($player->user, MandateReminder::class, function (MandateReminder $notification) {
         $text = implode("\n", $notification->lines());
 
-        return str_contains($text, '03/07/2026') && str_contains($text, "s'est terminé")
+        return str_contains($text, '01/07/2026') && str_contains($text, "s'est terminé")
             && str_contains($text, 'ended on') && ! str_contains($text, 'mandates.');
     });
 });

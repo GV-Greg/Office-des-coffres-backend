@@ -124,7 +124,7 @@ test('toutes les chaînes datées sont classées : aucune n\'échappe au test pr
     $dated = collect((require lang_path('fr/mandates.php'))['email'])
         ->filter(fn (string $text) => str_contains($text, ':date'))->keys()->sort()->values()->all();
 
-    expect($dated)->toBe(collect(['approved', 'approved_detail', 'handover_in', 'handover_out', 'reason_corrected', 'reminder', 'reminder_detail', 'reminder_waiting_detail', 'revoked', 'revoked_detail'])->all());
+    expect($dated)->toBe(collect(['approved', 'approved_detail', 'handover_in', 'handover_out', 'reason_corrected', 'reminder', 'reminder_detail', 'revoked', 'revoked_detail'])->all());
 });
 
 test('les emails s\'adressent au joueur et nomment le personnage (10)', function () {
