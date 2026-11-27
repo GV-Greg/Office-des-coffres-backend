@@ -13,8 +13,7 @@ use Illuminate\Support\Carbon;
 /**
  * Rappel au joueur 2 jours APRÈS la fin EFFECTIVE de son mandat, tant qu'il est renouvelable
  * (décision de Greg, 03/10/2026 : avant la fin, l'élection est en cours et il ne sait pas s'il est
- * réélu). CONSEIL sans passation enregistrée (27/11/2026) : le sortant reste en poste jusqu'à 30 jours,
- * le rappel part 4 jours après le TERME. Aucun effet sur l'autorité : l'expiration à holds_until reste sèche et ne dépend pas de
+ * réélu). Aucun effet sur l'autorité : l'expiration à holds_until reste sèche et ne dépend pas de
  * cette tâche — si le cron tombe, seul le rappel manque (et le tableau de bord le dit).
  */
 class SendMandateReminders extends Command
@@ -45,18 +44,9 @@ class SendMandateReminders extends Command
 
     public function handle(): int
     {
-        // Clé ajoutée à un fichier de configuration déjà en cache : sans `config:cache`, elle vaudrait « aucun jour » et
-        // les rappels partiraient dès le terme. La tâche refuse de tourner ; le tableau de bord alerte faute de passage.
-        if (config('mandates.council_reminder_after_days') === null) {
-            $this->error('Configuration absente (mandates.council_reminder_after_days) : lancer php artisan config:cache.');
-
-            return self::FAILURE;
-        }
-
         $now = Carbon::now();
         // Terminé depuis au moins 2 jours, et encore renouvelable (fin il y a 15 jours au plus).
         $endedBefore = $now->copy()->subDays(config('mandates.reminder_after_days'));
-        $termPassedBefore = $now->copy()->subDays(config('mandates.council_reminder_after_days'));
         $stillRenewable = $now->copy()->subDays(config('mandates.renewal_window_days'));
         $sent = 0;
 
@@ -64,10 +54,7 @@ class SendMandateReminders extends Command
             $mandates = $model::query()
                 ->where('status', Mandate::APPROVED)          // jamais un révoqué
                 ->whereNull('reminder_sent_at')               // jamais deux fois
-                ->where(fn ($query) => $model === CouncilMandate::class
-                    ? $query->where(fn ($handover) => $handover->where('holds_until_set_by', 'handover')->where('holds_until', '<=', $endedBefore))
-                        ->orWhere(fn ($waiting) => $waiting->where('holds_until_set_by', '!=', 'handover')->where('valid_until', '<=', $termPassedBefore))
-                    : $query->where('holds_until', '<=', $endedBefore))
+                ->where('holds_until', '<=', $endedBefore)
                 ->where('holds_until', '>=', $stillRenewable)
                 // Aucun rappel dès qu'un renouvellement existe, en attente OU validé (fil lot 3, Q1) :
                 // « renouvelez-le » à quelqu'un qui l'a fait serait faux.

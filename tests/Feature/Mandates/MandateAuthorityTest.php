@@ -214,7 +214,8 @@ test('canManageMines ne répond que pour maintenant : un mandat pas encore en fo
     atGameTime('2026-05-02 12:00'); // mandat pas encore en fonction (03/05), poste pas encore posé
     expect($this->authority->canManageMines($character))->toBeNull();
 
-    Carbon::setTestNow($mandate->fresh()->holds_until->copy()->addMinute());
+    // Après la fin enregistrée, l'attente du successeur court encore (voir CouncilProlongationTest) : on regarde après elle.
+    Carbon::setTestNow($mandate->fresh()->valid_until->copy()->addDays(31));
     expect($this->authority->canManageMines($character))->toBeNull();
 });
 

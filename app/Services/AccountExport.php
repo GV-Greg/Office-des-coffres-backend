@@ -80,7 +80,6 @@ class AccountExport
     private function mandatesSection(User $user): array
     {
         $mandates = [];
-        $now      = Carbon::now();
 
         foreach ($user->characters as $character) {
             foreach ($character->mayorMandates as $mandate) {
@@ -103,9 +102,8 @@ class AccountExport
             }
 
             foreach ($character->councilMandates as $mandate) {
-                // Poste détenu maintenant : filtrage sur la collection déjà chargée.
-                $currentPeriod = $mandate->officePeriods
-                    ->first(fn ($p) => $p->started_at <= $now && $p->ended_at > $now);
+                // Poste détenu maintenant, attente du successeur comprise.
+                $currentPeriod = $mandate->currentPeriod();
 
                 $mandates[] = [
                     'level'            => 'council',

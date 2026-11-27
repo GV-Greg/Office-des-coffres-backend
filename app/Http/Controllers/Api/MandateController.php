@@ -9,6 +9,7 @@ use App\Models\Mandate;
 use App\Models\MayorMandate;
 use App\Services\AdminNotifier;
 use App\Services\MandateWorkflow;
+use App\Support\CouncilWaiting;
 use App\Support\MandateApiErrors;
 use App\Support\MandateLabels;
 use Illuminate\Http\JsonResponse;
@@ -187,6 +188,8 @@ class MandateController extends BaseController
             'valid_until' => $mandate->valid_until?->toIso8601String(),
             'in_office_from' => $mandate->in_office_from?->toIso8601String(),
             'holds_until' => $mandate->holds_until?->toIso8601String(),
+            // Fin passée mais poste conservé en attendant le successeur : jusqu'à quand au plus ; null sinon.
+            'kept_until' => CouncilWaiting::until($mandate)?->toIso8601String(),
             'announcement_url' => $mandate->announcement_url,
             'renews_id' => $mandate->renews_id,
             'renewable' => $this->workflow->isRenewable($mandate),

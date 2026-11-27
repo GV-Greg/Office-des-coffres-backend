@@ -116,7 +116,11 @@ class MandateAuthority
      */
     public function pastMineReaderMandates(Character $character): Collection
     {
+        // Un mandat qui attend encore son successeur est lu comme « en cours » : il n'est pas passé.
+        $current = $this->mineReaderMandate($character);
+
         return CouncilMandate::query()
+            ->when($current, fn ($query) => $query->whereKeyNot($current->id))
             ->where('character_id', $character->id)
             ->where('status', CouncilMandate::APPROVED)
             ->whereNotNull('in_office_from')
@@ -226,13 +230,10 @@ class MandateAuthority
      */
     public function currentHolders(Province $province, array $officeKeys): Collection
     {
-        $now = Carbon::now();
-
         return CouncilMandate::query()->inOfficeNow()
             ->where('province_id', $province->id)
             ->whereHas('officePeriods', fn ($periods) => $periods
-                ->where('started_at', '<=', $now)
-                ->where('ended_at', '>', $now)
+                ->inForce()
                 ->whereHas('office', fn ($office) => $office->whereIn('key', $officeKeys)))
             ->with('character.user')
             ->get()
@@ -382,9 +383,8 @@ class MandateAuthority
     public function securityScope(Character $character): ?array
     {
         $mandate = $this->councilMandateHoldingOffice($character, self::SECURITY_COUNCIL_OFFICES)->with('province', 'officePeriods.office')->first();
-        $now = Carbon::now();
-        $office = $mandate?->officePeriods
-            ->first(fn ($period) => $period->started_at <= $now && $period->ended_at > $now && in_array($period->office?->key, self::SECURITY_COUNCIL_OFFICES, true))
+        $office = $mandate?->officePeriods()->inForce()->with('office')->get()
+            ->first(fn ($period) => in_array($period->office?->key, self::SECURITY_COUNCIL_OFFICES, true))
             ?->office?->key;
 
         $mayorCity = $this->activeMayorMandate($character)?->city?->loadMissing('province');
@@ -410,13 +410,10 @@ class MandateAuthority
 
     private function councilMandateHoldingOffice(Character $character, array $officeKeys): Builder
     {
-        $now = Carbon::now();
-
         return CouncilMandate::query()->inOfficeNow()
             ->where('character_id', $character->id)
             ->whereHas('officePeriods', fn ($periods) => $periods
-                ->where('started_at', '<=', $now)
-                ->where('ended_at', '>', $now)
+                ->inForce()
                 ->whereHas('office', fn ($office) => $office->whereIn('key', $officeKeys)));
     }
 }

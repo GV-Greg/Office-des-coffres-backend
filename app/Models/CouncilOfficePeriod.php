@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Support\CouncilWaiting;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Période de détention d'un poste par un mandat de conseiller (Q17). `ended_at` est toujours
@@ -37,5 +40,20 @@ class CouncilOfficePeriod extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(CouncilOffice::class, 'council_office_id');
+    }
+
+    /**
+     * Périodes EN VIGUEUR maintenant : commencées et pas terminées — ou gardées le temps de l'attente du successeur
+     * (App\Support\CouncilWaiting).
+     */
+    public function scopeInForce(Builder $query): Builder
+    {
+        $now = Carbon::now();
+        $kept = CouncilWaiting::periodIds();
+
+        return $query->where($this->qualifyColumn('started_at'), '<=', $now)
+            ->where(fn (Builder $either) => $either
+                ->where($this->qualifyColumn('ended_at'), '>', $now)
+                ->orWhereIn($this->qualifyColumn('id'), $kept));
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Rappel de renouvellement, 2 jours après la fin EFFECTIVE d'un mandat (lot 3, décision de Greg du
- * 03/10/2026) — ou, pour un conseiller qui attend son successeur, après le TERME de son mandat. Bilingue, français puis anglais, synchrone, comme MandateDecision.
+ * 03/10/2026). Bilingue, français puis anglais, synchrone, comme MandateDecision.
  */
 class MandateReminder extends Notification
 {
@@ -47,12 +47,9 @@ class MandateReminder extends Notification
             }
             $lines[] = __('mandates.email.greeting', [], $locale);
             $lines[] = $this->panelLine($locale);
-            // Encore en poste (attente du successeur) : on dit le terme, pas une fin qui n'est pas arrivée.
-            $waiting = $this->mandate->holds_until->isFuture();
-            $end = $waiting ? $this->mandate->valid_until : $this->mandate->holds_until;
-            $lines[] = __($waiting ? 'mandates.email.reminder_waiting_detail' : 'mandates.email.reminder_detail', [
-                'date' => MandateLabels::date($end),
-                'date_jeu' => MandateLabels::gameDate($end),
+            $lines[] = __('mandates.email.reminder_detail', [
+                'date' => MandateLabels::date($this->mandate->holds_until),
+                'date_jeu' => MandateLabels::gameDate($this->mandate->holds_until),
             ], $locale);
             $lines[] = $locale === 'fr' ? '%%button%%' : ('%%button2:'.__('mandates.email.action', [], 'en').'%%');
         }
