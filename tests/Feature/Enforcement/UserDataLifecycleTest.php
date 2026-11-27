@@ -106,6 +106,12 @@ $declaredTables = [
     // Security/CustomsWatchlistTest.
     'customs_watchlist_entries' => 'C',
 
+    // C — Livre des naissances (27/11/2026, politique §5) : la mémoire de la province, transmise d'un titulaire au suivant.
+    // Les liens vers le personnage auteur (`character_id`, `withdrawn_by_character_id`, `created_by_…`, `updated_by_…`) passent à
+    // NULL par la base (nullOnDelete) : la ligne reste. Naissances chiffrées. Absentes de l'export art. 20. Tenu par Livestock/*.
+    'livestock_births' => 'C',
+    'province_feed_prices' => 'C',
+
     // B — nettoyage explicite dans App\Services\AccountDeletion (tous les chemins de suppression,
     // depuis le 04/10/2026) ou par un hook de paquet.
     // Ces tables ne peuvent pas porter de FK vers `users` : colonne indexée sans contrainte

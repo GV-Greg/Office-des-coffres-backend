@@ -25,3 +25,4 @@ GET   characters/1/customs-access       401
 GET   characters/1/customs-province     401
 GET   characters/1/mine-registry        401
 GET   characters/1/inventory-scopes     401
+GET   characters/1/livestock              401

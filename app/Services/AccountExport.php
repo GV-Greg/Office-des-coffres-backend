@@ -226,9 +226,10 @@ class AccountExport
                 "servers and therefore do not appear here.",
             'shared_data' =>
                 "Les réglages et l'inventaire de la ville ou de la province que vous gérez (maire, " .
-                "commissaire au commerce) appartiennent à la collectivité, pas à vous : ils n'apparaissent pas ici. / " .
-                "The settings and inventory of the city or province you manage (mayor, Trade Minister) " .
-                "belong to the community, not to you: they do not appear here.",
+                "commissaire au commerce), ainsi que les naissances et les prix de la nourriture du Livre des naissances, " .
+                "appartiennent à la collectivité, pas à vous : ils n'apparaissent pas ici. / " .
+                "The settings and inventory of the city or province you manage (mayor, Trade Minister), and the births " .
+                "and food prices of the Birth Register, belong to the community, not to you: they do not appear here.",
             'credentials' =>
                 'Votre mot de passe (stocké sous forme hachée, non réversible) et vos jetons de ' .
                 "connexion sont exclus de cet export pour votre sécurité. / " .

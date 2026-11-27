@@ -186,6 +186,16 @@ class MandateAuthority
      */
     public function canEditPriceOn(Character $character, Province $province, string $date): bool
     {
+        return $this->heldOfficeDuringTermOn($character, $province, $date, self::PRICE_OFFICES);
+    }
+
+    /**
+     * La règle d'écriture d'un prix daté, commune aux prix des mines et à ceux de la nourriture du cheptel.
+     *
+     * @param  array<int, string>  $officeKeys
+     */
+    private function heldOfficeDuringTermOn(Character $character, Province $province, string $date, array $officeKeys): bool
+    {
         // Le jour du jeu va de 04:00 à 04:00 (heure de Paris) : bornes ramenées en UTC, car la base stocke en UTC et le query builder
         // formate un Carbon tel quel, sans conversion — sans cela, la comparaison glisse de 1 à 2 heures (constaté le 16/10/2026).
         $dayStart = MandateCalendar::startOfGameDay($date);
@@ -201,7 +211,7 @@ class MandateAuthority
             ->where('valid_until', '>', $dayStart)
             ->where('valid_until', '>', $now)
             ->where('holds_until', '>', $now)
-            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES))
+            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', $officeKeys))
             ->exists();
     }
 
@@ -249,6 +259,72 @@ class MandateAuthority
      *
      * @param  array<int, string>  $officeKeys
      */
+
+    /**
+     * Livre des naissances (Greg, 27/11/2026) : le BAILLI inscrit les naissances et tient le prix de la nourriture ; le
+     * dirigeant lit. Les deux règlent les espèces élevées dans la province. Par le titre, province du poste ; l'attente du
+     * successeur vaut pour tout, sauf pour écrire un prix.
+     */
+    public const LIVESTOCK_WRITER_OFFICES = ['bailli'];
+
+    public const LIVESTOCK_READER_OFFICES = ['bailli', 'leader'];
+
+    /** Mandat par lequel le personnage inscrit des naissances MAINTENANT, ou null. */
+    public function birthWriterMandate(Character $character): ?CouncilMandate
+    {
+        return $this->councilMandateHoldingOffice($character, self::LIVESTOCK_WRITER_OFFICES)->with('province')->first();
+    }
+
+    /** Mandat par lequel le personnage lit le Livre de sa province (et en règle les espèces) MAINTENANT, ou null. */
+    public function livestockReaderMandate(Character $character): ?CouncilMandate
+    {
+        return $this->councilMandateHoldingOffice($character, self::LIVESTOCK_READER_OFFICES)->with('province')->first();
+    }
+
+    /** Province dont le personnage peut écrire les prix de la nourriture : jusqu'au TERME du mandat seulement. */
+    public function canManageFeedPrices(Character $character): ?Province
+    {
+        return $this->councilMandateHoldingOffice($character, self::LIVESTOCK_WRITER_OFFICES)
+            ->where('valid_until', '>', Carbon::now())
+            ->with('province')->first()?->province;
+    }
+
+    public function canEditFeedPriceOn(Character $character, Province $province, string $date): bool
+    {
+        return $this->heldOfficeDuringTermOn($character, $province, $date, self::LIVESTOCK_WRITER_OFFICES);
+    }
+
+    /** Le personnage a-t-il, un jour, tenu le poste qui écrit ces prix (mandat approuvé) ? */
+    public function everHeldFeedPriceOffice(Character $character): bool
+    {
+        return CouncilMandate::query()
+            ->where('status', CouncilMandate::APPROVED)
+            ->where('character_id', $character->id)
+            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::LIVESTOCK_WRITER_OFFICES))
+            ->exists();
+    }
+
+    /**
+     * Mandats PASSÉS par lesquels le personnage a lu le Livre : approuvés (jamais révoqués), entrés en fonction, terminés, avec
+     * un poste de lecture. Un mandat qui attend encore son successeur est « en cours », pas passé.
+     *
+     * @return Collection<int, CouncilMandate>
+     */
+    public function pastLivestockReaderMandates(Character $character): Collection
+    {
+        $current = $this->livestockReaderMandate($character);
+
+        return CouncilMandate::query()
+            ->when($current, fn ($query) => $query->whereKeyNot($current->id))
+            ->where('character_id', $character->id)
+            ->where('status', CouncilMandate::APPROVED)
+            ->whereNotNull('in_office_from')
+            ->where('holds_until', '<=', Carbon::now())
+            ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::LIVESTOCK_READER_OFFICES))
+            ->with('province')
+            ->orderByDesc('holds_until')
+            ->get();
+    }
 
     /**
      * Inventaires (Greg, 11/11/2026).
