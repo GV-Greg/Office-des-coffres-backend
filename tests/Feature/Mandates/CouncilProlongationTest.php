@@ -112,3 +112,12 @@ test('la commande ne ranime pas un mandat terminé et ne touche ni passation ni 
 
     expect(CouncilMandate::find($handed->id)->holds_until->equalTo($end))->toBeTrue();
 });
+
+test('sans la durée en configuration (cache pas refait), la tâche de rappel refuse de tourner', function () {
+    Carbon::setTestNow($this->mandate->valid_until->copy()->addDay());
+    config(['mandates.council_reminder_after_days' => null]);
+
+    $this->artisan('mandates:send-reminders')->assertFailed();
+    Notification::assertNotSentTo($this->bailli->user, MandateReminder::class);
+});
+

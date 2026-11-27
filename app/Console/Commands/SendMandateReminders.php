@@ -45,6 +45,14 @@ class SendMandateReminders extends Command
 
     public function handle(): int
     {
+        // Clé ajoutée à un fichier de configuration déjà en cache : sans `config:cache`, elle vaudrait « aucun jour » et
+        // les rappels partiraient dès le terme. La tâche refuse de tourner ; le tableau de bord alerte faute de passage.
+        if (config('mandates.council_reminder_after_days') === null) {
+            $this->error('Configuration absente (mandates.council_reminder_after_days) : lancer php artisan config:cache.');
+
+            return self::FAILURE;
+        }
+
         $now = Carbon::now();
         // Terminé depuis au moins 2 jours, et encore renouvelable (fin il y a 15 jours au plus).
         $endedBefore = $now->copy()->subDays(config('mandates.reminder_after_days'));
