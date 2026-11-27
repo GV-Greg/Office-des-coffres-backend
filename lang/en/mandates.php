@@ -78,6 +78,7 @@ return [
         'reminder_subject' => 'Term of :character to renew',
         'reminder' => 'The term of your character :character, :post, ended on :date (:date_jeu). Re-elected? Renew it from your profile.',
         'reminder_detail' => 'This term ended on :date (:date_jeu). Re-elected? Renew it from your profile.',
+        'reminder_waiting_detail' => 'This term came to an end on :date (:date_jeu). Re-elected? Renew it from your profile.',
         'comment_fr' => "Administrator's comment (written in French):",
         'comment_en' => "Administrator's comment (written in English):",
         'action' => 'View my profile',

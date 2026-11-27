@@ -85,16 +85,7 @@
                         <span class="font-normal text-xs text-orange-200/80">— {{ __('mandates.admin.province_actions_help') }}</span></span>
                     <span aria-hidden="true" class="text-orange-300 transition-transform group-open:rotate-90">▸</span>
                 </summary>
-                <div class="grid gap-3 lg:grid-cols-3 px-4 pb-4 pt-3 border-t border-orange-500/30">
-                    <x-mandate.panel tone="amber" :title="__('mandates.admin.extend_title')">
-                        <form method="POST" action="{{ route('mandates.provinces.extend', $provinceId) }}" class="space-y-2">
-                            @csrf
-                            <label class="text-xs text-gray-300 block"><span class="block mb-0.5">{{ __('mandates.admin.extend_note') }}</span>
-                                <input type="text" name="note" required class="w-full {{ $input }}"></label>
-                            <button type="submit" class="{{ $button }} bg-amber-700 hover:bg-amber-800">{{ __('mandates.admin.extend', ['days' => config('mandates.council_extension_days')]) }}</button>
-                        </form>
-                    </x-mandate.panel>
-
+                <div class="grid gap-3 lg:grid-cols-2 px-4 pb-4 pt-3 border-t border-orange-500/30">
                     <x-mandate.panel tone="orange" :title="__('mandates.admin.handover_title')">
                         <form method="POST" action="{{ route('mandates.provinces.handover', $provinceId) }}" class="space-y-2">
                             @csrf

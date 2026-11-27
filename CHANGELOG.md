@@ -7,6 +7,21 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
+## [2026-11-27] — PR #120 (Attente du successeur : un conseiller reste en poste 30 jours au plus)
+
+### Changed
+- Au terme de son mandat, un conseiller reste en poste tant qu'aucun successeur n'est connu, **30 jours au plus** (`council_grace_days`, au lieu de 2) ; la passation ou un autre titulaire du poste y met fin plus tôt.
+- **Les prix ne se modifient plus après le terme**, attente comprise : les 7 jours de grâce des prix des mines (`price_edit_grace_days`) disparaissent.
+- Rappel de renouvellement d'un conseiller : 2 jours après la passation, sinon 4 jours après le terme, avec un texte propre à l'attente. Tableau de bord : « se terminent sous 7 jours » suit le terme.
+
+### Removed
+- La prolongation manuelle de 2 jours (route `POST mandates/provinces/{province}/extend`, bouton et libellés).
+
+### Added
+- `php artisan mandates:apply-council-prolongation` (simulation par défaut, `--force` pour écrire) : aligne les mandats de conseil encore en cours. Entrée de politique `2026-11-27-attente-du-successeur` (substantielle).
+
+⚠️ **Production** : `config:cache` (config modifiée, **avant** la commande), `route:cache`, puis `mandates:apply-council-prolongation`, d'abord sans puis avec `--force`. Aucune migration, `.env` ni paquet. Merger **après** le texte de la politique (frontend).
+
 ## [2026-11-25] — PR #119 (Passe rapide de Pest : `scripts/test-fast.sh`)
 
 ### Added

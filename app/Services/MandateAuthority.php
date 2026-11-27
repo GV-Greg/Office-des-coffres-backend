@@ -148,10 +148,16 @@ class MandateAuthority
     /** Qui CONSULTE les prix : les trois postes plus le dirigeant (même principe que le registre). */
     public const PRICE_READER_OFFICES = [...self::PRICE_OFFICES, 'leader'];
 
-    /** Province dont le personnage peut gérer les prix MAINTENANT (province du POSTE), ou null. */
+    /**
+     * Province dont le personnage peut gérer les prix MAINTENANT (province du POSTE), ou null. Seulement jusqu'au TERME du mandat
+     * (`valid_until`) : un conseiller qui attend son successeur garde les autres droits de son poste, jamais l'écriture des prix
+     * (Greg, 27/11/2026).
+     */
     public function canManagePrices(Character $character): ?Province
     {
-        return $this->councilMandateHoldingOffice($character, self::PRICE_OFFICES)->with('province')->first()?->province;
+        return $this->councilMandateHoldingOffice($character, self::PRICE_OFFICES)
+            ->where('valid_until', '>', Carbon::now())
+            ->with('province')->first()?->province;
     }
 
     /** Province dont le personnage peut consulter les prix maintenant, ou null. */
@@ -163,16 +169,16 @@ class MandateAuthority
     /**
      * Le personnage peut-il écrire un jeu de prix daté de `$date` dans cette province ? Deux conditions :
      * 1. il TENAIT l'un des trois postes dans cette province : son mandat de conseil APPROUVÉ (un mandat révoqué
-     *    ne donne plus rien, Greg, 15/10/2026) couvre ce jour de Paris — de l'entrée en fonction à la fin effective —
+     *    ne donne plus rien, Greg, 15/10/2026) couvre ce jour de Paris — de l'entrée en fonction au terme —
      *    et l'Office lui a connu l'un de ces postes (une période de poste, quelle que soit sa date) ;
-     * 2. ce mandat n'est pas terminé depuis plus de `price_edit_grace_days` : passé ce délai, les prix de la
-     *    période sont verrouillés.
+     * 2. le terme de ce mandat n'est pas passé (et le mandat n'a pas pris fin plus tôt) : à son terme, les prix de la
+     *    période sont verrouillés, même pendant l'attente du successeur (Greg, 27/11/2026).
      *
      * ⚠️ Pourquoi le MANDAT et non la période de poste (constaté en prod le 16/10/2026) : une période naît à la
      * VALIDATION du poste dans l'Office (council_office_periods.started_at), parfois des jours après son début réel
      * en jeu — le commissaire aux mines de Franche-Comté, en fonction le 29/09, ne pouvait pas dater un prix du 29/09
      * parce que son poste était connu depuis le 08/10. L'Office ne sait pas depuis quand le poste est tenu (limite 2
-     * ci-dessus) : la fenêtre du mandat est la meilleure approximation, et le verrou de 7 jours reste.
+     * ci-dessus) : la fenêtre du mandat est la meilleure approximation.
      */
     public function canEditPriceOn(Character $character, Province $province, string $date): bool
     {
@@ -180,7 +186,7 @@ class MandateAuthority
         // formate un Carbon tel quel, sans conversion — sans cela, la comparaison glisse de 1 à 2 heures (constaté le 16/10/2026).
         $dayStart = MandateCalendar::startOfGameDay($date);
         $dayEnd = MandateCalendar::endOfGameDay($date);
-        $limit = Carbon::now()->subDays((int) config('mandates.price_edit_grace_days'));
+        $now = Carbon::now();
 
         return CouncilMandate::query()
             ->where('status', CouncilMandate::APPROVED)
@@ -188,8 +194,9 @@ class MandateAuthority
             ->where('province_id', $province->id)
             ->whereNotNull('in_office_from')
             ->where('in_office_from', '<', $dayEnd)
-            ->where('holds_until', '>', $dayStart)
-            ->where('holds_until', '>=', $limit)
+            ->where('valid_until', '>', $dayStart)
+            ->where('valid_until', '>', $now)
+            ->where('holds_until', '>', $now)
             ->whereHas('officePeriods.office', fn ($office) => $office->whereIn('key', self::PRICE_OFFICES))
             ->exists();
     }

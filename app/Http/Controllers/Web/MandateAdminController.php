@@ -250,14 +250,6 @@ class MandateAdminController extends Controller
         return back()->with('status', __('mandates.admin.done.verified'));
     }
 
-    public function extend(Request $request, Province $province): RedirectResponse
-    {
-        $validated = $request->validate(['note' => ['required', 'string', 'max:2000']]);
-        $count = $this->workflow->extendProvince($province, $validated['note']);
-
-        return back()->with('status', __('mandates.admin.done.extended', ['count' => $count]));
-    }
-
     public function handover(Request $request, Province $province): RedirectResponse
     {
         $validated = $request->validate([

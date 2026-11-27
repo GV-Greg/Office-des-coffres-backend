@@ -61,7 +61,7 @@ class MinePriceController extends Controller
     {
         $actor = $this->manager($request, $province);
         if (! $actor) {
-            return MandateApiErrors::error(403, 'mines.api.price_not_authorized');
+            return $this->refuseWrite($request, $province);
         }
 
         $price = $this->prices->create($actor, $province, $this->validated($request));
@@ -79,16 +79,23 @@ class MinePriceController extends Controller
         $editors = $this->editors($request, $province);
         $actor = $editors->first(fn (Character $c) => $this->authority->canEditPrice($c, $model));
         if (! $actor) {
-            // Un titulaire (actuel ou ancien) dont la date n'est plus couverte : « verrouillé ». Le dirigeant
-            // et quiconque n'a jamais tenu ces postes : « non autorisé ».
-            $held = $request->user()->characters->contains(fn (Character $c) => $this->authority->everHeldPriceOffice($c, $province));
-
-            return MandateApiErrors::error(403, $held ? 'mines.api.price_locked' : 'mines.api.price_not_authorized', ['days' => config('mandates.price_edit_grace_days')]);
+            return $this->refuseWrite($request, $province);
         }
 
         $updated = $this->prices->update($actor, $model, $this->validated($request, true));
 
         return response()->json(['success' => true, 'price' => $this->prices->present($updated, true)]);
+    }
+
+    /**
+     * Un titulaire (actuel, en attente de son successeur, ou ancien) qui ne peut plus écrire : « verrouillé ». Le dirigeant et
+     * quiconque n'a jamais tenu ces postes : « non autorisé ».
+     */
+    private function refuseWrite(Request $request, Province $province): JsonResponse
+    {
+        $held = $request->user()->characters->contains(fn (Character $c) => $this->authority->everHeldPriceOffice($c, $province));
+
+        return MandateApiErrors::error(403, $held ? 'mines.api.price_locked' : 'mines.api.price_not_authorized');
     }
 
     /** @return array{effective_from: string, prices: array<string, numeric>, hourly_rate: numeric} */

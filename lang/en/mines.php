@@ -10,7 +10,7 @@ return [
         'mine_report_future' => 'This report carries a future date: it cannot be recorded.',
         'price_not_authorized' => "Only the province's Trade Minister, Mines Superintendent and Sheriff manage its prices, and the Office does not know this office for this character.",
         'price_not_reader' => "Only the province's Trade Minister, Mines Superintendent, Sheriff and leader read its prices, and the Office does not know such an office for this character.",
-        'price_locked' => 'This price set can no longer be edited: it was set before your office, or your office ended more than :days days ago.',
+        'price_locked' => 'This price can no longer be edited: your term has ended, or it dates from before your office.',
         'price_not_found' => 'This price set does not exist in this province.',
         'price_exists' => 'A price set already exists for :date in this province: edit it instead of creating a second one.',
         'price_future' => 'A price set cannot carry a future date.',

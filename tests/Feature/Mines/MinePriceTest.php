@@ -17,7 +17,7 @@ use Laravel\Passport\Passport;
 
 /*
 | Registre des mines, lot 2 — prix par période (10/2026). Trois postes égaux écrivent, le dirigeant lit seulement ;
-| un prix se corrige jusqu'à 7 jours après la fin du poste qui le couvre ; résumé quotidien par email.
+| un prix se corrige jusqu'au terme du mandat qui le couvre ; résumé quotidien par email.
 */
 
 beforeEach(function () {
@@ -228,30 +228,22 @@ test('un poste pris APRÈS la date d\'effet ne corrige pas ce jeu, même en post
         ->assertForbidden()->assertJsonPath('code', 'price_locked');
 });
 
-test('un titulaire dont le poste est terminé corrige encore pendant 7 jours, puis le jeu est verrouillé', function () {
+test('un prix se corrige jusqu\'au terme du mandat, puis il est verrouillé — même pendant l\'attente du successeur', function () {
     $price = priceSet(['effective_from' => '2026-05-20']);
-    $end = CouncilMandate::where('character_id', $this->commerce->id)->sole()->holds_until;
-
-    Carbon::setTestNow($end->copy()->addDays(5));
+    $mandate = CouncilMandate::where('character_id', $this->commerce->id)->sole();
     Passport::actingAs($this->commerce->user);
+
+    Carbon::setTestNow($mandate->valid_until->copy()->subHour());
     $this->putJson(pricesUrl($this, "/{$price->id}"), priceBody(['effective_from' => '2026-05-20']))->assertOk();
 
-    Carbon::setTestNow($end->copy()->addDays(8));
+    // Le terme passé, le titulaire est encore en poste : il lit les prix, mais n'en écrit plus aucun.
+    Carbon::setTestNow($mandate->valid_until->copy()->addDay());
+    $this->getJson(pricesUrl($this))->assertOk()->assertJsonPath('prices.0.editable', false);
     $this->putJson(pricesUrl($this, "/{$price->id}"), priceBody(['effective_from' => '2026-05-20']))
         ->assertForbidden()->assertJsonPath('code', 'price_locked');
-});
-
-test('la durée de grâce vient de la configuration', function () {
-    $price = priceSet(['effective_from' => '2026-05-20']);
-    $end = CouncilMandate::where('character_id', $this->commerce->id)->sole()->holds_until;
-    Passport::actingAs($this->commerce->user);
-
-    config(['mandates.price_edit_grace_days' => 2]);
-    Carbon::setTestNow($end->copy()->addDays(3));
-    $this->putJson(pricesUrl($this, "/{$price->id}"), priceBody(['effective_from' => '2026-05-20']))->assertForbidden();
-
-    config(['mandates.price_edit_grace_days' => 10]);
-    $this->putJson(pricesUrl($this, "/{$price->id}"), priceBody(['effective_from' => '2026-05-20']))->assertOk();
+    $this->postJson(pricesUrl($this), priceBody(['effective_from' => '2026-05-21']))
+        ->assertForbidden()->assertJsonPath('code', 'price_locked');
+    $this->getJson("/api/v1/characters/{$this->commerce->id}/mine-registry")->assertJsonPath('prices.write', null);
 });
 
 test('un mandat révoqué ne donne plus aucun droit de correction', function () {

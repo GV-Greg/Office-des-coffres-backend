@@ -15,12 +15,11 @@ return [
     'mayor_days' => 30,
     'council_days' => 60,
 
-    // Le nouveau conseil n'entre en fonction qu'à l'élection du dirigeant ; les 12 élus ont deux
-    // jours pour l'élire (wiki officiel, vérifié le 03/10/2026). Le sortant reste en poste jusque-là.
-    'council_grace_days' => 2,
-
-    // Tranche de chaque prolongation manuelle par l'administrateur (égalité au vote du dirigeant).
-    'council_extension_days' => 2,
+    // Un conseiller reste en poste après le terme de son mandat tant que l'Office ne connaît pas de successeur, ce nombre de
+    // jours AU PLUS (Greg, 27/11/2026 : l'élection du dirigeant demande la majorité des conseillers et peut tarder). La passation,
+    // ou un autre titulaire du poste, y met fin plus tôt. Pendant cette attente, tous les droits du poste, SAUF modifier un prix.
+    // ⚠️ Promesse de la politique de confidentialité (§6) : la changer, c'est changer le texte.
+    'council_grace_days' => 30,
 
     // 12 sièges, 10 postes titrés (dirigeant compris) : deux conseillers sans portefeuille.
     'council_unassigned_seats' => 2,
@@ -44,15 +43,15 @@ return [
     // fil mandats-lot3, tour 07).
     'reminder_after_days' => 2,
 
+    // Conseil sans passation enregistrée : sa fin effective peut être loin ; le rappel part ce nombre de jours après son TERME,
+    // pour que le conseiller réélu renouvelle à temps (Greg, 27/11/2026).
+    'council_reminder_after_days' => 4,
+
     // Purge des refus : un `rejected` vit ce nombre de mois après sa décision (processed_at).
     // Une demande en attente n'est JAMAIS purgée : c'est une tâche de l'administrateur.
     'rejected_retention_months' => 3,
 
     // ─── Registre des mines, lot 2 : prix par période ─
-
-    // Un jeu de prix reste modifiable par celui qui tenait le poste à sa date d'effet jusqu'à ce
-    // nombre de jours APRÈS la fin effective de ce poste ; passé ce délai, il est verrouillé.
-    'price_edit_grace_days' => 7,
 
     // Résumé quotidien des changements de prix aux occupants des trois postes (fuseau du jeu). Heure
     // distincte de schedule_at : Greg, 15/10/2026. N'envoie rien s'il n'y a eu aucun changement.

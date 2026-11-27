@@ -547,32 +547,6 @@ class MandateWorkflow
 
     // ─── Gestes de l'administrateur : province ────────────────────────────────────────────
 
-    /** Prolonger de 2 jours tous les conseillers EN PROLONGATION de la province, note obligatoire. */
-    public function extendProvince(Province $province, string $note): int
-    {
-        $now = Carbon::now();
-        $extended = CouncilMandate::query()->inOfficeNow()
-            ->where('status', Mandate::APPROVED)
-            ->where('province_id', $province->id)
-            ->where('valid_until', '<=', $now)
-            ->get();
-
-        if ($extended->isEmpty()) {
-            throw $this->refuse('province', 'mandates.admin.errors.nothing_to_extend');
-        }
-
-        DB::transaction(function () use ($extended, $note) {
-            foreach ($extended as $mandate) {
-                $mandate->appendNote(__('mandates.admin.trace.extended', ['note' => $note]));
-                $this->setHoldsUntil($mandate,
-                    MandateCalendar::addGameDays($mandate->holds_until, config('mandates.council_extension_days')),
-                    'extension');
-            }
-        });
-
-        return $extended->count();
-    }
-
     /**
      * Passation à l'élection du dirigeant, date L (00:00 heure du jeu, Q11). En un geste : les
      * sortants cochés sortent à L, les entrants cochés entrent à L SANS POSTE (Q14), et les postes
