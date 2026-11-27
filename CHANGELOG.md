@@ -7,7 +7,7 @@ merge sur `main` déclenche un déploiement, la date de merge fait foi. L'histor
 (raisonnement, incidents, décisions) vit dans `admin/suivi/*.md` et `admin/archives/` à la racine
 du workspace ; ce fichier n'en retient que le résumé daté.
 
-## [À dater au merge] — PR #120 (Attente du successeur : un conseiller reste en poste 30 jours au plus)
+## [2026-11-27] — PR #120 (Attente du successeur : un conseiller reste en poste 30 jours au plus)
 
 ### Changed
 - Au terme de son mandat, un conseiller reste en poste tant qu'aucun successeur n'est connu, **30 jours au plus** (`council_grace_days`, au lieu de 2) ; la passation ou un autre titulaire du poste y met fin plus tôt.
