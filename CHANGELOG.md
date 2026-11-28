@@ -11,9 +11,9 @@ du workspace ; ce fichier n'en retient que le résumé daté.
 
 ### Added
 - API `characters/{id}/livestock` : le bailli inscrit les naissances de sa province (retrait le jour même, sans effacement) et tient le prix de la nourriture du cheptel (jusqu'au terme) ; le dirigeant lit ; les deux règlent les espèces élevées ; un ancien titulaire relit sa période. Naissances chiffrées, aucun auteur nommé.
-- Entrée au journal de la politique `2026-11-27-historique-des-naissances`.
+- Entrée au journal de la politique `2026-11-28-historique-des-naissances`.
 
-⚠️ **Production** : `migrate` (3 tables), `route:cache` (7 routes), puis `policy:notify 2026-11-27-historique-des-naissances` une fois la politique en ligne. Aucun `config/*.php`, `.env` ni paquet.
+⚠️ **Production** : `migrate` (3 tables), `route:cache` (7 routes), puis `policy:notify 2026-11-28-historique-des-naissances` une fois la politique en ligne. Aucun `config/*.php`, `.env` ni paquet.
 
 ## [2026-11-27] — PR #121 (L'attente du successeur devient une souplesse : la fin enregistrée ne change plus)
 

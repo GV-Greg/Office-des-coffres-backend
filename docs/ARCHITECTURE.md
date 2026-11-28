@@ -229,7 +229,7 @@ Texte de la politique d'abord (« historique des naissances »). Tout passe par 
 | `FeedPrices` | **seul écrivain** des prix : au moins une nourriture, ni futur ni hors mandat, un jeu par date, correction sans suppression |
 | `App\Support\Livestock` | espèces et nourritures acceptées. Le serveur ne valide que la **forme** : quantité prise et perdue sont calculées par le site (seule table des coûts) |
 
-🔴 Aucun lecteur n'apprend qui a inscrit une naissance ou un prix (`can_withdraw` seulement). Mandat passé : de l'entrée en fonction à la fin enregistrée, étendu aux naissances que le personnage a inscrites en attendant son successeur ; rien de postérieur. Refus bilingues `livestock.api.*`. Hors export art. 20. Le cheptel et les ventes n'en font pas partie. ⚠️ **Prod** : `migrate` (3 tables), `route:cache`, aucun `config/*.php`, `.env` ni paquet ; `policy:notify 2026-11-27-historique-des-naissances` une fois le texte en ligne. Tests : `Livestock/LivestockTest`.
+🔴 Aucun lecteur n'apprend qui a inscrit une naissance ou un prix (`can_withdraw` seulement). Mandat passé : de l'entrée en fonction à la fin enregistrée, étendu aux naissances que le personnage a inscrites en attendant son successeur ; rien de postérieur. Refus bilingues `livestock.api.*`. Hors export art. 20. Le cheptel et les ventes n'en font pas partie. ⚠️ **Prod** : `migrate` (3 tables), `route:cache`, aucun `config/*.php`, `.env` ni paquet ; `policy:notify 2026-11-28-historique-des-naissances` une fois le texte en ligne. Tests : `Livestock/LivestockTest`.
 
 ## Animation — Décode le code (27/10/2026, refondue 28/10)
 
