@@ -71,6 +71,11 @@ $exportDecisions = [
     // Non exportés : mêmes raisons que mine_reports.
     'province_mine_prices' => 'excluded',
 
+    // C — Livre des naissances : données communautaires de la province (naissances, prix de la nourriture). Non exportées ;
+    // AccountExport le dit dans `not_included.shared_data`.
+    'livestock_births' => 'excluded',
+    'province_feed_prices' => 'excluded',
+
     // Secrets techniques — exclus volontairement pour la sécurité du joueur
     // (brief §1 et section "not_included.credentials" de l'export).
     'oauth_access_tokens'  => 'excluded',

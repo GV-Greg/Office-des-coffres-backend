@@ -27,6 +27,9 @@ hasMany `Province` → hasMany `City`. `CouncilMandate` → hasMany `CouncilOffi
 | `office_history_archive` | survit à la suppression (pseudo texte, lieu texte+id, titre clé) | D |
 | `mine_reports` | relevé des mines (`active` 1/NULL), payload chiffré, `character_id` nullable | C |
 | `province_mine_prices` | prix par province et date d'effet, `character_id` nullable | C |
+| `province_livestock_settings` | espèces élevées dans la province (Livre des naissances), sans lien vers un personnage | — |
+| `province_feed_prices` | prix de la nourriture du cheptel par date d'effet, auteurs nullables | C |
+| `livestock_births` | naissances, payload chiffré, retrait daté (jamais effacée), `character_id` nullable | C |
 | `character_inventory_settings` | réglages + dernier inventaire collé, chiffré | A |
 | `city_inventory_settings` | idem ville, `updated_by_character_id` nullable | C |
 | `province_inventory_settings` | réglages province, `updated_by_character_id` nullable | C |
@@ -214,6 +217,19 @@ Règles clés :
 **Registre — bilans de mandat passés** (fil `admin/echanges/bilans-passes-mines/`, décisions de Greg et Cowork du 22/11/2026) : un ancien titulaire relit, **en lecture seule**, les relevés de **son** mandat. `MandateAuthority::pastMineReaderMandates()` (règle d'**historique**, à part des méthodes « maintenant » — Q10 intact) : mandats `approved` (🔴 **jamais `revoked`**), entrés en fonction, **terminés** (`holds_until` échu), avec au moins une période de `MINE_READER_OFFICES` ; `lastMineReaderOffice()` = le dernier poste éligible tenu. `MineRegistryReader::readForMandate()` ; `readFor()` l'appelle avec le mandat en cours. 🔴 **Fenêtrage d'un mandat PASSÉ** : relevés de `in_office_from` − 30 j à `holds_until` **exclu** (le jour où le successeur entre n'est plus le sien) ; **aucun relevé postérieur** (sans cette borne, un ancien titulaire lirait pour toujours le travail de ses successeurs). Un mandat **en cours** garde l'ancien comportement (aucune borne haute). La réponse garde le format de `reports` et ajoute `read_only`, `window`, `mandate.id` et `mandate.ended_at`. `access` ajoute `past_mandates` (une entrée par mandat). **Hors scope** : le poste vidé pendant un mandat qui continue (élection d'un dirigeant) — le successeur nommé fera le bilan. Texte légal : front #153. ⚠️ **Prod** : `route:cache` ; aucune migration, `config/*.php`, `.env` ni paquet. Tests : `Mines/MinePastBalancesTest`.
 
 **Prix des mines** (lot 2, brief `brief-prix-registre.md`) : `MinePrices` seul écrivain. `PRICE_OFFICES` (commerce, mines, bailli — tous égaux, dirigeant lit seul). Autorisation : mandat **approuvé** dont la fenêtre (entrée en fonction → **terme**) recouvre le jour de Paris, terme non passé (verrou au terme, attente du successeur comprise). Prix futur ou hors période refusé. `mines:prices-digest` 15:00 Paris (un email par occupant, pas ses propres changements). ⚠️ Prod : `route:cache`, `config:cache`.
+
+## Livre des naissances (27/11/2026)
+
+Texte de la politique d'abord (« historique des naissances »). Tout passe par un **personnage** : `GET characters/{id}/livestock` (droits, espèces, naissances, prix, `past_mandates`), `…/livestock/mandates/{mandate}` (mandat passé, lecture seule), `POST …/births`, `POST …/births/{birth}/withdraw`, `PUT …/species`, `POST|PUT …/prices`.
+
+| Pièce | Rôle |
+|---|---|
+| `MandateAuthority` | `birthWriterMandate` (bailli, attente du successeur comprise), `livestockReaderMandate` (bailli, dirigeant : lecture et réglage des espèces), `canManageFeedPrices` / `canEditFeedPriceOn` (bailli, **jusqu'au terme** — même règle que les prix des mines), `pastLivestockReaderMandates` (approuvés, jamais révoqués) |
+| `LivestockRegister` | **seul écrivain** des naissances et des espèces. Naissance : un jour du mandat jusqu'à aujourd'hui, espèce réglée, nourriture compatible ; retrait **le jour du jeu même** par son auteur, jamais d'effacement ; au plus 500 servies |
+| `FeedPrices` | **seul écrivain** des prix : au moins une nourriture, ni futur ni hors mandat, un jeu par date, correction sans suppression |
+| `App\Support\Livestock` | espèces et nourritures acceptées. Le serveur ne valide que la **forme** : quantité prise et perdue sont calculées par le site (seule table des coûts) |
+
+🔴 Aucun lecteur n'apprend qui a inscrit une naissance ou un prix (`can_withdraw` seulement). Mandat passé : de l'entrée en fonction à la fin enregistrée, étendu aux naissances que le personnage a inscrites en attendant son successeur ; rien de postérieur. Refus bilingues `livestock.api.*`. Hors export art. 20. Le cheptel et les ventes n'en font pas partie. ⚠️ **Prod** : `migrate` (3 tables), `route:cache`, aucun `config/*.php`, `.env` ni paquet ; `policy:notify 2026-11-28-historique-des-naissances` une fois le texte en ligne. Tests : `Livestock/LivestockTest`.
 
 ## Animation — Décode le code (27/10/2026, refondue 28/10)
 

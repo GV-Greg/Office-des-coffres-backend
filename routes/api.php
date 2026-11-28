@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CustomsListController;
 use App\Http\Controllers\Api\CustomsReportController;
 use App\Http\Controllers\Api\InventorySettingsController;
 use App\Http\Controllers\Api\ItemIconController;
+use App\Http\Controllers\Api\LivestockController;
 use App\Http\Controllers\Api\MandateController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\MinePriceController;
@@ -197,6 +198,24 @@ Route::prefix('v1')->group(function () {
                 ->where('province', '[0-9]+');
             Route::put('provinces/{province}/mine-prices/{price}', [MinePriceController::class, 'update'])
                 ->where(['province' => '[0-9]+', 'price' => '[0-9]+']);
+        });
+        // Livre des naissances : tout passe par un personnage, la province vient de son poste. Pas de DELETE : un retrait date la
+        // naissance, un prix faux se corrige. ⚠️ Routes ajoutées : route:cache en prod.
+        Route::get('characters/{character}/livestock', [LivestockController::class, 'show'])
+            ->where('character', '[0-9]+');
+        Route::get('characters/{character}/livestock/mandates/{mandate}', [LivestockController::class, 'mandate'])
+            ->where(['character' => '[0-9]+', 'mandate' => '[0-9]+']);
+        Route::middleware('throttle:30,1')->group(function () {
+            Route::post('characters/{character}/livestock/births', [LivestockController::class, 'storeBirth'])
+                ->where('character', '[0-9]+');
+            Route::post('characters/{character}/livestock/births/{birth}/withdraw', [LivestockController::class, 'withdrawBirth'])
+                ->where(['character' => '[0-9]+', 'birth' => '[0-9]+']);
+            Route::put('characters/{character}/livestock/species', [LivestockController::class, 'updateSpecies'])
+                ->where('character', '[0-9]+');
+            Route::post('characters/{character}/livestock/prices', [LivestockController::class, 'storePrice'])
+                ->where('character', '[0-9]+');
+            Route::put('characters/{character}/livestock/prices/{price}', [LivestockController::class, 'updatePrice'])
+                ->where(['character' => '[0-9]+', 'price' => '[0-9]+']);
         });
         // Animation — Décode le code.
         // Autorisation par PROPRIÉTÉ (DecodeWorkflow), jamais par poste. ⚠️ Routes ajoutées : route:cache en prod.
