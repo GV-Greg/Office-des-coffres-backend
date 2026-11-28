@@ -191,8 +191,8 @@ return [
     '2026-11-28-historique-des-naissances' => [
         'date' => '2026-11-28',
         'summary' => [
-            'fr' => "Un nouvel outil, le Livre des naissances, permet au bailli d'inscrire les naissances d'animaux de sa province et le prix de leur nourriture. L'Office les conserve sans limite de durée, les naissances chiffrées, lisibles du bailli, du dirigeant et des anciens titulaires pour leur période ; elles ne figurent pas dans l'export de vos données. Consultez la politique de confidentialité mise à jour pour le détail.",
-            'en' => "A new tool, the Birth Register, lets the Sheriff record the births of animals in their province and the price of their food. The Office keeps them with no time limit, births encrypted, readable by the Sheriff, the leader and former holders for their period; they are not part of your data export. See the updated privacy policy for details.",
+            'fr' => "Un nouvel outil, le Livre des naissances, permet au bailli d'inscrire les naissances d'animaux de sa province, et de tenir le prix de leur nourriture dans « Mon bureau ». L'Office les conserve sans limite de durée, les naissances chiffrées, lisibles du bailli, du dirigeant et des anciens titulaires pour leur période ; elles ne figurent pas dans l'export de vos données. Consultez la politique de confidentialité mise à jour pour le détail.",
+            'en' => "A new tool, the Birth Register, lets the Sheriff record the births of animals in their province, and keep the price of their food in “My desk”. The Office keeps them with no time limit, births encrypted, readable by the Sheriff, the leader and former holders for their period; they are not part of your data export. See the updated privacy policy for details.",
         ],
         'substantial' => true,
         'decided_by' => 'Greg',
